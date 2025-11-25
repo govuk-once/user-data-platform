@@ -1,6 +1,9 @@
 # Node Files
 node_modules/
 
+#Build outputs
+build/
+dist/
 
 .nx/cache
 .nx/workspace-data

@@ -1,5 +1,4 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
     "rootDir": ".",
     "sourceMap": true,
@@ -13,11 +12,9 @@
     "lib": ["es2020"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@libs/*": ["libs/*/src"],
-      "@modules/*": ["modules/*/src"]
+      "@src/getDataLambda": ["./src/getDataLambda"],
+      "@src/postDataLambda": ["./src/postDataLambda"],
     }
   },
-  "exclude": ["node_modules", "tmp"]
 }
