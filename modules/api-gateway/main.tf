@@ -24,14 +24,6 @@ resource "aws_cloudwatch_log_group" "access" {
   retention_in_days = 1
 }
 
-resource "aws_lambda_function" "example" {
-  filename      = "example.zip"
-  function_name = "Example"
-  role          = aws_iam_role.example.arn
-  handler       = "index.handler"
-  runtime       = "nodejs22.x"
-}
-
 resource "aws_apigatewayv2_integration" "this" {
   api_id               = aws_apigatewayv2_api.this.id
   integration_type     = "AWS_PROXY"
@@ -40,6 +32,17 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_uri      = aws_lambda_function.example.invoke_arn
   passthrough_behavior = "WHEN_NO_MATCH"
 }
+
+resource "aws_lambda_permission" "lambda_permission" {
+  statement_id  = "AllowMyDemoAPIInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = data.aws_lambda_function.this.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  # The /* part allows invocation from any stage, method and resource path
+  # within API Gateway.
+  source_arn = "${aws_api_gateway_rest_api.MyDemoAPI.execution_arn}/*"
+} 
 
 data "aws_lambda_function" "this" {
   function_name = var.readingLambda
