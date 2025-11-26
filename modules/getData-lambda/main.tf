@@ -4,15 +4,14 @@ locals {
   prefix  = "${local.project}-${local.env}"
 }
 
-
 resource "aws_lambda_function" "this" {
   filename         = data.archive_file.src.output_path
-  function_name    = "${prefix}-getData"
+  function_name    = "${local.prefix}-getData"
   role             = data.aws_iam_role.this.arn
   handler          = "index.handler"
   source_code_hash = data.archive_file.src.output_base64sha256
 
-  runtime = "nodejs22.x"
+    runtime = "nodejs${var.runtime_version}"
 
   environment {
     variables = {
@@ -40,7 +39,7 @@ data "aws_iam_role" "this" {
 }
 
 data "archive_file" "src" {
-  source_dir  = "../build"
-  output_path = "./lambdabuilds/getDataLambda.zip"
+  source_dir  = "./lambdabuilds"
+  output_path = "./getDataLambda.zip"
   type        = "zip"
 }

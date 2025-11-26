@@ -24,26 +24,42 @@ resource "aws_cloudwatch_log_group" "access" {
   retention_in_days = 1
 }
 
-resource "aws_apigatewayv2_integration" "this" {
+resource "aws_apigatewayv2_integration" "getData" {
   api_id               = aws_apigatewayv2_api.this.id
   integration_type     = "AWS_PROXY"
-  description          = "UDP Updater"
+  description          = "UDP get data"
   integration_method   = "GET"
-  integration_uri      = aws_lambda_function.example.invoke_arn
+  integration_uri      = var.getData_lambda_invoke_arn
   passthrough_behavior = "WHEN_NO_MATCH"
 }
 
-resource "aws_lambda_permission" "lambda_permission" {
+resource "aws_apigatewayv2_integration" "postData" {
+  api_id               = aws_apigatewayv2_api.this.id
+  integration_type     = "AWS_PROXY"
+  description          = "UDP post data"
+  integration_method   = "POST"
+  integration_uri      = var.postData_lambda_invoke_arn
+  passthrough_behavior = "WHEN_NO_MATCH"
+}
+
+resource "aws_lambda_permission" "lambda_permission_getData" {
   statement_id  = "AllowMyDemoAPIInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = data.aws_lambda_function.this.function_name
+  function_name = var.getData_lambda_name
   principal     = "apigateway.amazonaws.com"
 
   # The /* part allows invocation from any stage, method and resource path
   # within API Gateway.
-  source_arn = "${aws_api_gateway_rest_api.MyDemoAPI.execution_arn}/*"
+  source_arn = "${aws_apigatewayv2_api.this.arn}/*"
 } 
 
-data "aws_lambda_function" "this" {
-  function_name = var.readingLambda
-}
+resource "aws_lambda_permission" "lambda_permission_postData" {
+  statement_id  = "AllowMyDemoAPIInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = var.postData_lambda_name
+  principal     = "apigateway.amazonaws.com"
+
+  # The /* part allows invocation from any stage, method and resource path
+  # within API Gateway.
+  source_arn = "${aws_apigatewayv2_api.this.arn}/*"
+} 
