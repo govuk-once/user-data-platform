@@ -1,0 +1,26 @@
+{
+    "name": "@src/postDataLambda",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "targets": {
+        "test": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "vitest run src/postDataLambda/*"
+            }
+        },
+        "build": {
+            "dependsOn": ["typecheck","test"],
+            "executor": "@nx/esbuild:esbuild",
+            "options": {
+                "main": "src/postDataLambda/handler.ts",
+                "tsConfig": "src/postDataLambda/tsconfig.json",
+                "outputPath": "./build",
+                "outputFileName": "postDataLambda.js",
+                "minify": true,
+                "bundle": true,
+                "platform": "node"
+            }
+        }
+    }
+}
