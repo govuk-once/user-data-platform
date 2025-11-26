@@ -40,7 +40,7 @@ data "aws_iam_role" "this" {
 }
 
 data "archive_file" "src" {
-  source_dir = "../build"
+  source_dir  = "../build"
   output_path = "./lambdabuilds/getDataLambda.zip"
-  type = "zip"
+  type        = "zip"
 }

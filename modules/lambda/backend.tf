@@ -11,9 +11,9 @@ provider "aws" {
   region = "eu-west-1"
   default_tags {
     tags = {
-    Environment = var.env
-    Application = "UDP"
-    Repo_URL = "https://github.com/govuk-once/user-data-platform"
-  }
+      Environment = var.env
+      Application = "UDP"
+      Repo_URL    = "https://github.com/govuk-once/user-data-platform"
+    }
   }
 }
