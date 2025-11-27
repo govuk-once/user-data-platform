@@ -28,7 +28,7 @@ variable "tags" {
   type = map(string)
   default = {}
 }
-
+# may end up more granular eg "read:topics", "write:topics"
 variable "resource_server_scopes" {
   description = "List of scopes for the resource server"
   type = list(object({
