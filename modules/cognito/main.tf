@@ -1,4 +1,47 @@
 # ---
+# Cloudwatch log group
+# ----
+resource "aws_cloudwatch_log_group" "cognito" {
+    count = var.logging.enabled ? 1 : 0
+
+    name = "/aws/cognito/${var.user_pool_name}-${var.environment}"
+    retention_in_days = var.logging.retention_in_days
+    kms_key_id = var.logging.kms_key_arn
+
+    tags = merge(var.tags,  {
+        name = "${var.user_pool_name}-${var.environment}-logs"
+    })
+  
+}
+
+# ---
+# IAM policy for cloudwatch logs
+# ----
+data "aws_iam_policy_document" "cognito_logging" {
+  count = var.logging.enabled ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    principals {
+       type = "Service"
+       identifiers = ["cognito-idp.amazon.com"]
+    }
+    actions = [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+    ]
+    resources = ["${aws_cloudwatch_log_group.cognito[*].arn}:*"]
+  }
+}
+
+resource "aws_cloudwatch_log_resource_policy" "cognito" {
+    count = var.logging.enabled ? 1 : 0
+
+    policy_name = "${var.user_pool_name}-${var.environment}-cognito-logging"
+    policy_document = data.aws_iam_policy_document.cognito_logging[0].json
+}
+
+# ---
 # Cognito User pool
 # ----
 resource "aws_cognito_user_pool" "main" {
@@ -24,10 +67,21 @@ resource "aws_cognito_user_pool" "main" {
       }
     }
 
+    # logging config
+    dynamic "user_pool_add_ons" {
+      for_each = var.logging.enabled ? [1] : []
+      content {
+        advanced_security_mode = var.logging.advanced_security_mode
+      }
+    }
+
     tags = merge(var.tags, {
         name = "${var.user_pool_name}-${var.environment}"
         environment = var.environment
     })
+
+
+    depends_on = [ aws_cloudwatch_log_resource_policy.cognito ]
 
 }
 # ---
@@ -83,4 +137,110 @@ resource "aws_cognito_user_pool_client" "m2m" {
     prevent_user_existence_errors = "ENABLED"
 
     depends_on = [ aws_cognito_resource_server.api ]
+}
+
+
+# ---
+# Alarm Notifications
+# ----
+
+resource "aws_sns_topic" "cognito_alarms" {
+   count = var.logging.enabled ? 1 : 0
+
+   name = "${var.user_pool_name}-${var.environment}-cognito-alarms"
+
+   tags = merge(var.tags, {
+    name = "${var.user_pool_name}-${var.environment}-cognito-alarms"
+   })
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+    for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
+
+    topic_arn = aws_sns_topic.cognito_alarms[0].arn
+    protocol = "email"
+    endpoint = each.value
+}
+
+#alarm Throttling - token requests are being throttled
+resource "aws_cloudwatch_metric_alarm" "throttling" {
+    count = var.alarms.enabled ? 1 : 0
+
+    alarm_name = "${var.user_pool_name}-${var.environment}-throttling"
+    alarm_description = "Alert when cognito requests are being throttled"
+    comparison_operator = "GreaterThanThreashold"
+    evaluation_periods = var.alarms.throttling.evaluation_periods
+    metric_name = "CallCount"
+    namespace = "AWS/Cognito"
+    period = var.alarms.throttling.period_seconds
+    statistic = "Sum"
+    threshold = var.alarms.throttling.threashold
+
+    dimensions = {
+        UserPool = aws_cognito_user_pool.main.id
+        Service = "Cognito User Pools"
+    }
+
+    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+
+    tags = merge(var.tags, {
+        name = "${var.user_pool_name}-${var.environment}-throttling"
+    })
+  
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "comprimised-credentials" {
+    count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
+
+    alarm_name = "${var.user_pool_name}-${var.environment}-comprimised-credentials"
+    alarm_description = "Alert when compremised credentials are detected"
+    comparison_operator = "GreaterThanThreashold"
+    evaluation_periods = 1
+    metric_name = "ComprimisedCredentialRisk"
+    namespace = "AWS/Cognito"
+    period = 300
+    statistic = "Sum"
+    threshold = 0
+    treat_missing_data = "notBreeching"
+
+    dimensions = {
+        UserPool = aws_cognito_user_pool.main.id
+        RiskLevel = "High"
+    }
+
+    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+
+    tags = merge(var.tags, {
+        name = "${var.user_pool_name}-${var.environment}-comprimised-credentials"
+    })
+}
+
+resource "aws_cloudwatch_metric_alarm" "account_takeover_risk" {
+    count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
+
+    alarm_name = "${var.user_pool_name}-${var.environment}-account-takeover-risk"
+    alarm_description = "Alert when Account takeover risk is detected"
+    comparison_operator = "GreaterThanThreashold"
+    evaluation_periods = 1
+    metric_name = "AccountTakeoverRisk"
+    namespace = "AWS/Cognito"
+    period = 300
+    statistic = "Sum"
+    threshold = 0
+    treat_missing_data = "notBreeching"
+
+    dimensions = {
+        UserPool = aws_cognito_user_pool.main.id
+        RiskLevel = "High"
+    }
+
+    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+
+    tags = merge(var.tags, {
+        name = "${var.user_pool_name}-${var.environment}-account-takeover-risk"
+    })
 }

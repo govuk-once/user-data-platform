@@ -55,3 +55,49 @@ variable "m2m_clients" {
     }))
     default = {}
 }
+
+variable "logging" {
+    description = "Logging configuration for cognito"
+
+    type = object({
+      enabled = bool
+      retention_days = number
+      kms_key_arn = optional(string)
+      advanced_security_mode = string #OFF, AUDIT or ENFORCED
+    })
+    default = {
+        enabled = true
+        retention_days = 30
+        kms_key_arn = null
+        advanced_security_mode = "AUDIT"
+    }
+
+    validation {
+      condition = contains(["OFF", "AUDIT", "ENFORCED"], var.logging.advanced_security_mode)
+      error_message = "advanced_security_mode must be one of OFF, AUDI, ENFORCED"
+    }
+}
+
+variable "alarms" {
+    description = "Coutwatch Alarms Configuration for cognito"
+    type = object({
+      enabled = bool
+      notification_emails = list(string)
+      throttling = object({
+        threashold = number
+        evaluation_periods = number
+        period_seconds = number 
+      })
+    })
+
+    default = {
+      enabled = true
+      notification_emails = []
+      throttling = {
+        threashold = 50
+        evaluation_periods = 2
+        period_seconds = 300
+      }
+    }
+  
+}
