@@ -22,4 +22,9 @@ resource "aws_dynamodb_table" "this" {
     point_in_time_recovery {
       enabled = var.point_in_time_recovery_enabled
     }
+
+    tags = merge(var.tags, {
+      name = "${var.table_name}=${var.environment}"
+      environment = var.environment
+    })
 }

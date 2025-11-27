@@ -37,3 +37,9 @@ variable "point_in_time_recovery_enabled" {
   type = bool
   default = true
 }
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type = map(string)
+  default = {}
+}
