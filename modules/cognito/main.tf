@@ -191,14 +191,14 @@ resource "aws_cloudwatch_metric_alarm" "throttling" {
 }
 
 
-resource "aws_cloudwatch_metric_alarm" "comprimised-credentials" {
+resource "aws_cloudwatch_metric_alarm" "compromised-credentials" {
     count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
 
-    alarm_name = "${var.user_pool_name}-${var.environment}-comprimised-credentials"
+    alarm_name = "${var.user_pool_name}-${var.environment}-compromised-credentials"
     alarm_description = "Alert when compremised credentials are detected"
     comparison_operator = "GreaterThanThreashold"
     evaluation_periods = 1
-    metric_name = "ComprimisedCredentialRisk"
+    metric_name = "CompromisedCredentialRisk"
     namespace = "AWS/Cognito"
     period = 300
     statistic = "Sum"
@@ -214,7 +214,7 @@ resource "aws_cloudwatch_metric_alarm" "comprimised-credentials" {
     ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
 
     tags = merge(var.tags, {
-        name = "${var.user_pool_name}-${var.environment}-comprimised-credentials"
+        name = "${var.user_pool_name}-${var.environment}-comprmised-credentials"
     })
 }
 
