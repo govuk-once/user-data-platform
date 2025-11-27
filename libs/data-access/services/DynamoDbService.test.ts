@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { DynamoDbService } from './DynamoDbService';
-import { CompositeKeyEntity } from '../types/Entity';
+import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { GetByIdError, SaveError } from '../errors/Errors';
+import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
 
 
-interface TestEntity extends CompositeKeyEntity {
+interface TestEntity extends DynamoDBEntity {
   data?: {
     status?: string;
     count?: number;
@@ -64,7 +64,7 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when pk is missing', async () => {
-      await expect(service.getByKey('', 'topics')).rejects.toThrow(GetByIdError);
+      await expect(service.getByKey('', 'topics')).rejects.toThrow(GetError);
       await expect(service.getByKey('', 'topics')).rejects.toThrow(
         'Both pk and sk are required',
       );
@@ -74,7 +74,7 @@ describe('DynamoDbService', () => {
     it('should throw error when sk is missing', async () => {
       await expect(
         service.getByKey('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', ''),
-      ).rejects.toThrow(GetByIdError);
+      ).rejects.toThrow(GetError);
       await expect(
         service.getByKey('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', ''),
       ).rejects.toThrow('Both pk and sk are required');
@@ -82,7 +82,7 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when both pk and sk are missing', async () => {
-      await expect(service.getByKey('', '')).rejects.toThrow(GetByIdError);
+      await expect(service.getByKey('', '')).rejects.toThrow(GetError);
       await expect(service.getByKey('', '')).rejects.toThrow(
         'Both pk and sk are required',
       );

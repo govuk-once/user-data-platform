@@ -1,20 +1,15 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import {
-  DynamoDBClient,
-  GetItemCommand,
-  PutItemCommand,
-  PutItemCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { CompositeKeyEntity } from '../types/Entity';
+import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from './DynamoDBRepository';
-import { GetByIdError, SaveError } from '../errors/Errors';
+import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
 
 
-const dynamoMock = mockClient(DynamoDBClient);
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
-interface TestEntity extends CompositeKeyEntity {
+interface TestEntity extends DynamoDBEntity {
   data?: Record<string, any>;
 }
 
@@ -26,8 +21,10 @@ describe('DynamoDBRepository', () => {
   const getTtl = (secondsFromNow: number): number => 
     Math.floor(Date.now() / 1000) + secondsFromNow;
 
-  const getSavedItem = (callIndex = 0) =>
-    (dynamoMock.call(callIndex).args[0].input as PutItemCommandInput).Item;
+  const getSavedItem = (callIndex = 0) => {
+    const input = dynamoMock.call(callIndex).args[0].input as { Item: any };
+    return input.Item;
+  };
 
   const expectErrorWithCause = <T extends Error>(
     error: unknown,
@@ -48,24 +45,22 @@ describe('DynamoDBRepository', () => {
     logger.setEnabled(false);
     repository = new DynamoDBRepository<TestEntity>(
       tableName,
-      dynamoMock as unknown as DynamoDBClient
+      dynamoMock as unknown as DynamoDBDocumentClient
     );
   });
 
   describe('get', () => {
     it('should return entity when item exists', async () => {
       const mockItem = {
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
         data: {
-          M: {
-            name: { S: 'John Doe' },
-            email: { S: 'john@example.com' },
-          },
+          name: 'John Doe',
+          email: 'john@example.com',
         },
       };
 
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
       });
 
@@ -83,14 +78,14 @@ describe('DynamoDBRepository', () => {
       expect(dynamoMock.call(0).args[0].input).toEqual({
         TableName: tableName,
         Key: {
-          pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-          sk: { S: 'topics' },
+          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          sk: 'topics',
         },
       });
     });
 
     it('should return null when item does not exist', async () => {
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: undefined,
       });
 
@@ -101,24 +96,18 @@ describe('DynamoDBRepository', () => {
 
     it('should handle entity with complex nested data', async () => {
       const mockItem = {
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
         data: {
-          M: {
-            settings: {
-              M: {
-                theme: { S: 'dark' },
-                notifications: { BOOL: true },
-              },
-            },
-            tags: {
-              L: [{ S: 'admin' }, { S: 'verified' }],
-            },
+          settings: {
+            theme: 'dark',
+            notifications: true,
           },
+          tags: ['admin', 'verified'],
         },
       };
 
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
       });
 
@@ -139,11 +128,11 @@ describe('DynamoDBRepository', () => {
 
     it('should handle entity without data property', async () => {
       const mockItem = {
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
       };
 
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
       });
 
@@ -155,64 +144,64 @@ describe('DynamoDBRepository', () => {
       });
     });
 
-    it('should throw GetByIdError when DynamoDB operation fails', async () => {
+    it('should throw GetError when DynamoDB operation fails', async () => {
       const mockError = new Error('DynamoDB error');
-      dynamoMock.on(GetItemCommand).rejects(mockError);
+      dynamoMock.on(GetCommand).rejects(mockError);
 
       await expect(repository.get({ pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', sk: 'topics' })).rejects.toThrow(
-        GetByIdError
+        GetError
       );
       await expect(repository.get({ pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', sk: 'topics' })).rejects.toThrow(
         'Failed to get item with id a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d#topics: DynamoDB error'
       );
     });
 
-    it('should throw GetByIdError when pk is missing', async () => {
+    it('should throw GetError when pk is missing', async () => {
       const getWithoutPk = () => repository.get({ sk: 'topics' } as Partial<TestEntity>);
       
-      await expect(getWithoutPk()).rejects.toThrow(GetByIdError);
+      await expect(getWithoutPk()).rejects.toThrow(GetError);
       await expect(getWithoutPk()).rejects.toThrow('Both pk and sk are required for composite key entities');
     });
 
-    it('should throw GetByIdError when sk is missing', async () => {
+    it('should throw GetError when sk is missing', async () => {
       const getWithoutSk = () => repository.get({ pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' } as Partial<TestEntity>);
       
-      await expect(getWithoutSk()).rejects.toThrow(GetByIdError);
+      await expect(getWithoutSk()).rejects.toThrow(GetError);
       await expect(getWithoutSk()).rejects.toThrow('Both pk and sk are required for composite key entities');
     });
 
-    it('should throw GetByIdError when pk is undefined', async () => {
+    it('should throw GetError when pk is undefined', async () => {
       const getWithUndefinedPk = () => repository.get({ pk: undefined, sk: 'topics' } as Partial<TestEntity>);
       
-      await expect(getWithUndefinedPk()).rejects.toThrow(GetByIdError);
+      await expect(getWithUndefinedPk()).rejects.toThrow(GetError);
       await expect(getWithUndefinedPk()).rejects.toThrow('Both pk and sk are required for composite key entities');
     });
 
-    it('should throw GetByIdError when sk is undefined', async () => {
+    it('should throw GetError when sk is undefined', async () => {
       const getWithUndefinedSk = () => repository.get({ pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', sk: undefined } as Partial<TestEntity>);
       
-      await expect(getWithUndefinedSk()).rejects.toThrow(GetByIdError);
+      await expect(getWithUndefinedSk()).rejects.toThrow(GetError);
       await expect(getWithUndefinedSk()).rejects.toThrow('Both pk and sk are required for composite key entities');
     });
 
-    it('should include cause in GetByIdError when DynamoDB fails', async () => {
+    it('should include cause in GetError when DynamoDB fails', async () => {
       const mockError = new Error('Network timeout');
-      dynamoMock.on(GetItemCommand).rejects(mockError);
+      dynamoMock.on(GetCommand).rejects(mockError);
 
       try {
         await repository.get({ pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', sk: 'topics' });
-        expect.fail('Should have thrown GetByIdError');
+        expect.fail('Should have thrown GetError');
       } catch (error) {
-        expectErrorWithCause(error, GetByIdError, 'Network timeout');
+        expectErrorWithCause(error, GetError, 'Network timeout');
       }
     });
 
-    it('should include cause in GetByIdError when keys are invalid', async () => {
+    it('should include cause in GetError when keys are invalid', async () => {
       try {
         await repository.get({ sk: 'topics' } as Partial<TestEntity>);
-        expect.fail('Should have thrown GetByIdError');
+        expect.fail('Should have thrown GetError');
       } catch (error) {
-        expectErrorWithCause(error, GetByIdError);
+        expectErrorWithCause(error, GetError);
       }
     });
   });
@@ -228,7 +217,7 @@ describe('DynamoDBRepository', () => {
         },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
@@ -236,13 +225,11 @@ describe('DynamoDBRepository', () => {
       expect(dynamoMock.call(0).args[0].input).toEqual({
         TableName: tableName,
         Item: {
-          pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-          sk: { S: 'topics' },
+          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          sk: 'topics',
           data: {
-            M: {
-              name: { S: 'John Doe' },
-              email: { S: 'john@example.com' },
-            },
+            name: 'John Doe',
+            email: 'john@example.com',
           },
         },
       });
@@ -254,15 +241,15 @@ describe('DynamoDBRepository', () => {
         sk: 'topics',
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
       expect(dynamoMock.call(0).args[0].input).toEqual({
         TableName: tableName,
         Item: {
-          pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-          sk: { S: 'topics' },
+          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          sk: 'topics',
         },
       });
     });
@@ -283,60 +270,41 @@ describe('DynamoDBRepository', () => {
         },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
-      expect(
-        (dynamoMock.call(0).args[0].input as PutItemCommandInput).Item
-      ).toEqual({
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+      expect((dynamoMock.call(0).args[0].input as any).Item).toEqual({
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
         data: {
-          M: {
-            settings: {
-              M: {
-                theme: { S: 'dark' },
-                notifications: { BOOL: true },
-              },
-            },
-            members: {
-              L: [
-                {
-                  M: {
-                    id: { S: '1' },
-                    role: { S: 'admin' },
-                  },
-                },
-                {
-                  M: {
-                    id: { S: '2' },
-                    role: { S: 'user' },
-                  },
-                },
-              ],
-            },
+          settings: {
+            theme: 'dark',
+            notifications: true,
           },
+          members: [
+            { id: '1', role: 'admin' },
+            { id: '2', role: 'user' },
+          ],
         },
       });
     });
 
-    it('should remove undefined values from data', async () => {
+    it('should save entity with undefined data property', async () => {
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         sk: 'topics',
         data: undefined,
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
-      expect(
-        (dynamoMock.call(0).args[0].input as PutItemCommandInput).Item
-      ).toEqual({
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+      expect((dynamoMock.call(0).args[0].input as any).Item).toEqual({
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+        data: undefined,
       });
     });
 
@@ -350,7 +318,7 @@ describe('DynamoDBRepository', () => {
       };
 
       const mockError = new Error('DynamoDB error');
-      dynamoMock.on(PutItemCommand).rejects(mockError);
+      dynamoMock.on(PutCommand).rejects(mockError);
 
       await expect(repository.save(entity)).rejects.toThrow(SaveError);
       await expect(repository.save(entity)).rejects.toThrow(
@@ -366,7 +334,7 @@ describe('DynamoDBRepository', () => {
       };
 
       const mockError = new Error('Write capacity exceeded');
-      dynamoMock.on(PutItemCommand).rejects(mockError);
+      dynamoMock.on(PutCommand).rejects(mockError);
 
       try {
         await repository.save(entity);
@@ -395,7 +363,7 @@ describe('DynamoDBRepository', () => {
         },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity1);
       await repository.save(entity2);
@@ -405,8 +373,8 @@ describe('DynamoDBRepository', () => {
   });
 
   describe('constructor', () => {
-    it('should create repository with provided DynamoDB client', () => {
-      const customClient = new DynamoDBClient({});
+    it('should create repository with provided DynamoDB Document Client', () => {
+      const customClient = dynamoMock as unknown as DynamoDBDocumentClient;
       const repo = new DynamoDBRepository<TestEntity>(tableName, customClient);
 
       expect(repo).toBeInstanceOf(DynamoDBRepository);
@@ -423,13 +391,13 @@ describe('DynamoDBRepository', () => {
         data: { sessionId: 'abc123' },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
       const savedItem = getSavedItem();
       expect(savedItem).toHaveProperty('ttl');
-      expect(savedItem?.ttl).toEqual({ N: ttlValue.toString() });
+      expect(savedItem?.ttl).toEqual(ttlValue);
       expect(savedItem).toHaveProperty('pk');
       expect(savedItem).toHaveProperty('sk');
       expect(savedItem).toHaveProperty('data');
@@ -438,17 +406,15 @@ describe('DynamoDBRepository', () => {
     it('should retrieve entity with ttl field', async () => {
       const ttlValue = getTtl(3600);
       const mockItem = {
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
-        ttl: { N: ttlValue.toString() },
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+        ttl: ttlValue,
         data: {
-          M: {
-            sessionId: { S: 'abc123' },
-          },
+          sessionId: 'abc123',
         },
       };
 
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
       });
 
@@ -472,7 +438,7 @@ describe('DynamoDBRepository', () => {
         data: { userId: 'user456' },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
@@ -484,16 +450,14 @@ describe('DynamoDBRepository', () => {
 
     it('should retrieve entity without ttl field', async () => {
       const mockItem = {
-        pk: { S: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
-        sk: { S: 'topics' },
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
         data: {
-          M: {
-            userId: { S: 'user789' },
-          },
+          userId: 'user789',
         },
       };
 
-      dynamoMock.on(GetItemCommand).resolves({
+      dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
       });
 
@@ -517,13 +481,13 @@ describe('DynamoDBRepository', () => {
         data: { status: 'expired' },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity);
 
       const savedItem = getSavedItem();
       expect(savedItem).toHaveProperty('ttl');
-      expect(savedItem?.ttl).toEqual({ N: '0' });
+      expect(savedItem?.ttl).toEqual(0);
     });
 
     it('should update ttl when overwriting entity', async () => {
@@ -544,7 +508,7 @@ describe('DynamoDBRepository', () => {
         data: { version: 2 },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity1);
       await repository.save(entity2);
@@ -552,11 +516,11 @@ describe('DynamoDBRepository', () => {
       const firstSave = getSavedItem(0);
       const secondSave = getSavedItem(1);
 
-      expect(firstSave?.ttl).toEqual({ N: ttl1.toString() });
-      expect(secondSave?.ttl).toEqual({ N: ttl2.toString() });
+      expect(firstSave?.ttl).toEqual(ttl1);
+      expect(secondSave?.ttl).toEqual(ttl2);
     });
 
-    it('should remove ttl when overwriting entity with one without ttl', async () => {
+    it('should handle removing ttl when overwriting entity', async () => {
       const ttl = getTtl(3600);
 
       const entity1: TestEntity = {
@@ -572,7 +536,7 @@ describe('DynamoDBRepository', () => {
         data: { withTtl: false },
       };
 
-      dynamoMock.on(PutItemCommand).resolves({});
+      dynamoMock.on(PutCommand).resolves({});
 
       await repository.save(entity1);
       await repository.save(entity2);

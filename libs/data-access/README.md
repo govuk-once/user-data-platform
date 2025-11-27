@@ -4,21 +4,23 @@
 
 ```typescript
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { 
   DynamoDbService, 
   RepositoryFactory, 
   StoreType,
-  CompositeKeyEntity 
+  DynamoDBEntity 
 } from '@libs/data-access';
 
-// Create DynamoDB client outside the handler (connection pooling)
+// Create DynamoDB Document Client outside the handler (connection pooling)
 const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
 
-const repository = RepositoryFactory.create<CompositeKeyEntity>(
+const repository = RepositoryFactory.create<DynamoDBEntity>(
   StoreType.DYNAMODB,
   { 
     tableName: process.env.TABLE_NAME!,
-    client 
+    client: docClient 
   }
 );
 

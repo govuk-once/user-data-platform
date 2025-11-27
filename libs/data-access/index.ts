@@ -1,11 +1,10 @@
 // Types
-export { Entity, CompositeKeyEntity } from './types/Entity';
+export { Entity, DynamoDBEntity, DynamoDBValue, DynamoDBAttributeMap } from './types/Entity';
 export { Repository } from './repositories/Repository';
 export { StoreType } from './types/StoreType';
 export { DynamoDBConfig } from './types/DynamoDBConfig';
 
 // Repositories
-export {MemoryRepository} from './repositories/memoryRepository';
 export { DynamoDBRepository } from './repositories/DynamoDBRepository';
 
 // Factory
@@ -19,7 +18,7 @@ export {
   RepositoryError,
   NotFoundError,
   SaveError,
-  GetByIdError,
+  GetError,
 } from './errors/Errors';
 
 // Utils

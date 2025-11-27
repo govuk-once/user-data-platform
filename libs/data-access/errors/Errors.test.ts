@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   RepositoryError,
   NotFoundError,
   SaveError,
-  GetByIdError,
+  GetError,
 } from './Errors';
 
 describe('Error Classes', () => {
@@ -95,23 +95,23 @@ describe('Error Classes', () => {
     });
   });
 
-  describe('GetByIdError', () => {
+  describe('GetError', () => {
     it('should create error with entity name, id, and cause', () => {
       const originalError = new Error('Connection refused');
-      const error = new GetByIdError('User', '789', originalError);
+      const error = new GetError('User', '789', originalError);
 
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(RepositoryError);
-      expect(error).toBeInstanceOf(GetByIdError);
+      expect(error).toBeInstanceOf(GetError);
       expect(error.message).toBe('Failed to get User with id 789: Connection refused');
-      expect(error.name).toBe('GetByIdError');
+      expect(error.name).toBe('GetError');
       expect(error.cause).toBe(originalError);
       expect(error.cause).toBeInstanceOf(Error);
     });
 
     it('should preserve original error in cause property', () => {
       const originalError = new Error('Not authorized');
-      const error = new GetByIdError('item', 'USER#456#PROFILE', originalError);
+      const error = new GetError('item', 'USER#456#PROFILE', originalError);
 
       expect(error.cause).toBe(originalError);
       expect(error.cause.message).toBe('Not authorized');
@@ -119,21 +119,21 @@ describe('Error Classes', () => {
 
     it('should format message correctly with composite key', () => {
       const originalError = new Error('Table not found');
-      const error = new GetByIdError('item', 'PRODUCT#ABC#DETAILS', originalError);
+      const error = new GetError('item', 'PRODUCT#ABC#DETAILS', originalError);
 
       expect(error.message).toBe('Failed to get item with id PRODUCT#ABC#DETAILS: Table not found');
     });
 
     it('should inherit from RepositoryError', () => {
       const originalError = new Error('Test');
-      const error = new GetByIdError('Customer', '555', originalError);
+      const error = new GetError('Customer', '555', originalError);
 
       expect(error instanceof RepositoryError).toBe(true);
     });
 
     it('should handle cause that is not an Error instance', () => {
       const originalError = new RangeError('Out of range');
-      const error = new GetByIdError('User', '123', originalError);
+      const error = new GetError('User', '123', originalError);
 
       expect(error.cause).toBe(originalError);
       expect(error.cause).toBeInstanceOf(RangeError);
@@ -146,7 +146,7 @@ describe('Error Classes', () => {
       const baseError = new RepositoryError('Base');
       const notFoundError = new NotFoundError('User', '1');
       const saveError = new SaveError('User', '2', new Error('test'));
-      const getByIdError = new GetByIdError('User', '3', new Error('test'));
+      const getByIdError = new GetError('User', '3', new Error('test'));
 
       // All should be instances of Error
       expect(baseError instanceof Error).toBe(true);
@@ -163,11 +163,11 @@ describe('Error Classes', () => {
       // Each should be instance of its own type
       expect(notFoundError instanceof NotFoundError).toBe(true);
       expect(saveError instanceof SaveError).toBe(true);
-      expect(getByIdError instanceof GetByIdError).toBe(true);
+      expect(getByIdError instanceof GetError).toBe(true);
 
       // Cross-type checks should fail
       expect(notFoundError instanceof SaveError).toBe(false);
-      expect(saveError instanceof GetByIdError).toBe(false);
+      expect(saveError instanceof GetError).toBe(false);
       expect(getByIdError instanceof NotFoundError).toBe(false);
     });
   });

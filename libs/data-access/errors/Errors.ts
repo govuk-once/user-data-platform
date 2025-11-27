@@ -52,21 +52,21 @@ export class SaveError extends RepositoryError {
 /**
  * Error thrown when retrieving an entity from the repository fails.
  */
-export class GetByIdError extends RepositoryError {
+export class GetError extends RepositoryError {
   /**
    * The underlying error that caused the retrieval to fail.
    */
   public readonly cause: Error;
 
   /**
-   * Creates a new GetByIdError.
+   * Creates a new GetError.
    * @param entityName - The name of the entity type that failed to retrieve
    * @param id - The identifier of the entity that failed to retrieve
    * @param originalError - The underlying error that caused the retrieval to fail
    */
   constructor(entityName: string, id: string, originalError: Error) {
     super(`Failed to get ${entityName} with id ${id}: ${originalError.message}`);
-    this.name = 'GetByIdError';
+    this.name = 'GetError';
     this.cause = originalError;
   }
 }

@@ -1,15 +1,15 @@
-import { CompositeKeyEntity } from '../types/Entity';
+import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { GetByIdError, SaveError } from '../errors/Errors';
+import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
 
 /**
  * Service class for DynamoDB entity operations with business logic.
  * Provides a higher-level API with validation, transformation, and orchestration.
  * Designed specifically for DynamoDB single-table design with composite keys.
- * @template T - The entity type that extends CompositeKeyEntity
+ * @template T - The entity type that extends DynamoDBEntity
  */
-export class DynamoDbService<T extends CompositeKeyEntity> {
+export class DynamoDbService<T extends DynamoDBEntity> {
   constructor(private readonly repository: DynamoDBRepository<T>) {}
 
   /**
@@ -17,7 +17,7 @@ export class DynamoDbService<T extends CompositeKeyEntity> {
    * @param pk - Partition key
    * @param sk - Sort key
    * @returns A promise that resolves to the entity if found, or null if not found
-   * @throws {GetByIdError} if pk or sk is missing
+   * @throws {GetError} if pk or sk is missing
    */
   async getByKey(pk: string, sk: string): Promise<T | null> {
     logger.info('Getting entity by key', {
@@ -32,7 +32,7 @@ export class DynamoDbService<T extends CompositeKeyEntity> {
         pk: pk || 'undefined',
         sk: sk || 'undefined',
       });
-      throw new GetByIdError(
+      throw new GetError(
         'entity',
         `${pk || 'undefined'}#${sk || 'undefined'}`,
         new Error('Both pk and sk are required')
