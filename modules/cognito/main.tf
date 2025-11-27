@@ -195,7 +195,7 @@ resource "aws_cloudwatch_metric_alarm" "compromised-credentials" {
     count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
 
     alarm_name = "${var.user_pool_name}-${var.environment}-compromised-credentials"
-    alarm_description = "Alert when compremised credentials are detected"
+    alarm_description = "Alert when compromised credentials are detected"
     comparison_operator = "GreaterThanThreashold"
     evaluation_periods = 1
     metric_name = "CompromisedCredentialRisk"
