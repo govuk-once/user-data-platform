@@ -7,8 +7,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { 
   DynamoDbService, 
-  RepositoryFactory, 
-  StoreType,
+  DynamoDBRepository,
   DynamoDBEntity 
 } from '@libs/data-access';
 
@@ -16,12 +15,9 @@ import {
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-const repository = RepositoryFactory.create<DynamoDBEntity>(
-  StoreType.DYNAMODB,
-  { 
-    tableName: process.env.TABLE_NAME!,
-    client: docClient 
-  }
+const repository = new DynamoDBRepository<DynamoDBEntity>(
+  process.env.TABLE_NAME!,
+  docClient
 );
 
 const service = new DynamoDbService(repository);
