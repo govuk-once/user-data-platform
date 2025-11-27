@@ -29,7 +29,7 @@ export const handler = async (event: any) => {
   const userId = event.pathParameters.userId;
 
   // Get data
-  const data = await service.getByKey(userId, 'profile');
+  const data = await service.getByKey(userId, 'topics');
   if (!data) {
     return { statusCode: 404, body: 'Not found' };
   }
@@ -37,8 +37,8 @@ export const handler = async (event: any) => {
   // Save data
   await service.save({
     pk: userId,
-    sk: 'profile',
-    data: { name: 'John', status: 'active' },
+    sk: 'topics',
+    data: { status: 'active' },
     ttl: Math.floor(Date.now() / 1000) + 86400, // 24 hours
   });
 
@@ -53,7 +53,7 @@ export const handler = async (event: any) => {
 Retrieves an entity by composite key.
 
 ```typescript
-const user = await service.getByKey('user-123', 'profile');
+const user = await service.getByKey('user-123', 'topics');
 ```
 
 ### `save(entity: T): Promise<void>`
@@ -63,7 +63,7 @@ Saves an entity with validation (pk, sk, ttl checks).
 ```typescript
 await service.save({
   pk: 'user-123',
-  sk: 'profile',
+  sk: 'topics',
   data: { status: 'active' },
 });
 ```
