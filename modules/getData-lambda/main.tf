@@ -7,7 +7,7 @@ locals {
 resource "aws_lambda_function" "this" {
   filename         = data.archive_file.src.output_path
   function_name    = "${local.prefix}-getData"
-  role             = data.aws_iam_role.this.arn
+  role             = aws_iam_role.lamdba_function_role.arn
   handler          = "index.handler"
   source_code_hash = data.archive_file.src.output_base64sha256
 
@@ -20,6 +20,7 @@ resource "aws_lambda_function" "this" {
     }
   }
 }
+
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
@@ -34,8 +35,25 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-data "aws_iam_role" "this" {
-  name = "AWSLambdaBasicExecutionRole"
+data "aws_iam_policy_document" "AWSLambdaTrustPolicyGetData" {
+  statement {
+    actions    = ["sts:AssumeRole"]
+    effect     = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lamdba_function_role" {
+  name               = "terraform_function_getData_role"
+  assume_role_policy = data.aws_iam_policy_document.AWSLambdaTrustPolicyGetData.json
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
+  role       = aws_iam_role.lamdba_function_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 data "archive_file" "src" {
