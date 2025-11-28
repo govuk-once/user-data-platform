@@ -5,7 +5,7 @@ resource "aws_cloudwatch_log_group" "cognito" {
     count = var.logging.enabled ? 1 : 0
 
     name = "/aws/cognito/${var.user_pool_name}-${var.environment}"
-    retention_in_days = var.logging.retention_in_days
+    retention_in_days = var.logging.retention_days
     kms_key_id = var.logging.kms_key_arn
 
     tags = merge(var.tags,  {
@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "cognito_logging" {
         "logs:CreateLogStream",
         "logs:PutLogEvents"
     ]
-    resources = ["${aws_cloudwatch_log_group.cognito[*].arn}:*"]
+    resources = ["${aws_cloudwatch_log_group.cognito[0].arn}:*"]
   }
 }
 
@@ -116,7 +116,7 @@ resource "aws_cognito_resource_server" "api" {
 resource "aws_cognito_user_pool_client" "m2m" {
     for_each = var.m2m_clients
 
-    name = "${each.key}-${ar.environment}"
+    name = "${each.key}-${var.environment}"
     user_pool_id = aws_cognito_user_pool.main.id
 
     generate_secret = true
@@ -168,7 +168,7 @@ resource "aws_cloudwatch_metric_alarm" "throttling" {
 
     alarm_name = "${var.user_pool_name}-${var.environment}-throttling"
     alarm_description = "Alert when cognito requests are being throttled"
-    comparison_operator = "GreaterThanThreashold"
+    comparison_operator = "GreaterThanThreshold"
     evaluation_periods = var.alarms.throttling.evaluation_periods
     metric_name = "CallCount"
     namespace = "AWS/Cognito"
@@ -196,14 +196,14 @@ resource "aws_cloudwatch_metric_alarm" "compromised-credentials" {
 
     alarm_name = "${var.user_pool_name}-${var.environment}-compromised-credentials"
     alarm_description = "Alert when compromised credentials are detected"
-    comparison_operator = "GreaterThanThreashold"
+    comparison_operator = "GreaterThanThreshold"
     evaluation_periods = 1
     metric_name = "CompromisedCredentialRisk"
     namespace = "AWS/Cognito"
     period = 300
     statistic = "Sum"
     threshold = 0
-    treat_missing_data = "notBreeching"
+    treat_missing_data = "notBreaching"
 
     dimensions = {
         UserPool = aws_cognito_user_pool.main.id
@@ -223,14 +223,14 @@ resource "aws_cloudwatch_metric_alarm" "account_takeover_risk" {
 
     alarm_name = "${var.user_pool_name}-${var.environment}-account-takeover-risk"
     alarm_description = "Alert when Account takeover risk is detected"
-    comparison_operator = "GreaterThanThreashold"
+    comparison_operator = "GreaterThanThreshold"
     evaluation_periods = 1
     metric_name = "AccountTakeoverRisk"
     namespace = "AWS/Cognito"
     period = 300
     statistic = "Sum"
     threshold = 0
-    treat_missing_data = "notBreeching"
+    treat_missing_data = "notBreaching"
 
     dimensions = {
         UserPool = aws_cognito_user_pool.main.id
