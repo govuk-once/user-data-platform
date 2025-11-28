@@ -1,45 +1,4 @@
-# ---
-# Cloudwatch log group
-# ----
-resource "aws_cloudwatch_log_group" "cognito" {
-    count = var.logging.enabled ? 1 : 0
 
-    name = "/aws/cognito/${var.user_pool_name}-${var.environment}"
-    retention_in_days = var.logging.retention_days
-    kms_key_id = var.logging.kms_key_arn
-
-    tags = merge(var.tags,  {
-        name = "${var.user_pool_name}-${var.environment}-logs"
-    })
-  
-}
-
-# ---
-# IAM policy for cloudwatch logs
-# ----
-data "aws_iam_policy_document" "cognito_logging" {
-  count = var.logging.enabled ? 1 : 0
-
-  statement {
-    effect = "Allow"
-    principals {
-       type = "Service"
-       identifiers = ["cognito-idp.amazon.com"]
-    }
-    actions = [
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-    ]
-    resources = ["${aws_cloudwatch_log_group.cognito[0].arn}:*"]
-  }
-}
-
-resource "aws_cloudwatch_log_resource_policy" "cognito" {
-    count = var.logging.enabled ? 1 : 0
-
-    policy_name = "${var.user_pool_name}-${var.environment}-cognito-logging"
-    policy_document = data.aws_iam_policy_document.cognito_logging[0].json
-}
 
 # ---
 # Cognito User pool
@@ -79,10 +38,6 @@ resource "aws_cognito_user_pool" "main" {
         name = "${var.user_pool_name}-${var.environment}"
         environment = var.environment
     })
-
-
-    depends_on = [ aws_cloudwatch_log_resource_policy.cognito ]
-
 }
 # ---
 # User pool domain
@@ -107,6 +62,49 @@ resource "aws_cognito_resource_server" "api" {
          scope_description = scope.value.description
       }
     }
+}
+
+# ---
+# Cloudwatch log group
+# ----
+resource "aws_cloudwatch_log_group" "cognito" {
+    count = var.logging.enabled ? 1 : 0
+
+    name = "/aws/cognito/userpools/${aws_cognito_user_pool.main.id}"
+    retention_in_days = var.logging.retention_days
+    kms_key_id = var.logging.kms_key_arn
+
+    tags = merge(var.tags,  {
+        name = "${var.user_pool_name}-${var.environment}-logs"
+    })
+  
+}
+
+# ---
+# IAM policy for cloudwatch logs
+# ----
+data "aws_iam_policy_document" "cognito_logging" {
+  count = var.logging.enabled ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    principals {
+       type = "Service"
+       identifiers = ["cognito-idp.amazonaws.com"]
+    }
+    actions = [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+    ]
+    resources = ["${aws_cloudwatch_log_group.cognito[0].arn}:*"]
+  }
+}
+
+resource "aws_cloudwatch_log_resource_policy" "cognito" {
+    count = var.logging.enabled ? 1 : 0
+
+    policy_name = "${var.user_pool_name}-${var.environment}-logs"
+    policy_document = data.aws_iam_policy_document.cognito_logging[0].json
 }
 
 
