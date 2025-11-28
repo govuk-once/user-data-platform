@@ -16,7 +16,7 @@ describe('postDataLambda', () => {
 
     const response = await handler(event);
 
-    expect(response.status).toEqual(200);
+    expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual('Hello POST data');
   });
 });

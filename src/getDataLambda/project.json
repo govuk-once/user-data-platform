@@ -1,26 +1,26 @@
 {
-    "name": "@src/getDataLambda",
-    "$schema": "../../node_modules/nx/schemas/project-schema.json",
-    "projectType": "application",
-    "targets": {
-        "test": {
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "vitest run src/getDataLambda/*"
-            }
-        },
-        "build": {
-            "dependsOn": ["typecheck","test"],
-            "executor": "@nx/esbuild:esbuild",
-            "options": {
-                "main": "src/getDataLambda/handler.ts",
-                "tsConfig": "src/getDataLambda/tsconfig.json",
-                "outputPath": "./build",
-                "outputFileName": "getDataLambda.js",
-                "minify": true,
-                "bundle": true,
-                "platform": "node"
-            }
-        }
+  "name": "@src/getDataLambda",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run src/getDataLambda/*"
+      }
+    },
+    "build": {
+      "dependsOn": ["typecheck", "test"],
+      "executor": "@nx/esbuild:esbuild",
+      "options": {
+        "main": "src/getDataLambda/handler.ts",
+        "tsConfig": "src/getDataLambda/tsconfig.json",
+        "outputPath": "./build",
+        "outputFileName": "getDataLambda.js",
+        "minify": true,
+        "bundle": true,
+        "platform": "node"
+      }
     }
+  }
 }
