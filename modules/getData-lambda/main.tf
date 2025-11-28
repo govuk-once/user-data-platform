@@ -5,11 +5,11 @@ locals {
 }
 
 resource "aws_lambda_function" "this" {
-  filename         = data.archive_file.src.output_path
+  filename         = data.archive_file.get_data_src.output_path
   function_name    = "${local.prefix}-getData"
   role             = aws_iam_role.lamdba_function_role.arn
-  handler          = "index.handler"
-  source_code_hash = data.archive_file.src.output_base64sha256
+  handler          = "getDataLambda.Handler"
+  source_code_hash = data.archive_file.get_data_src.output_base64sha256
 
     runtime = "nodejs${var.runtime_version}"
 
@@ -56,8 +56,8 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-data "archive_file" "src" {
-  source_dir  = "./lambdabuilds"
-  output_path = "./getDataLambda.zip"
+data "archive_file" "get_data_src" {
+  source_file  = "../build/getDataLambda.js" // this is where the source is being built to
+  output_path = "../build/getDataLambda.zip"
   type        = "zip"
-}
+} 
