@@ -15,7 +15,7 @@ resource "aws_lambda_function" "this" {
 
   environment {
     variables = {
-      ENVIRONMENT = "production"
+      ENVIRONMENT = "dev"
       LOG_LEVEL   = "info"
     }
   }
