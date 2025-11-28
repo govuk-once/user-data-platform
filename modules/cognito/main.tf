@@ -59,7 +59,7 @@ resource "aws_cognito_resource_server" "api" {
       for_each = var.resource_server_scopes
       content {
         scope_name = scope.value.name
-         scope_description = scope.value.description
+        scope_description = scope.value.description
       }
     }
 }

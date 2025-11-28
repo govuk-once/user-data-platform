@@ -50,10 +50,15 @@ variable "resource_server_scopes" {
 variable "m2m_clients" {
     description = "Map of M2M client configurations"
     type = map(object({
-        scope = list(string)
+        scopes = list(string)
         access_token_validity_minutes = number
     }))
-    default = {}
+    default = {
+      flex:{
+        scopes = ["udp/read", "udp/write"]
+        access_token_validity_minutes = 5
+      }
+    }
 }
 
 variable "logging" {
