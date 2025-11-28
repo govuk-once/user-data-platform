@@ -2,6 +2,10 @@ provider "aws" {
   region = "eu-west-2"
 }
 
+module "auth" {
+  source = "./cognito/"
+}
+
 module "get_data_lambda" {
   source = "./getData-lambda"
 }

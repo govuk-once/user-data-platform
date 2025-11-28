@@ -1,26 +1,31 @@
 variable "environment" {
     description = "Enviroment name"
     type = string
+    default = "dev"
 }
 
 variable "user_pool_name" {
   description = "Name of the user pool"
   type = string
+  default = "UDP"
 }
 
 variable "domain_prefix" {
     description = "Domain prefix for hosted Ui"
     type = string
+    default = "udp"
 }
 
 variable "resource_server_identifier" {
     description = "Identifier for the resource server"
     type = string
+    default = "udp"
 }
 
 variable "resource_server_name" {
     description = "Name for the resource server"
     type = string
+    default = "UDP"
 }
 
 variable "tags" {
