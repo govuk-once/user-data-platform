@@ -5,7 +5,7 @@ variable "getData_lambda_name" {
 
 variable "getData_lambda_invoke_arn" {
   type        = string
-  description = "Arn for the get Data lambda"
+  description = "Invoke Arn for the get Data lambda"
 }
 
 variable "postData_lambda_name" {
