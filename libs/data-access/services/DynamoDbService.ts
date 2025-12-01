@@ -1,7 +1,7 @@
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import { logger } from '../../utils/Logger';
 
 /**
  * Service class for DynamoDB entity operations with business logic.

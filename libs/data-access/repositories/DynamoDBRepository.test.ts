@@ -4,7 +4,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from './DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import { logger } from '../../utils/Logger';
 
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);

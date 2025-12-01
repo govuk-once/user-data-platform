@@ -11,3 +11,5 @@ dist/
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.mda
 .github/instructions/nx.instructions.md
+modules/terraform.tfstate
+modules/terraform.tfstate.backup
