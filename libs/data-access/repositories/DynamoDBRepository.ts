@@ -2,7 +2,7 @@ import { DynamoDBEntity } from '../types/Entity';
 import { Repository } from './Repository';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../../utils/Logger';
+import { logger } from '../../utils/Logger/Logger';
 
 
 /**
