@@ -143,3 +143,153 @@ resource "aws_wafv2_web_acl_logging_configuration" "this" {
     }
   }
 }
+
+
+#--------------------
+# SNS topic for alarms
+# -----------------------
+
+resource "aws_sns_topic" "dynamodb_alarms" {
+  count = var.alarms.enabled ? 1 : 0
+
+  name = "${var.name_prefix}-${var.environment}-dynamodb-alarms"
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-${var.environment}-dynamodb-alarms"
+    Environment = var.environment
+  })
+  
+}
+
+resource "aws_sns_topic_subscription" "dynamo_alarm_emails" {
+  for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
+
+  topic_arn = aws_sns_topic.dynamodb_alarms[0].arn
+  protocol = "email"
+  endpoint = each.value
+  
+}
+
+#--------------------
+# Cloudwatch alarms
+# -----------------------
+
+resource "aws_cloudwatch_metric_alarm" "blocked_requests" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
+  alarm_description = "High Number of requests blocked by WAF"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.blocked_requests.evaluation_periods
+  metric_name = "BlockedRequests"
+  namespace = "AWS/WAFV2"
+  period = var.alarms.blocked_requests.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.blocked_requests.threshold
+  treat_missing_data = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.this.name
+    Rule = "ALL"
+    Region = "eu-west-2"
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
+    Environment = var.environment
+  })
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "high_request_count" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.name_prefix}-${var.environment}-waf-high-request-count"
+  alarm_description = "Unusually High request count (potential dDoS)"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.high_request_count.evaluation_periods
+  metric_name = "AllowedRequests"
+  namespace = "AWS/WAFV2"
+  period = var.alarms.high_request_count.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.high_request_count.threshold
+  treat_missing_data = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.this.name
+    Rule = "ALL"
+    Region = "eu-west-2"
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-${var.environment}-waf-high-request-count"
+    Environment = var.environment
+  })
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "rate_limited_requests" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
+  alarm_description = "Requests are being rate limited"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.rate_limited_requests.evaluation_periods
+  metric_name = "BlockedRequests"
+  namespace = "AWS/WAFV2"
+  period = var.alarms.rate_limited_requests.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.rate_limited_requests.threshold
+  treat_missing_data = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.this.name
+    Rule = "RateLimitRule"
+    Region = "eu-west-2"
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
+    Environment = var.environment
+  })
+}
+
+
+
+resource "aws_cloudwatch_metric_alarm" "sql_injection_attempts" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
+  alarm_description = "SQL injection attepts detected by WAF"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.sql_injection_attempts.evaluation_periods
+  metric_name = var.managed_rules.sql_injection.action == "block" ? "BlockedRequests" : "CountedRequests"
+  namespace = "AWS/WAFV2"
+  period = var.alarms.sql_injection_attempts.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.sql_injection_attempts.threshold
+  treat_missing_data = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.this.name
+    Rule = "AWSManagedRulesSQLiRuleSet"
+    Region = "eu-west-2"
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
+    Environment = var.environment
+  })
+}

@@ -28,3 +28,141 @@ resource "aws_dynamodb_table" "this" {
       environment = var.environment
     })
 }
+
+
+
+#--------------------
+# SNS topic for alarms
+# -----------------------
+
+resource "aws_sns_topic" "dynamodb_alarms" {
+  count = var.alarms.enabled ? 1 : 0
+
+  name = "${var.table_name}-${var.environment}-dynamodb-alarms"
+
+  tags = merge(var.tags, {
+    Name = "${var.table_name}-${var.environment}-dynamodb-alarms"
+    Environment = var.environment
+  })
+  
+}
+
+resource "aws_sns_topic_subscription" "dynamo_alarm_emails" {
+  for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
+
+  topic_arn = aws_sns_topic.dynamodb_alarms[0].arn
+  protocol = "email"
+  endpoint = each.value
+  
+}
+
+#--------------------
+# Cloudwatch alarms
+# -----------------------
+
+resource "aws_cloudwatch_metric_alarm" "consumed_rcu" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.table_name}-${var.environment}-high-rcu"
+  alarm_description = "High dynamoDB read capacity usage"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.read_capacity.evaluation_periods
+  metric_name = "ConsumedReadCapacityUnits"
+  namespace = "AWS/DynamoDB"
+  period = var.alarms.read_capacity.period_seconds
+  statistic = "Average"
+  threshold = var.alarms.read_capacity.threshold
+
+  dimensions = {
+    TableName = var.table_name
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.table_name}-${var.environment}-high-rcu"
+    Environment = var.environment
+  })
+}
+
+resource "aws_cloudwatch_metric_alarm" "consumed_wcu" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.table_name}-${var.environment}-high-wcu"
+  alarm_description = "High dynamoDB write capacity usage"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.write_capacity.evaluation_periods
+  metric_name = "ConsumendWriteCapacityUnits"
+  namespace = "AWS/DynamoDB"
+  period = var.alarms.write_capacity.period_seconds
+  statistic = "Average"
+  threshold = var.alarms.write_capacity.threshold
+
+  dimensions = {
+    TableName = var.table_name
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.table_name}-${var.environment}-high-wcu"
+    Environment = var.environment
+  })
+}
+
+
+
+resource "aws_cloudwatch_metric_alarm" "read_throttle" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.table_name}-${var.environment}-read-throttle"
+  alarm_description = "Dynamo read throttle events for ${var.table_name}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.threshold_requests.evaluation_periods
+  metric_name = "ReadThrottledEvents"
+  namespace = "AWS/DynamoDB"
+  period = var.alarms.threshold_requests.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.threshold_requests.threshold
+
+  dimensions = {
+    TableName = var.table_name
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.table_name}-${var.environment}-read-throttle"
+    Environment = var.environment
+  })
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "write_throttle" {
+  count = var.alarms.enabled ? 1 : 0
+
+  alarm_name = "${var.table_name}-${var.environment}-write-throttle"
+  alarm_description = "Dynamo write throttle events for ${var.table_name}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = var.alarms.threshold_requests.evaluation_periods
+  metric_name = "WriteThrottledEvents"
+  namespace = "AWS/DynamoDB"
+  period = var.alarms.threshold_requests.period_seconds
+  statistic = "Sum"
+  threshold = var.alarms.threshold_requests.threshold
+
+  dimensions = {
+    TableName = var.table_name
+  }
+
+  alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+
+  tags = merge(var.tags, {
+    Name = "${var.table_name}-${var.environment}-write-throttle"
+    Environment = var.environment
+  })
+}
