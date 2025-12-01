@@ -13,6 +13,7 @@ resource "aws_apigatewayv2_api" "this" {
 resource "aws_apigatewayv2_stage" "this" {
   api_id = aws_apigatewayv2_api.this.id
   name   = "default-stage"
+  auto_deploy = true
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.access.arn
     format          = "{ 'requestId':'$context.requestId', 'extendedRequestId':'$context.extendedRequestId','ip': '$context.identity.sourceIp', 'caller':'$context.identity.caller', 'user':'$context.identity.user', 'requestTime':'$context.requestTime', 'httpMethod':'$context.httpMethod', 'resourcePath':'$context.resourcePath', 'status':'$context.status', 'protocol':'$context.protocol', 'responseLength':'$context.responseLength' }"
@@ -28,9 +29,15 @@ resource "aws_apigatewayv2_integration" "getData" {
   api_id               = aws_apigatewayv2_api.this.id
   integration_type     = "AWS_PROXY"
   description          = "UDP get data"
-  integration_method   = "GET"
+  integration_method   = "POST"
   integration_uri      = var.getData_lambda_invoke_arn
   passthrough_behavior = "WHEN_NO_MATCH"
+}
+
+resource "aws_apigatewayv2_route" "getDataRoute" {
+  api_id = aws_apigatewayv2_api.this.id
+  route_key = "GET /getData"
+  target = "integrations/${aws_apigatewayv2_integration.getData.id}"
 }
 
 resource "aws_apigatewayv2_integration" "postData" {
@@ -40,6 +47,12 @@ resource "aws_apigatewayv2_integration" "postData" {
   integration_method   = "POST"
   integration_uri      = var.postData_lambda_invoke_arn
   passthrough_behavior = "WHEN_NO_MATCH"
+}
+
+resource "aws_apigatewayv2_route" "postDataRoute" {
+  api_id = aws_apigatewayv2_api.this.id
+  route_key = "POST /postData"
+  target = "integrations/${aws_apigatewayv2_integration.postData.id}"
 }
 
 resource "aws_lambda_permission" "lambda_permission_getData" {

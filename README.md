@@ -1,5 +1,13 @@
 ## User Data Platform
 
+# Running tests use the following commands
+To test the get data lambda the command: nx run @src/getDataLambda:test 
+To test the post data lambda the command: nx run @src/postDataLambda:test 
+
+# Running a local build
+To build the get data lambda the command: nx run @src/getDataLambda:build 
+To build the post data lambda the command: nx run @src/postDataLambda:build 
+
 # Folder Structure
 ```
 | .github
