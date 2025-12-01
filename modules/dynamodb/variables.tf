@@ -43,3 +43,55 @@ variable "tags" {
   type = map(string)
   default = {}
 }
+
+variable "alarms" {
+  description = "Cloudwatch alarms configuration for DynamoDB"
+  type = object({
+    enabled = bool,
+    notification_emails = list(string)
+
+    threshold_requests = object({
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number 
+    })
+
+    read_capacity = object({
+      enabled = bool
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+
+    write_capacity = object({
+      enabled = bool
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+  })
+  default = {
+    enabled = false
+    notification_emails = []
+
+    threshold_requests = {
+      threshold = 1
+      evaluation_periods = 1
+      period_seconds = 60
+    }
+
+    read_capacity = {
+      enabled = false
+      threshold = 80
+      evaluation_periods = 2
+      period_seconds = 300
+    }
+
+    write_capacity = {
+      enabled = false
+      threshold = 80
+      evaluation_periods = 2
+      period_seconds = 300
+    }
+  }
+}

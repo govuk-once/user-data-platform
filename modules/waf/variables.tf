@@ -68,3 +68,71 @@ variable "logging" {
     redact_authorization = true
   }
 }
+
+variable "alarms" {
+  description = "CloudWatch alarmas for WAF"
+  type = object({
+    enabled = bool
+    notification_emails = list(string)
+
+    blocked_requests = object({
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+
+    rate_limited_requests =  object({
+      enabled = bool
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+
+    sql_injection_attempts =  object({
+      enabled = bool
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+
+     high_request_count =  object({
+      enabled = bool
+      threshold = number
+      evaluation_periods = number
+      period_seconds = number
+    })
+  })
+  default = {
+   enabled = false
+   notification_emails = []
+
+   blocked_requests = {
+     threshold = 100
+     evaluation_periods = 1
+     period_seconds = 300
+   } 
+
+   rate_limited_requests = {
+     enabled = true
+     threshold = 10
+     evaluation_periods = 1
+     period_seconds = 300
+   }
+
+   sql_injection_attempts = {
+     enabled = true
+     threshold = 5
+     evaluation_periods = 1
+     period_seconds = 300
+   }
+
+   high_request_count = {
+     enabled = true
+     threshold = 1000
+     evaluation_periods = 2
+     period_seconds = 300
+   }
+  }
+  
+  
+}
