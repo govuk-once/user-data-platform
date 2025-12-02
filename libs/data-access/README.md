@@ -5,10 +5,10 @@
 ```typescript
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { 
-  DynamoDbService, 
+import {
+  DynamoDbService,
   DynamoDBRepository,
-  DynamoDBEntity 
+  DynamoDBEntity,
 } from '@libs/data-access';
 
 // Create DynamoDB Document Client outside the handler (connection pooling)
@@ -17,7 +17,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const repository = new DynamoDBRepository<DynamoDBEntity>(
   process.env.TABLE_NAME!,
-  docClient
+  docClient,
 );
 
 const service = new DynamoDbService(repository);
@@ -42,6 +42,19 @@ export const handler = async (event: any) => {
 
   return { statusCode: 200, body: JSON.stringify(data) };
 };
+```
+
+## KMS encryption
+
+```typescript
+// Add encryption to dynamo service repository to auto encrypt and decrypt specified fields
+const encryption = new EncryptionService({ kmsKeyId: KMS_KEY_ID });
+
+const repository = new DynamoDBRepository<DynamoDBEntity>(
+  process.env.TABLE_NAME!,
+  docClient,
+  { service: encryption, dataFields: ['data'] },
+);
 ```
 
 ## DynamoDbService API
