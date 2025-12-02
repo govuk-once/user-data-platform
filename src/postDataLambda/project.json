@@ -19,6 +19,7 @@
         "outputFileName": "postDataLambda.js",
         "minify": true,
         "bundle": true,
+        "thirdParty": true,
         "platform": "node"
       }
     }
