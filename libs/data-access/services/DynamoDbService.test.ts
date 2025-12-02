@@ -3,7 +3,7 @@ import { DynamoDbService } from './DynamoDbService';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../../utils/Logger/Logger';
+import { logger } from '@libs/utils/logger';
 
 
 interface TestEntity extends DynamoDBEntity {

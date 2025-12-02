@@ -15,9 +15,11 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@libs/*": ["libs/*/src"],
-      "@modules/*": ["modules/*/src"]
-    }
+  "@libs/utils/logger": ["libs/utils/logger/src/Logger.ts"],
+  "@libs/*": ["libs/*/src"],
+  "@modules/*": ["modules/*/src"]
+}
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": ["node_modules", "tmp"],
+  "include": ["libs", "src", "apps"]
 }

@@ -17,4 +17,4 @@ export {
 } from './errors/Errors';
 
 // Utils
-export { logger } from './utils/Logger';
+export { logger } from '@libs/utils/logger';
