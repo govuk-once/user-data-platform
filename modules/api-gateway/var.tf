@@ -1,25 +1,30 @@
-variable "getData_lambda_name" {
-  type        = string
-  description = "Function name of the get data lambda"
-}
-
-variable "getData_lambda_invoke_arn" {
-  type        = string
-  description = "Invoke Arn for the get Data lambda"
-}
-
-variable "postData_lambda_name" {
-  type        = string
-  description = "Function name of the post data lambda"
-}
-
-variable "postData_lambda_invoke_arn" {
-  type        = string
-  description = "Arn for the post Data lambda"
-}
-
 variable "env" {
   type        = string
   description = "the enviroment its running"
   default = "dev"
+}
+
+variable "use_remote_state" {
+  type = bool
+  description = "Flag to use the remote state"
+  default = true
+}
+
+variable "state_bucket" {
+  type = string
+  description = "Bucket for remote terraform state"
+}
+
+variable "jwt_authorizer" {
+  description = "JWT authorizer config for M2M authentication"
+  type = object({
+    enabled = bool
+    issuer = string
+    audience = list(string) 
+  })
+  default = {
+    enabled = false
+    issuer = ""
+    audience = []
+  }
 }

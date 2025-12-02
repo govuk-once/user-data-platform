@@ -1,9 +1,9 @@
-output "lambda_name" {
+output "function_name" {
   description = "This is the name of the getData Lamdba function"
-  value = aws_lambda_function.this.function_name
+  value = module.lambda.function_name
 }
 
 output "lambda_invoke_arn" {
   description = "This is the invoke_arn of the getData Lamdba function"
-  value = aws_lambda_function.this.invoke_arn
+  value = module.lambda.invoke_arn
 }

@@ -10,6 +10,17 @@ variable "user_pool_name" {
   default = "UDP"
 }
 
+variable "use_remote_state" {
+  description = "Use remote state flag"
+  type = bool
+  default = false 
+}
+
+variable "state_bucket" {
+  description = "s3 bucket for shared terraform state"
+  type = string
+}
+
 variable "domain_prefix" {
     description = "Domain prefix for hosted Ui"
     type = string

@@ -1,8 +1,21 @@
 //WAF, API Gateway, IAM WAF -> API?.
+data "terraform_remote_state" "cognito" {
+  count = var.use_remote_state ? 1 : 0
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key = "udp/cognito/terraform.tfstate"
+    region = "eu-west-2"
+  }
+}
+
+
 locals {
   env     = "dev"
   project = "UDP"
   prefix  = "${local.project}-${local.env}"
+  jwt_issuer = var.use_remote_state ? data.terraform_remote_state.cognito[0].outputs.issuer_url : var.jwt_authorizer.issuer
+  jwt_audience = var.use_remote_state ? [data.terraform_remote_state.cognito[0].outputs.resource_server_identifier] : var.jwt_authorizer.audience
 }
 
 resource "aws_apigatewayv2_api" "this" {
@@ -25,54 +38,20 @@ resource "aws_cloudwatch_log_group" "access" {
   retention_in_days = 1
 }
 
-resource "aws_apigatewayv2_integration" "getData" {
-  api_id               = aws_apigatewayv2_api.this.id
-  integration_type     = "AWS_PROXY"
-  description          = "UDP get data"
-  integration_method   = "POST"
-  integration_uri      = var.getData_lambda_invoke_arn
-  passthrough_behavior = "WHEN_NO_MATCH"
-}
+# -----
+# JWT authorizer
+# ----
 
-resource "aws_apigatewayv2_route" "getDataRoute" {
+resource "aws_apigatewayv2_authorizer" "jwt" {
+  count = var.jwt_authorizer.enabled ?  1 : 0
+
   api_id = aws_apigatewayv2_api.this.id
-  route_key = "GET /getData"
-  target = "integrations/${aws_apigatewayv2_integration.getData.id}"
+  authorizer_type = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+  name = "${local.prefix}-api-jst-authorizer-${local.env}"
+  
+  jwt_configuration {
+    audience = local.jwt_audience
+    issuer = local.jwt_issuer
+  }
 }
-
-resource "aws_apigatewayv2_integration" "postData" {
-  api_id               = aws_apigatewayv2_api.this.id
-  integration_type     = "AWS_PROXY"
-  description          = "UDP post data"
-  integration_method   = "POST"
-  integration_uri      = var.postData_lambda_invoke_arn
-  passthrough_behavior = "WHEN_NO_MATCH"
-}
-
-resource "aws_apigatewayv2_route" "postDataRoute" {
-  api_id = aws_apigatewayv2_api.this.id
-  route_key = "POST /postData"
-  target = "integrations/${aws_apigatewayv2_integration.postData.id}"
-}
-
-resource "aws_lambda_permission" "lambda_permission_getData" {
-  statement_id  = "AllowMyDemoAPIInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = var.getData_lambda_name
-  principal     = "apigateway.amazonaws.com"
-
-  # The /* part allows invocation from any stage, method and resource path
-  # within API Gateway.
-  source_arn = "${aws_apigatewayv2_api.this.arn}/*"
-} 
-
-resource "aws_lambda_permission" "lambda_permission_postData" {
-  statement_id  = "AllowMyDemoAPIInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = var.postData_lambda_name
-  principal     = "apigateway.amazonaws.com"
-
-  # The /* part allows invocation from any stage, method and resource path
-  # within API Gateway.
-  source_arn = "${aws_apigatewayv2_api.this.arn}/*"
-} 

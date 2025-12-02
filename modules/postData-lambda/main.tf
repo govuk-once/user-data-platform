@@ -1,63 +1,53 @@
+data "terraform_remote_state" "dynamodb" {
+  count = var.use_remote_state ? 1 : 0
+
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key = "udp/dynamodb/terraform.tfstate"
+  }
+}
+
+data "terraform_remote_state" "api_gateway" {
+  count = var.use_remote_state ? 1 : 0
+
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key = "udp/api-gateway/terraform.tfstate"
+  }
+}
+
 locals {
-  env     = "dev"
-  project = "UDP"
-  prefix  = "${local.project}-${local.env}"
+  dynamodb_table_name = var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_name : var.dynamodb_table_name
+  dynamodb_table_arn =  var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_arn : var.dynamodb_table_arn
+
+  api_gateway_id  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.api_id : var.api_gateway_id
+  api_gateway_execution_arn  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.execution_arn : var.api_gateway_execution_arn
+  api_gateway_authorizer_id  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.jwt_authorizer_id : var.api_gateway_authorizer_id
 }
 
+module "lambda" {
+  source = "../lambda-base"
 
-resource "aws_lambda_function" "this" {
-  filename         = data.archive_file.post_data_src.output_path
-  function_name    = "${local.prefix}-postData"
-  role             = aws_iam_role.lamdba_function_role.arn
-  handler          = "postDataLambda.handler"
-  source_code_hash = data.archive_file.post_data_src.output_base64sha256
-
-  runtime = "nodejs${var.runtime_version}"
-
-  environment {
-    variables = {
-      ENVIRONMENT = "production"
-      LOG_LEVEL   = "info"
-    }
+  function_name = "postDataLambda"
+  handler = var.handler
+  runtime = var.runtime
+  source_path = var.source_path
+  timeout = var.timeout
+  memory_size = var.memory_size
+  environment_variables = {
+    DYNAMO_TABLE = local.dynamodb_table_name
   }
+  environment = var.environment
+
+  dynamodb_table_arn = local.dynamodb_table_arn
+  dynamodb_actions = ["dynamodb:PutItem"]
+
+  api_gateway_id = local.api_gateway_id
+  api_gateway_execution_arn = local.api_gateway_execution_arn
+  api_gateway_http_method = "POST"
+  api_gateway_route_path = "/postData"
+  api_gateway_authorizer_id = local.api_gateway_authorizer_id
+  api_gateway_authorizsation_scopes = var.api_gateway_authorizsation_scopes
 }
-
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-data "aws_iam_policy_document" "AWSLambdaTrustPolicyPostData" {
-  statement {
-    actions    = ["sts:AssumeRole"]
-    effect     = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "lamdba_function_role" {
-  name               = "terraform_function_postData_role"
-  assume_role_policy = data.aws_iam_policy_document.AWSLambdaTrustPolicyPostData.json
-}
-
-resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
-  role       = aws_iam_role.lamdba_function_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-data "archive_file" "post_data_src" {
-  source_file  = "../build/postDataLambda.js" // this is where the source is being built to
-  output_path = "./postDataLambda.zip"
-  type        = "zip"
-} 
