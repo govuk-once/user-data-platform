@@ -15,6 +15,3 @@ export {
   SaveError,
   GetError,
 } from './errors/Errors';
-
-// Utils
-export { logger } from '@libs/utils/logger';
