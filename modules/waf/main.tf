@@ -1,3 +1,17 @@
+data "terraform_remote_state" "api_gateway" {
+  count = var.use_remote_state ? 1 : 0
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key = "udp/api-gateway/terraform.tfstate"
+    region = "eu-west-2"
+  } 
+}
+
+locals {
+  api_gateway_stage_arn = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.stage_arn : var.api_gateway_stage_arn
+}
+
 
 resource "aws_wafv2_web_acl" "this" {
   name = "${var.name_prefix}-waf-${var.environment}"
@@ -112,7 +126,7 @@ resource "aws_wafv2_web_acl" "this" {
 }
 
 resource "aws_wafv2_web_acl_association" "this" {
-    resource_arn = var.api_gateway_stage_arn
+    resource_arn = local.api_gateway_stage_arn
     web_acl_arn = aws_wafv2_web_acl.this.arn 
 }
 

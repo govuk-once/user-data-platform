@@ -1,3 +1,14 @@
+variable "use_remote_state" {
+  description = "Use remote state flag"
+  type = bool
+  default = false 
+}
+
+variable "state_bucket" {
+  description = "s3 bucket for shared terraform state"
+  type = string
+}
+
 variable "name_prefix" {
   description = "Prefix for WAF resource names"
   type = string
