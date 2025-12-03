@@ -10,7 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
-import { EncryptedData } from './EncryptionService';
+import { EncryptedData } from '../services/EncryptionService';
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -85,7 +85,6 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
       logger.debug('Item retrieved successfully', { pk, sk });
 
-      console.log("encryption", this.encryption)
       return this.encryption
         ? ((await this.encryption.service.decryptFields(
             response.Item as Record<string, unknown> & EncryptedData,

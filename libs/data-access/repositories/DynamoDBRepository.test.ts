@@ -9,7 +9,7 @@ import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from './DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
-import { EncryptionService } from './EncryptionService';
+import { EncryptionService } from '../services/EncryptionService';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
