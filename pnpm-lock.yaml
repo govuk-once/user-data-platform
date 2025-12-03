@@ -20,6 +20,12 @@ importers:
       '@middy/http-error-handler':
         specifier: ^6.4.5
         version: 6.4.5
+      '@middy/http-json-body-parser':
+        specifier: ^6.4.5
+        version: 6.4.5
+      '@middy/http-response-serializer':
+        specifier: ^6.4.5
+        version: 6.4.5
       aws-lambda:
         specifier: ^1.0.7
         version: 1.0.7
@@ -57,6 +63,9 @@ importers:
       '@types/aws-lambda':
         specifier: 8.10.159
         version: 8.10.159
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
       '@typescript-eslint/eslint-plugin':
         specifier: 8.46.4
         version: 8.46.4(@typescript-eslint/parser@8.46.4(eslint@9.39.1)(typescript@5.9.3))(eslint@9.39.1)(typescript@5.9.3)
@@ -1344,6 +1353,14 @@ packages:
 
   '@middy/http-error-handler@6.4.5':
     resolution: {integrity: sha512-0El5exXIl5QW47kQQTx1lVk0dZC961hGK6TVd+jtQAv9tpN6ibZQaRI7CaL8b+bmAgsdsxZQmEqoLOBhhW5gQQ==}
+    engines: {node: '>=20'}
+
+  '@middy/http-json-body-parser@6.4.5':
+    resolution: {integrity: sha512-laK78DjphVJTDNPYFy2v7B6Tj0Pby96+HBxJ3AE9De1WcfKkeFbII+K0WR2KJND8+61fzHPWnPCGoRWB7AD3RQ==}
+    engines: {node: '>=20'}
+
+  '@middy/http-response-serializer@6.4.5':
+    resolution: {integrity: sha512-nrBWI4oadzoYG7E1B7megb1faqmna65VLLvoxyX98iXRCm3i5tldWipCuLxi/V+vSD7gUilu2MLYOK46NG0g/w==}
     engines: {node: '>=20'}
 
   '@middy/util@6.4.5':
@@ -5706,6 +5723,14 @@ snapshots:
   '@middy/core@6.4.5': {}
 
   '@middy/http-error-handler@6.4.5':
+    dependencies:
+      '@middy/util': 6.4.5
+
+  '@middy/http-json-body-parser@6.4.5':
+    dependencies:
+      '@middy/util': 6.4.5
+
+  '@middy/http-response-serializer@6.4.5':
     dependencies:
       '@middy/util': 6.4.5
 

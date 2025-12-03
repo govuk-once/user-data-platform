@@ -1,8 +1,73 @@
-import type { APIGatewayProxyEventV2 } from 'aws-lambda';
+import middy from '@middy/core';
+import httpErrorHandler from '@middy/http-error-handler';
+import jsonBodyParser from '@middy/http-json-body-parser';
+import httpResponseSerializer from '@middy/http-response-serializer';
+import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import createError from 'http-errors';
+import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
+import { extractCompositeKey } from '@libs/utils';
 
-export const handler = async (event: APIGatewayProxyEventV2) => {
-  return {
-    statusCode: 200,
-    body: 'Hello POST data',
-  };
+const client = new DynamoDbClient<DynamoDBEntity>(process.env.TABLE_NAME);
+const service = client.getService();
+
+export const lambdaHandler = async (
+  event: APIGatewayProxyEventV2,
+  context: Context,
+) => {
+  let pk: string;
+  let sk: string;
+
+  try {
+    const compositeKey = extractCompositeKey(event.rawPath);
+    pk = compositeKey.pk;
+    sk = compositeKey.sk;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new createError.BadRequest(error.message);
+    }
+    throw error;
+  }
+
+  // After jsonBodyParser middleware, body will be parsed object
+  const parsedData = event.body as any;
+
+  if (!parsedData) {
+    throw new createError.BadRequest();
+  }
+
+  try {
+    const entity: DynamoDBEntity = {
+      pk,
+      sk,
+      data: parsedData.data,
+      ttl: parsedData.ttl,
+    };
+
+    await service.save(entity);
+
+    return {
+      statusCode: 201,
+      body: { message: 'Entity saved successfully' },
+    };
+  } catch (error) {
+    if (createError.isHttpError(error)) {
+      throw error;
+    }
+
+    throw new createError.InternalServerError();
+  }
 };
+
+export const handler = middy()
+  .use(jsonBodyParser())
+  .use(httpResponseSerializer({
+    serializers: [
+      {
+        regex: /^application\/json$/,
+        serializer: ({ body }) => JSON.stringify(body),
+      },
+    ],
+    defaultContentType: 'application/json',
+  }))
+  .use(httpErrorHandler())
+  .handler(lambdaHandler);

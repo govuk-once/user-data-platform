@@ -1,16 +1,16 @@
 variable "table_name" {
-    description = "Name of Dynamo Table"
+    description = "Name of DynamoDB Table"
     type = string
 }
 
 variable "hash_key" {
-  description = "Hash key for the Dynamodb Table"
+  description = "Hash key for the DynamoDB Table"
   type = string
   default = "PK"
 }
 
 variable "sort_key" {
-  description = "Sort key for Dynamodb table"
+  description = "Sort key for DynamoDB Table"
   type = string
   default = "SK"
 }
@@ -20,14 +20,14 @@ variable "environment" {
     type = string
 }
 
-variable "enable_encription" {
-  description = "Enable server-side encription with aws KMS key"
+variable "enable_encryption" {
+  description = "Enable server-side encryption with aws KMS key"
   type = bool
   default = true
 }
 
 variable "kms_key_arn" {
-    description = "ARN of the KNM key for encription if not provided, ASW managed key will be used"
+    description = "ARN of the KMS key for encryption if not provided, AWS managed key will be used"
     type = string
     default = null
 }

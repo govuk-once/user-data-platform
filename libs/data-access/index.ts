@@ -8,6 +8,9 @@ export { DynamoDBRepository } from './repositories/DynamoDBRepository';
 // Services
 export { DynamoDbService } from './services/DynamoDbService';
 
+// Clients
+export { DynamoDbClient } from './clients/DynamoDbClient';
+
 // Errors
 export {
   RepositoryError,

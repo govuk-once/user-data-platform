@@ -251,24 +251,56 @@ describe('DynamoDbService', () => {
 
       await expect(service.save(entity)).rejects.toThrow(SaveError);
       await expect(service.save(entity)).rejects.toThrow(
-        'TTL must be a positive number',
+        'TTL must be a future timestamp in seconds since epoch',
       );
       expect(mockRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should allow ttl of 0', async () => {
+    it('should throw error when ttl is a past timestamp', async () => {
+      const pastTimestamp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         sk: 'topics',
-        ttl: 0,
+        ttl: pastTimestamp,
         data: { status: 'active' },
       };
 
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
+      await expect(service.save(entity)).rejects.toThrow(SaveError);
+      await expect(service.save(entity)).rejects.toThrow(
+        'TTL must be a future timestamp in seconds since epoch',
+      );
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
 
-      await service.save(entity);
+    it('should throw error when ttl is current timestamp', async () => {
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const entity: TestEntity = {
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+        ttl: nowInSeconds,
+        data: { status: 'active' },
+      };
 
-      expect(mockRepository.save).toHaveBeenCalledWith(entity);
+      await expect(service.save(entity)).rejects.toThrow(SaveError);
+      await expect(service.save(entity)).rejects.toThrow(
+        'TTL must be a future timestamp in seconds since epoch',
+      );
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when ttl is epoch (January 1, 1970)', async () => {
+      const entity: TestEntity = {
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+        ttl: 1,
+        data: { status: 'active' },
+      };
+
+      await expect(service.save(entity)).rejects.toThrow(SaveError);
+      await expect(service.save(entity)).rejects.toThrow(
+        'TTL must be a future timestamp in seconds since epoch',
+      );
+      expect(mockRepository.save).not.toHaveBeenCalled();
     });
 
     it('should propagate repository errors', async () => {
