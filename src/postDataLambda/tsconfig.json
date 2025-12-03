@@ -3,8 +3,17 @@
   "compilerOptions": {
     "outDir": "../../dist",
     "composite": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["node"]
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    {
+      "path": "../../libs/data-access"
+    },
+    {
+      "path": "../../libs/utils"
+    }
+  ]
 }

@@ -105,12 +105,15 @@ export class DynamoDbService<T extends DynamoDBEntity> {
       );
     }
 
-    if (entity.ttl !== undefined && entity.ttl < 0) {
-      throw new SaveError(
-        'entity',
-        `${entity.pk}#${entity.sk}`,
-        new Error('TTL must be a positive number')
-      );
+    if (entity.ttl !== undefined) {
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      if (entity.ttl <= nowInSeconds) {
+        throw new SaveError(
+          'entity',
+          `${entity.pk}#${entity.sk}`,
+          new Error('TTL must be a future timestamp in seconds since epoch')
+        );
+      }
     }
   }
 }

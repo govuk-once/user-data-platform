@@ -1,6 +1,8 @@
 # Data Access Library
 
-## Quick Start for DynamoDB
+TypeScript library for DynamoDB operations with validation, error handling, and logging.
+
+## Quick Start
 
 ```typescript
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -26,18 +28,19 @@ const service = new DynamoDbService(repository);
 export const handler = async (event: any) => {
   const userId = event.pathParameters.userId;
 
-  // Get data
-  const data = await service.getByKey(userId, 'topics');
-  if (!data) {
-    return { statusCode: 404, body: 'Not found' };
-  }
+const client = new DynamoDbClient<Entity>(process.env.TABLE_NAME);
+const service = client.getService();
 
-  // Save data
+export const handler = async (event: any) => {
+  // Get entity
+  const data = await service.getByKey('user-123', 'topics');
+
+  // Save entity
   await service.save({
-    pk: userId,
+    pk: 'user-123',
     sk: 'topics',
     data: { status: 'active' },
-    ttl: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    ttl: Math.floor(Date.now() / 1000) + 86400,
   });
 
   return { statusCode: 200, body: JSON.stringify(data) };
@@ -61,28 +64,24 @@ const repository = new DynamoDBRepository<DynamoDBEntity>(
 
 ### `getByKey(pk: string, sk: string): Promise<T | null>`
 
+**`getByKey(pk: string, sk: string): Promise<T | null>`**  
 Retrieves an entity by composite key.
 
-```typescript
-const user = await service.getByKey('user-123', 'topics');
+**`save(entity: T): Promise<void>`**  
+Saves an entity with validation.
+
+## Architecture
+
 ```
-
-### `save(entity: T): Promise<void>`
-
-Saves an entity with validation (pk, sk, ttl checks).
-
-```typescript
-await service.save({
-  pk: 'user-123',
-  sk: 'topics',
-  data: { status: 'active' },
-});
+DynamoDbClient → DynamoDbService → DynamoDBRepository → AWS SDK
 ```
 
 ## Error Handling
 
+The library provides custom error types for error handling:
+
 ```typescript
-import { GetByIdError, SaveError } from '@libs/data-access';
+import { GetError, SaveError, NotFoundError } from '@libs/data-access';
 
 try {
   await service.save(entity);
@@ -93,3 +92,10 @@ try {
   }
 }
 ```
+
+## Error Types
+
+- `GetError` - Retrieval operations
+- `SaveError` - Save operations
+- `NotFoundError` - Entity not found
+- `RepositoryError` - Base error type

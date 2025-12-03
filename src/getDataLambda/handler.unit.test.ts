@@ -1,54 +1,173 @@
-import { describe, expect, it } from 'vitest';
-import { handler } from './handler';
-import {  APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import createError from 'http-errors';
 
-const context: Context = {
-  callbackWaitsForEmptyEventLoop: true,
-  functionName: 'getDataLambda',
-  functionVersion: '1',
-  invokedFunctionArn: 'arn:',
-  memoryLimitInMB: '1128MB',
-  awsRequestId: 'test',
-  logGroupName: 'aws/lambda/getDataLambda',
-  logStreamName:'test',
-  getRemainingTimeInMillis: () => 5000,
-  done: () => {},
-  fail: () => {},
-  succeed: () => {}
-}
+const mockGetByKey = vi.fn();
 
-describe('getDataLambda', () => {
-  it('should return a status code of 200', async () => {
-    const event: APIGatewayProxyEventV2 = {
-      headers: {},
-      requestContext: {} as any,
-      isBase64Encoded: false,
-      rawPath: '',
-      rawQueryString: '',
-      version: '0.1',
-      routeKey: '',
-    };
+// Mock the data-access library
+vi.mock('@libs/data-access', () => ({
+  DynamoDbClient: class {
+    getService() {
+      return {
+        getByKey: mockGetByKey,
+      };
+    }
+  },
+  DynamoDbService: class {
+    getByKey = mockGetByKey;
+  },
+  DynamoDBRepository: class {},
+  DynamoDBEntity: {},
+}));
 
-    const response = await handler(event, context);
+// Import after mocks
+const { lambdaHandler } = await import('./handler');
 
-    expect(response.statusCode).toEqual(200);
-    expect(response.body).toEqual('Hello GET data');
+describe('getDataLambda handler', () => {
+  const mockContext: Context = {
+    callbackWaitsForEmptyEventLoop: true,
+    functionName: 'getDataLambda',
+    functionVersion: '1',
+    invokedFunctionArn:
+      'arn:aws:lambda:us-east-1:123456789012:function:getDataLambda',
+    memoryLimitInMB: '128',
+    awsRequestId: 'test-request-id',
+    logGroupName: '/aws/lambda/getDataLambda',
+    logStreamName: 'test-stream',
+    getRemainingTimeInMillis: () => 5000,
+    done: () => {},
+    fail: () => {},
+    succeed: () => {},
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should return a Bad Request http error with a status code of 400", async ()=> {
-    const event: APIGatewayProxyEventV2 = {
-      headers: {},
-      requestContext: {} as any,
-      isBase64Encoded: false,
-      rawPath: 'error',
-      rawQueryString: '',
-      version: '0.1',
-      routeKey: '',
+  const createEvent = (rawPath: string): APIGatewayProxyEventV2 => ({
+    headers: {},
+    requestContext: {} as any,
+    isBase64Encoded: false,
+    rawPath,
+    rawQueryString: '',
+    version: '2.0',
+    routeKey: '$default',
+  });
+
+  describe('successful operations', () => {
+    it('should return 200 with entity data when entity is found', async () => {
+    const mockEntity = {
+      pk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      sk: 'topics',
+      name: 'Test Topic',
     };
+    mockGetByKey.mockResolvedValue(mockEntity);
 
-    const response = await handler(event,context);
+    const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+    const response = await lambdaHandler(event, mockContext);
 
-    expect(response.statusCode).toEqual(400);
-    expect(response.body).toEqual('Bad Request');
-  })
+    expect(mockGetByKey).toHaveBeenCalledWith(
+      'topics',
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    );
+    expect(response).toEqual(mockEntity);
+    });
+  });
+
+  describe('path parsing', () => {
+    it('should extract pk and sk from path with multiple segments', async () => {
+      const mockEntity = { pk: 'org456', sk: 'config', data: 'test' };
+      mockGetByKey.mockResolvedValue(mockEntity);
+
+      const event = createEvent('/api/v1/organizations/org456/config');
+      const response = await lambdaHandler(event, mockContext);
+
+      expect(mockGetByKey).toHaveBeenCalledWith('org456', 'config');
+      expect(response).toEqual(mockEntity);
+    });
+
+    it('should extract pk and sk from simple two-segment path', async () => {
+      const mockEntity = { pk: 'pk1', sk: 'sk1', value: 'data' };
+      mockGetByKey.mockResolvedValue(mockEntity);
+
+      const event = createEvent('/pk1/sk1');
+      const response = await lambdaHandler(event, mockContext);
+
+      expect(mockGetByKey).toHaveBeenCalledWith('pk1', 'sk1');
+      expect(response).toEqual(mockEntity);
+    });
+  });
+
+  describe('validation errors', () => {
+    it('should return 400 when rawPath is missing', async () => {
+    const event = createEvent('');
+
+    await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+      createError.BadRequest,
+    );
+    expect(mockGetByKey).not.toHaveBeenCalled();
+  });
+
+    it('should return 400 when path has less than 2 segments', async () => {
+      const event = createEvent('/topics');
+
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        createError.BadRequest,
+      );
+      expect(mockGetByKey).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when path segments are empty', async () => {
+      const event = createEvent('///');
+
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        createError.BadRequest,
+      );
+      expect(mockGetByKey).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 when entity is not found', async () => {
+      mockGetByKey.mockResolvedValue(null);
+
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        createError.NotFound,
+      );
+      expect(mockGetByKey).toHaveBeenCalledWith(
+        'topics',
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
+    });
+  });
+
+  describe('error handling', () => {
+    it('should return 500 for unexpected errors', async () => {
+    const unexpectedError = new Error('Database connection failed');
+    mockGetByKey.mockRejectedValue(unexpectedError);
+
+    const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        createError.InternalServerError,
+      );
+      expect(mockGetByKey).toHaveBeenCalledWith(
+        'topics',
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
+    });
+
+    it('should re-throw HTTP errors from service', async () => {
+      const httpError = new createError.Unauthorized();
+      mockGetByKey.mockRejectedValue(httpError);
+
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(httpError);
+      expect(mockGetByKey).toHaveBeenCalledWith(
+        'topics',
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
+    });
+  });
 });
