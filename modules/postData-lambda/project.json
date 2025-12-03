@@ -1,27 +1,27 @@
 {
-  "name": "@tf/api-gateway",
+  "name": "@tf/postDataLambda",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": ["@src/getDataLambda", "@src/postDataLambda", "@tf/cognito"],
+  "implicitDependencies": ["@src/postDataLambda", "@tf/cognito", "@tf/api-gateway"],
   "targets": {
     "init": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform init"
+        "command": "cd ./modules/postData-lambda && terraform init"
       }
     },
     "plan": {
       "dependsOn": ["^build", "plan"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform plan"
+        "command": "cd ./modules/postData-lambda && terraform plan"
       }
     },
     "apply": {
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform apply -auto-approve"
+        "command": "cd ./modules/postData-lambda && terraform apply -auto-approve"
       }
     }
   }

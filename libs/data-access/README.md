@@ -5,7 +5,28 @@ TypeScript library for DynamoDB operations with validation, error handling, and 
 ## Quick Start
 
 ```typescript
-import { DynamoDbClient, Entity } from '@libs/data-access';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDbService,
+  DynamoDBRepository,
+  DynamoDBEntity,
+} from '@libs/data-access';
+
+// Create DynamoDB Document Client outside the handler (connection pooling)
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
+
+const repository = new DynamoDBRepository<DynamoDBEntity>(
+  process.env.TABLE_NAME!,
+  docClient,
+);
+
+const service = new DynamoDbService(repository);
+
+// Lambda handler
+export const handler = async (event: any) => {
+  const userId = event.pathParameters.userId;
 
 const client = new DynamoDbClient<Entity>(process.env.TABLE_NAME);
 const service = client.getService();
@@ -26,7 +47,22 @@ export const handler = async (event: any) => {
 };
 ```
 
-## API
+## KMS encryption
+
+```typescript
+// Add encryption to dynamo service repository to auto encrypt and decrypt specified fields
+const encryption = new EncryptionService({ kmsKeyId: KMS_KEY_ID });
+
+const repository = new DynamoDBRepository<DynamoDBEntity>(
+  process.env.TABLE_NAME!,
+  docClient,
+  { service: encryption, dataFields: ['data'] },
+);
+```
+
+## DynamoDbService API
+
+### `getByKey(pk: string, sk: string): Promise<T | null>`
 
 **`getByKey(pk: string, sk: string): Promise<T | null>`**  
 Retrieves an entity by composite key.

@@ -1,3 +1,14 @@
+variable "use_remote_state" {
+  description = "Use remote state flag"
+  type = bool
+  default = false 
+}
+
+variable "state_bucket" {
+  description = "s3 bucket for shared terraform state"
+  type = string
+}
+
 variable "table_name" {
     description = "Name of DynamoDB Table"
     type = string

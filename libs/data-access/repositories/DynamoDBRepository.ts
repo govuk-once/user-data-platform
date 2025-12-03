@@ -1,9 +1,16 @@
-import { DynamoDBEntity } from '../types/Entity';
+import {
+  DynamoDBEntity,
+  EncryptionConfig,
+} from '../types/Entity';
 import { Repository } from './Repository';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
-
+import { EncryptedData } from '../services/EncryptionService';
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -17,15 +24,21 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 {
   private readonly client: DynamoDBDocumentClient;
   private readonly tableName: string;
+  private readonly encryption?: EncryptionConfig;
 
   /**
    * Creates a new DynamoDB repository instance.
    * @param tableName - The name of the DynamoDB table to use
    * @param client - DynamoDB Document Client instance (should be created outside constructor for Lambda performance)
    */
-  constructor(tableName: string, client: DynamoDBDocumentClient) {
+  constructor(
+    tableName: string,
+    client: DynamoDBDocumentClient,
+    encryption?: EncryptionConfig,
+  ) {
     this.tableName = tableName;
     this.client = client;
+    this.encryption = encryption;
   }
 
   /**
@@ -35,11 +48,16 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
    * @throws {GetError} When the DynamoDB operation fails or required keys are missing
    */
   async get(keys: Partial<T>): Promise<T | null> {
-    if (!('pk' in keys) || !('sk' in keys) || keys.pk === undefined || keys.sk === undefined) {
+    if (
+      !('pk' in keys) ||
+      !('sk' in keys) ||
+      keys.pk === undefined ||
+      keys.sk === undefined
+    ) {
       throw new GetError(
         'item',
         JSON.stringify(keys),
-        new Error('Both pk and sk are required for composite key entities')
+        new Error('Both pk and sk are required for composite key entities'),
       );
     }
 
@@ -66,7 +84,13 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       }
 
       logger.debug('Item retrieved successfully', { pk, sk });
-      return response.Item as T;
+
+      return this.encryption
+        ? ((await this.encryption.service.decryptFields(
+            response.Item as Record<string, unknown> & EncryptedData,
+            this.encryption.dataFields,
+          )) as T)
+        : (response.Item as T);
     } catch (error) {
       logger.error('Failed to get item from DynamoDB', {
         operation: 'get',
@@ -97,9 +121,16 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     });
 
     try {
+      const itemToStore = this.encryption
+        ? await this.encryption.service.encryptFields(
+            entity as Record<string, unknown>,
+            this.encryption.dataFields,
+          )
+        : entity;
+
       const command = new PutCommand({
         TableName: this.tableName,
-        Item: entity,
+        Item: itemToStore,
       });
 
       await this.client.send(command);
@@ -119,5 +150,4 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       throw new SaveError('item', `${entity.pk}#${entity.sk}`, error as Error);
     }
   }
-
 }

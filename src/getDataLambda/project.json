@@ -19,6 +19,7 @@
         "outputFileName": "getDataLambda.js",
         "minify": true,
         "bundle": true,
+        "thirdParty": true,
         "platform": "node"
       }
     }
