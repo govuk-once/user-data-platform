@@ -9,12 +9,6 @@
     },
     {
       "path": "./libs/utils"
-    },
-    {
-      "path": "./src/postDataLambda"
-    },
-    {
-      "path": "./src/getDataLambda"
     }
   ]
 }

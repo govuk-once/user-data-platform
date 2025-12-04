@@ -23,7 +23,8 @@
     "deploy-and-test": {
       "executor": "nx:run-commands",
       "dependsOn": [
-        "@tf/getDataLambda:apply"
+        "@tf/getDataLambda:apply",
+        "@tf/postDataLambda:apply"
       ],
       "options": {
         "commands": [
