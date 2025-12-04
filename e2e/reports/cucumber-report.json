@@ -1,0 +1,81 @@
+[
+  {
+    "description": "    As a UDP Authenticated Client\n    I want to be able to save data via the api\n    So that i can retrieve it later",
+    "elements": [
+      {
+        "description": "",
+        "id": "user-data-api;successfully-add-data",
+        "keyword": "Scenario",
+        "line": 10,
+        "name": "Successfully add data",
+        "steps": [
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 8,
+            "name": "I am authenticated as \"flex\"",
+            "match": {
+              "location": "src/step-definitions/common.steps.ts:5"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 286499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 11,
+            "name": "I send a post to '/postData' with the body '{\"test\":\"data\"}'",
+            "match": {
+              "location": "src/step-definitions/common.steps.ts:12"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 393443832
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 12,
+            "name": "I should recieve an error response",
+            "match": {
+              "location": "src/step-definitions/common.steps.ts:35"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 968208
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@udp",
+            "line": 1
+          },
+          {
+            "name": "@api",
+            "line": 1
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "user-data-api",
+    "line": 2,
+    "keyword": "Feature",
+    "name": "User Data API",
+    "tags": [
+      {
+        "name": "@udp",
+        "line": 1
+      },
+      {
+        "name": "@api",
+        "line": 1
+      }
+    ],
+    "uri": "src/features/user-data-api.feature"
+  }
+]
