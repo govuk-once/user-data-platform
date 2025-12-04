@@ -10,7 +10,7 @@
       }
     },
     "build": {
-      "dependsOn": [ "test"],
+      "dependsOn": ["typecheck","test"],
       "executor": "@nx/esbuild:esbuild",
       "outputs": ["{option.outputPath}"],
       "options": {
