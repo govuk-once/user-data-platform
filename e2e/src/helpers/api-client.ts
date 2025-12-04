@@ -61,7 +61,6 @@ export class ApiClient {
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
       data = (await response.json()) as unknown as T;
-      
     } else {
       data = (await response.text()) as unknown as T;
     }

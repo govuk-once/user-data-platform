@@ -17,7 +17,6 @@
         "main": "src/postDataLambda/handler.ts",
         "tsConfig": "src/postDataLambda/tsconfig.json",
         "outputPath": "build/postDataLambda",
-        "outputFileName": "postDataLambda.js",
         "minify": true,
         "bundle": true,
         "thirdParty": true,

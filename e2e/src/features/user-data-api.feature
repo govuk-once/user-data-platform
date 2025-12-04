@@ -11,3 +11,7 @@ Feature: User Data API
         When I send a post to '/topics/123' with the body '{"data":{"test":"data"}}'
         Then I should recieve a successful response
         Then The response will contain message 'Entity saved successfully'
+
+    Scenario: Successfully Retrive data
+        When i send a get to '/topics/123'
+        Then I should recieve a successful response

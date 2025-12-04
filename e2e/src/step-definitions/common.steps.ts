@@ -21,6 +21,16 @@ When(
   },
 );
 
+When(
+  'i send a get to {string}',
+  async function (this: CustomWorld, path: string) {
+    const response = await this.api.get(path,{
+      authenticated: this.authenticated,
+    });
+    this.storeResponse(response);
+  },
+);
+
 Then(
   'the response status should be {int}',
   function (this: CustomWorld, expectedStatus: number) {
