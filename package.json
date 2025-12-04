@@ -30,6 +30,7 @@
     "vitest": "4.0.10"
   },
   "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.29.0",
     "@aws-sdk/client-dynamodb": "^3.940.0",
     "@aws-sdk/client-kms": "^3.940.0",
     "@aws-sdk/lib-dynamodb": "^3.940.0",
