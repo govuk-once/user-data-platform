@@ -8,5 +8,6 @@ Feature: User Data API
         Given I am authenticated as "flex"
 
     Scenario: Successfully add data
-        When I send a post to '/postData' with the body '{"test":"data"}'
-        Then I should recieve an error response
+        When I send a post to '/topics/123' with the body '{"data":{"test":"data"}}'
+        Then I should recieve a successful response
+        Then The response will contain message 'Entity saved successfully'

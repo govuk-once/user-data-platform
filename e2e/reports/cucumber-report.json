@@ -19,33 +19,46 @@
             },
             "result": {
               "status": "passed",
-              "duration": 286499
+              "duration": 363459
             }
           },
           {
             "arguments": [],
             "keyword": "When ",
             "line": 11,
-            "name": "I send a post to '/postData' with the body '{\"test\":\"data\"}'",
+            "name": "I send a post to '/topics/123' with the body '{\"data\":{\"test\":\"data\"}}'",
             "match": {
               "location": "src/step-definitions/common.steps.ts:12"
             },
             "result": {
               "status": "passed",
-              "duration": 393443832
+              "duration": 875960334
             }
           },
           {
             "arguments": [],
             "keyword": "Then ",
             "line": 12,
-            "name": "I should recieve an error response",
+            "name": "I should recieve a successful response",
             "match": {
-              "location": "src/step-definitions/common.steps.ts:35"
+              "location": "src/step-definitions/common.steps.ts:31"
             },
             "result": {
               "status": "passed",
-              "duration": 968208
+              "duration": 393833
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "The response will contain message 'Entity saved successfully'",
+            "match": {
+              "location": "src/step-definitions/common.steps.ts:47"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 67166
             }
           }
         ],

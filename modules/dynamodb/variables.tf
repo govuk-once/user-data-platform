@@ -17,13 +17,13 @@ variable "table_name" {
 variable "hash_key" {
   description = "Hash key for the DynamoDB Table"
   type = string
-  default = "PK"
+  default = "pk"
 }
 
 variable "sort_key" {
   description = "Sort key for DynamoDB Table"
   type = string
-  default = "SK"
+  default = "sk"
 }
 
 variable "environment" {

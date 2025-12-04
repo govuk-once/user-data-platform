@@ -1,6 +1,6 @@
 data "archive_file" "get_data_src" {
   type        = "zip"
-  source_file = "../../build/${var.function_name}.js" // this is where the source is being built to
+  source_file = "../../build/${var.function_name}/index.js" // this is where the source is being built to
   output_path = "../../build/${var.function_name}.zip"
 }
 
@@ -57,9 +57,37 @@ resource "aws_iam_role" "lambda" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
   tags = merge(var.tags, {
-    role       = "${var.function_name}-${var.environment}-role"
-    policy_arn = "arn:aws::iam:policy/service-role/AWSLambdaBasicExcecutionRole"
+    Name       = "${var.function_name}-${var.environment}-role"
+    Environment = var.environment
   })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+
+data "aws_iam_policy_document" "cloudwatch_logs" {
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+
+    resources = [
+      "${aws_cloudwatch_log_group.lambda.arn}"
+    ]
+  }
+
+}
+
+
+
+resource "aws_iam_role_policy" "cloudwatch_logs" {
+  name   = "${var.function_name}-cloudwatch-logs"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.cloudwatch_logs.json
 }
 
 # KMS access
@@ -109,6 +137,7 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_uri      = aws_lambda_function.this.invoke_arn
   integration_method   = "POST"
   passthrough_behavior = "WHEN_NO_MATCH"
+  payload_format_version = "2.0"
 
 }
 

@@ -43,3 +43,8 @@ Then(
     expect(data[field]).toEqual(value);
   },
 );
+
+Then('The response will contain message {string}', function(this:CustomWorld, message:string) {
+  const data = this.lastResponse?.data as Record<string, unknown>;
+  expect(data.message).toEqual(message);
+})

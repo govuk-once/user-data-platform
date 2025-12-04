@@ -37,7 +37,7 @@ module "lambda" {
   timeout = var.timeout
   memory_size = var.memory_size
   environment_variables = {
-    DYNAMO_TABLE = local.dynamodb_table_name
+    TABLE_NAME = local.dynamodb_table_name
   }
   environment = var.environment
 
