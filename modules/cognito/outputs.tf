@@ -49,3 +49,8 @@ output "m2m_client_secrets" {
     value = { for K,V in aws_cognito_user_pool_client.m2m : K => V.client_secret }
     sensitive = true
 }
+
+output "jwt_audiences" {
+  description = "Valid audiences for the JWT validations (client M2M tokens)"
+  value = [for K, V in aws_cognito_user_pool_client.m2m : V.id]
+}

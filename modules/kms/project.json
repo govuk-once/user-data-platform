@@ -1,28 +1,28 @@
 {
-    "name": "@tf/kms",
-    "$schema": "../../node_modules/nx/schemas/project-schema.json",
-    "projectType": "application",
-    "implicitDependencies": [],
-    "targets": {
-        "init": {
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/kms && terraform init"
-            }
-        },
-        "plan": {
-            "dependsOn": ["^build"],
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/kms && terraform plan"
-            }
-        },
-        "apply": {
-            "dependsOn": ["^build"],
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/kms && terraform apply -auto-approve"
-            }
-        }
+  "name": "@tf/kms",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": [],
+  "targets": {
+    "init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/kms && terraform init"
+      }
+    },
+    "plan": {
+      "dependsOn": ["init"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/kms && terraform plan"
+      }
+    },
+    "apply": {
+      "dependsOn": ["plan"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/kms && terraform apply -auto-approve"
+      }
     }
+  }
 }

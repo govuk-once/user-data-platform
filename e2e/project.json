@@ -1,0 +1,37 @@
+{
+  "name": "@test/e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "e2e",
+  "projectType": "application",
+  "tags": ["type:e2e"],
+  "implicitDependencies": ["@tf/getDataLambda"],
+  "targets": {
+    "extract-env": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./scripts/extract-tf-outputs.sh development",
+        "cwd": "e2e"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
+        "cwd": "e2e"
+      }
+    },
+    "deploy-and-test": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "@tf/getDataLambda:apply"
+      ],
+      "options": {
+        "commands": [
+          "nx run e2e:extract-env",
+          "nx run e2e:e2e"
+        ],
+        "parallel": false
+      }
+    }
+  }
+}

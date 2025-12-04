@@ -5,6 +5,8 @@ node_modules/
 build/
 dist/
 
+.env
+
 .DS_Store
 .nx/cache
 .nx/workspace-data

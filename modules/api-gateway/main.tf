@@ -15,7 +15,7 @@ locals {
   project = "UDP"
   prefix  = "${local.project}-${local.env}"
   jwt_issuer = var.use_remote_state ? data.terraform_remote_state.cognito[0].outputs.issuer_url : var.jwt_authorizer.issuer
-  jwt_audience = var.use_remote_state ? [data.terraform_remote_state.cognito[0].outputs.resource_server_identifier] : var.jwt_authorizer.audience
+  jwt_audience = var.use_remote_state ? data.terraform_remote_state.cognito[0].outputs.jwt_audiences : var.jwt_authorizer.audience
 }
 
 resource "aws_apigatewayv2_api" "this" {

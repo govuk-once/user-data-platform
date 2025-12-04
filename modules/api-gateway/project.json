@@ -2,7 +2,9 @@
   "name": "@tf/api-gateway",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": ["@src/getDataLambda", "@src/postDataLambda", "@tf/cognito"],
+  "implicitDependencies": [
+    "@tf/cognito"
+  ],
   "targets": {
     "init": {
       "executor": "nx:run-commands",
@@ -11,14 +13,14 @@
       }
     },
     "plan": {
-      "dependsOn": ["^build", "plan"],
+      "dependsOn": ["init", "^apply"],
       "executor": "nx:run-commands",
       "options": {
         "command": "cd ./modules/api-gateway && terraform plan"
       }
     },
     "apply": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["plan", "^build"],
       "executor": "nx:run-commands",
       "options": {
         "command": "cd ./modules/api-gateway && terraform apply -auto-approve"

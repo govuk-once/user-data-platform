@@ -1,0 +1,5 @@
+{
+    "name": "@test/e2e",
+    "type": "module",
+    "private": true
+}

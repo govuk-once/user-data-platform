@@ -47,7 +47,7 @@ module "lambda" {
   api_gateway_id = local.api_gateway_id
   api_gateway_execution_arn = local.api_gateway_execution_arn
   api_gateway_http_method = "GET"
-  api_gateway_route_path = "/getData"
+  api_gateway_catch_all = true
   api_gateway_authorizer_id = local.api_gateway_authorizer_id
   api_gateway_authorizsation_scopes = var.api_gateway_authorizsation_scopes
 }

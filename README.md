@@ -33,7 +33,7 @@ To build the post data lambda the command: nx run @src/postDataLambda:build
         handler.unit.test.ts
     | postDataLambda
         handler.ts
-| integration-test
+| e2e
     | BDD
         |...ts
 

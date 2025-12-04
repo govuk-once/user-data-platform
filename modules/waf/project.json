@@ -1,28 +1,28 @@
 {
-    "name": "@tf/waf",
-    "$schema": "../../node_modules/nx/schemas/project-schema.json",
-    "projectType": "application",
-    "implicitDependencies": ["@tf/api-gateway"],
-    "targets": {
-        "init": {
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/waf && terraform init"
-            }
-        },
-        "plan": {
-            "dependsOn": ["^build"],
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/waf && terraform plan"
-            }
-        },
-        "apply": {
-            "dependsOn": ["^build"],
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "cd ./modules/waf && terraform apply -auto-approve"
-            }
-        }
+  "name": "@tf/waf",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": ["@tf/api-gateway"],
+  "targets": {
+    "init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/waf && terraform init"
+      }
+    },
+    "plan": {
+      "dependsOn": ["init"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/waf && terraform plan"
+      }
+    },
+    "apply": {
+      "dependsOn": ["plan"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/waf && terraform apply -auto-approve"
+      }
     }
+  }
 }

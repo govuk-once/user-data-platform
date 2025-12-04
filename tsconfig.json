@@ -12,6 +12,9 @@
     },
     {
       "path": "./libs/data-access"
+    },
+     {
+      "path": "./libs/utils"
     }
   ]
 }
