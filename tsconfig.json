@@ -5,13 +5,10 @@
   "exclude": ["node_modules"],
   "references": [
     {
-      "path": "./src/getDataLambda"
-    },
-    {
-      "path": "./src/postDataLambda"
-    },
-    {
       "path": "./libs/data-access"
+    },
+    {
+      "path": "./libs/utils"
     }
   ]
 }

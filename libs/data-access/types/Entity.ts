@@ -1,4 +1,4 @@
-import { EncryptionService } from '../repositories/EncryptionService';
+import { EncryptionService } from '../services/EncryptionService';
 
 /**
  * Base entity interface that all entities must extend.

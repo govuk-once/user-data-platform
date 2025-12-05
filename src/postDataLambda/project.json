@@ -12,15 +12,23 @@
     "build": {
       "dependsOn": ["typecheck", "test"],
       "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{option.outputPath}"],
       "options": {
         "main": "src/postDataLambda/handler.ts",
         "tsConfig": "src/postDataLambda/tsconfig.json",
-        "outputPath": "./build",
-        "outputFileName": "postDataLambda.js",
+        "outputPath": "build/postDataLambda",
         "minify": true,
         "bundle": true,
         "thirdParty": true,
-        "platform": "node"
+        "platform": "node",
+        "declaration": false,
+        "target": "node20",
+        "format": ["cjs"],
+        "external": ["@aws-sdk/*"],
+        "skipTypeCheck": true,
+        "esbuildOptions": {
+          "outfile": "build/postDataLambda/index.js"
+        }
       }
     }
   }

@@ -37,7 +37,7 @@ module "lambda" {
   timeout = var.timeout
   memory_size = var.memory_size
   environment_variables = {
-    DYNAMO_TABLE = local.dynamodb_table_name
+    TABLE_NAME = local.dynamodb_table_name
   }
   environment = var.environment
 
@@ -47,7 +47,7 @@ module "lambda" {
   api_gateway_id = local.api_gateway_id
   api_gateway_execution_arn = local.api_gateway_execution_arn
   api_gateway_http_method = "POST"
-  api_gateway_route_path = "/postData"
+  api_gateway_catch_all = true
   api_gateway_authorizer_id = local.api_gateway_authorizer_id
   api_gateway_authorizsation_scopes = var.api_gateway_authorizsation_scopes
 }

@@ -2,7 +2,12 @@
   "name": "@tf/postDataLambda",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": ["@src/postDataLambda", "@tf/cognito", "@tf/api-gateway"],
+  "implicitDependencies": [
+    "@src/postDataLambda",
+    "@tf/cognito",
+    "@tf/api-gateway",
+    "@tf/dynamodb"
+  ],
   "targets": {
     "init": {
       "executor": "nx:run-commands",
@@ -11,14 +16,14 @@
       }
     },
     "plan": {
-      "dependsOn": ["^build", "plan"],
+      "dependsOn": ["^build","^apply","init"],
       "executor": "nx:run-commands",
       "options": {
         "command": "cd ./modules/postData-lambda && terraform plan"
       }
     },
     "apply": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["plan"],
       "executor": "nx:run-commands",
       "options": {
         "command": "cd ./modules/postData-lambda && terraform apply -auto-approve"

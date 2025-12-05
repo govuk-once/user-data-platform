@@ -49,7 +49,7 @@ export const handler = middy()
     serializers: [
       {
         regex: /^application\/json$/,
-        serializer: ({ body }) => JSON.stringify(body),
+        serializer: ({ body }) => body ? JSON.stringify(body) : null,
       },
     ],
     defaultContentType: 'application/json',

@@ -86,6 +86,13 @@ variable "api_gateway_http_method" {
     default = "GET"
 }
 
+variable "api_gateway_catch_all" {
+    description = "Wether the route should be a catch all or now"
+    type = bool
+    default = false
+}
+
+
 variable "api_gateway_route_path" {
   description = "Route Path for the API Gateway"
   type = string
