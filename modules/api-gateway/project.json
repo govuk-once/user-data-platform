@@ -7,23 +7,31 @@
   ],
   "targets": {
     "init": {
+      "dependsOn": ["@udp:set-developer"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform init"
+        "command": "cd ./modules/api-gateway && terraform init --backend-config='backend.tfvars' -reconfigure"
       }
     },
     "plan": {
       "dependsOn": ["init", "^apply"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform plan"
+        "command": "cd ./modules/api-gateway && terraform plan -out=tfplan"
       }
     },
     "apply": {
       "dependsOn": ["plan", "^build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/api-gateway && terraform apply -auto-approve"
+        "command": "cd ./modules/api-gateway && terraform apply tfplan"
+      }
+    },
+    "destroy": {
+      "dependsOn": ["@tf/getDataLambda:destroy","@tf/postDataLambda:destroy"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/api-gateway && terraform destroy -auto-approve"
       }
     }
   }

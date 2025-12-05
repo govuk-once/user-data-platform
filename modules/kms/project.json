@@ -5,23 +5,30 @@
   "implicitDependencies": [],
   "targets": {
     "init": {
+      "dependsOn": ["@udp:set-developer"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/kms && terraform init"
+        "command": "cd ./modules/kms && terraform init --backend-config='backend.tfvars' -reconfigure"
       }
     },
     "plan": {
       "dependsOn": ["init"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/kms && terraform plan"
+        "command": "cd ./modules/kms && terraform plan -out tfplan"
       }
     },
     "apply": {
       "dependsOn": ["plan"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/kms && terraform apply -auto-approve"
+        "command": "cd ./modules/kms && terraform apply tfplan"
+      }
+    },
+    "destroy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/kms && terraform destroy -auto-approve"
       }
     }
   }

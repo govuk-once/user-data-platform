@@ -6,7 +6,7 @@ data "archive_file" "get_data_src" {
 
 resource "aws_lambda_function" "this" {
   filename         = data.archive_file.get_data_src.output_path
-  function_name    = "${var.function_name}-${var.environment}"
+  function_name    = "${var.prefix}-${var.function_name}"
   role             = aws_iam_role.lambda.arn
   handler          = var.handler
   source_code_hash = data.archive_file.get_data_src.output_base64sha256
@@ -21,7 +21,7 @@ resource "aws_lambda_function" "this" {
   }
 
   tags = merge(var.tags, {
-    Name        = "${var.function_name}-${var.environment}"
+    Name        = "${var.prefix}-${var.function_name}"
     Environment = var.environment
   })
 
@@ -35,7 +35,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
   kms_key_id = var.cloudwatch_logs_kms_key_arn
 
   tags = merge(var.tags, {
-    Name        = "${var.function_name}-${var.environment}-logs"
+    Name        = "${var.prefix}-${var.function_name}-logs"
     Environment = var.environment
   })
 }
@@ -53,11 +53,11 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 }
 
 resource "aws_iam_role" "lambda" {
-  name               = "${var.function_name}-${var.environment}-role"
+  name               = "${var.prefix}-${var.function_name}-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
   tags = merge(var.tags, {
-    Name       = "${var.function_name}-${var.environment}-role"
+    Name       = "${var.prefix}-${var.function_name}-role"
     Environment = var.environment
   })
 }
@@ -85,7 +85,7 @@ data "aws_iam_policy_document" "cloudwatch_logs" {
 
 
 resource "aws_iam_role_policy" "cloudwatch_logs" {
-  name   = "${var.function_name}-cloudwatch-logs"
+  name   = "${var.prefix}-${var.function_name}-cloudwatch-logs"
   role   = aws_iam_role.lambda.id
   policy = data.aws_iam_policy_document.cloudwatch_logs.json
 }
@@ -106,7 +106,7 @@ data "aws_iam_policy_document" "kms_access" {
 resource "aws_iam_role_policy" "kms_access" {
   count = var.kms_key_arn != null ? 1 : 0
 
-  name   = "${var.function_name}-kms-access"
+  name   = "${var.prefix}-${var.function_name}-kms-access"
   role   = aws_iam_role.lambda.id
   policy = data.aws_iam_policy_document.kms_access[0].json
 }
@@ -122,7 +122,7 @@ data "aws_iam_policy_document" "dynamodb_access" {
 
 resource "aws_iam_role_policy" "dynamodb_access" {
   count  = var.dynamodb_table_arn != null ? 1 : 0
-  name   = "${var.function_name}-dynamodb-access"
+  name   = "${var.prefix}-${var.function_name}-dynamodb-access"
   role   = aws_iam_role.lambda.id
   policy = data.aws_iam_policy_document.dynamodb_access[0].json
 }

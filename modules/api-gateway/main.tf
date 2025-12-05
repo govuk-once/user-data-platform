@@ -4,7 +4,7 @@ data "terraform_remote_state" "cognito" {
   backend = "s3"
   config = {
     bucket = var.state_bucket
-    key = "udp/cognito/terraform.tfstate"
+    key = "${var.developer}/dev/cognito/terraform.tfstate"
     region = "eu-west-2"
   }
 }
@@ -13,7 +13,7 @@ data "terraform_remote_state" "cognito" {
 locals {
   env     = "dev"
   project = "UDP"
-  prefix  = "${local.project}-${local.env}"
+  prefix  = "${var.developer != "" ? "${var.developer}-" : ""}${local.project}-${local.env}"
   jwt_issuer = var.use_remote_state ? data.terraform_remote_state.cognito[0].outputs.issuer_url : var.jwt_authorizer.issuer
   jwt_audience = var.use_remote_state ? data.terraform_remote_state.cognito[0].outputs.jwt_audiences : var.jwt_authorizer.audience
 }

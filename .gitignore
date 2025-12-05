@@ -15,3 +15,10 @@ dist/
 .github/instructions/nx.instructions.md
 modules/terraform.tfstate.backup
 modules/terraform.tfstate
+
+# Node Files
+**/.terraform.lock.hcl
+**/.terraform/**/*
+**/terraform.auto.tfvars
+**/backend.tfvars
+**/tfplan
