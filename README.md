@@ -8,6 +8,10 @@ To test the post data lambda the command: nx run @src/postDataLambda:test
 To build the get data lambda the command: nx run @src/getDataLambda:build 
 To build the post data lambda the command: nx run @src/postDataLambda:build 
 
+# Running the e2e Tests
+command: nx run @test/e2e:deploy-and-test will deploy the code to aws and run the feature tests against it
+command: nx run @test/e2e:e2e will run the tests against currently deployed code.
+
 # Folder Structure
 ```
 | .github
@@ -34,8 +38,10 @@ To build the post data lambda the command: nx run @src/postDataLambda:build
     | postDataLambda
         handler.ts
 | e2e
-    | BDD
-        |...ts
+    | src
+        | features
+        | helpers
+        | step-definitions
 
 ./build
     getDatalambda.js
