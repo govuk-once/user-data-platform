@@ -7,15 +7,19 @@ variable "developer" {
 variable "name_prefix" {
   description = "Name Prefix for the resource"
   type        = string
+  default = "UDP"
 }
 
 variable "environment" {
   description = "Enviroment name"
   type        = string
+  default = "development"
 }
+
 variable "enable_key_rotation" {
   description = "Enable automatic key rotation"
   type        = bool
+  default = true
 }
 
 variable "deletion_window_in_days" {

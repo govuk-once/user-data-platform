@@ -24,7 +24,14 @@
       "executor": "nx:run-commands",
       "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply"],
       "options": {
-        "commands": ["nx run e2e:extract-env", "nx run e2e:e2e"],
+        "commands": [
+          "sleep 30s",
+          "nx run @test/e2e:extract-env",
+          "nx run @test/e2e:e2e",
+          "nx run @udp:teardown",
+          "rm -f .env"
+        ],
+        "cwd": "e2e",
         "parallel": false
       }
     }

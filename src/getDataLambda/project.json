@@ -27,7 +27,7 @@
         "external": ["@aws-sdk/*"],
         "skipTypeCheck": true,
         "esbuildOptions": {
-          "outfile": "build/getDataLambda/index.js"
+          "outfile": "./build/getDataLambda/index.js"
         }
       }
     }
