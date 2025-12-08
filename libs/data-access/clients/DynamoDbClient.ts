@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { DynamoDbService } from '../services/DynamoDbService';
 import { DynamoDBEntity } from '../types/Entity';
+import { EncryptionService } from '../services/EncryptionService';
 
 /**
  * DynamoDB client that provides a configured service instance.
@@ -11,7 +12,7 @@ import { DynamoDBEntity } from '../types/Entity';
 export class DynamoDbClient<T extends DynamoDBEntity> {
   private readonly service: DynamoDbService<T>;
 
-  constructor(tableName: string | undefined) {
+  constructor(tableName: string | undefined, kmsKeyId?:string) {
     if (!tableName) {
       throw new Error('TABLE_NAME environment variable is required');
     }
@@ -20,8 +21,13 @@ export class DynamoDbClient<T extends DynamoDBEntity> {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
+    let encryption = undefined;
+    if(kmsKeyId) {
+      encryption = { service: new EncryptionService({kmsKeyId}), dataFields: ['data']}
+    }
+
     // Initialize repository and service
-    const repository = new DynamoDBRepository<T>(tableName, docClient);
+    const repository = new DynamoDBRepository<T>(tableName, docClient, encryption);
     this.service = new DynamoDbService(repository);
   }
 
