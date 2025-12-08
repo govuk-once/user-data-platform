@@ -18,6 +18,16 @@ data "terraform_remote_state" "api_gateway" {
   }
 }
 
+data "terraform_remote_state" "kms" {
+  count = var.use_remote_state ? 1 : 0
+
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key = "${var.developer}/dev/kms/terraform.tfstate"
+  }
+}
+
 locals {
 
   prefix = "${var.developer != "" ? "${var.developer}-" : ""}lambda-${var.environment}"
@@ -25,23 +35,27 @@ locals {
   dynamodb_table_name = var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_name : var.dynamodb_table_name
   dynamodb_table_arn  = var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_arn : var.dynamodb_table_arn
 
-  api_gateway_id            = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.api_id : var.api_gateway_id
-  api_gateway_execution_arn = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.execution_arn : var.api_gateway_execution_arn
-  api_gateway_authorizer_id = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.jwt_authorizer_id : var.api_gateway_authorizer_id
+  api_gateway_id  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.api_id : var.api_gateway_id
+  api_gateway_execution_arn  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.execution_arn : var.api_gateway_execution_arn
+  api_gateway_authorizer_id  = var.use_remote_state ? data.terraform_remote_state.api_gateway[0].outputs.jwt_authorizer_id : var.api_gateway_authorizer_id
+  kms_key_arn = data.terraform_remote_state.kms[0].outputs.key_arn
+  kms_key_id = data.terraform_remote_state.kms[0].outputs.key_id
 }
 
 module "lambda" {
   source = "../lambda-base"
 
   function_name = "getDataLambda"
-  prefix        = local.prefix
-  handler       = var.handler
-  runtime       = var.runtime
-  source_path   = var.source_path
-  timeout       = var.timeout
-  memory_size   = var.memory_size
+  prefix = local.prefix
+  handler = var.handler
+  runtime = var.runtime
+  source_path = var.source_path
+  timeout = var.timeout
+  memory_size = var.memory_size
+  kms_key_arn = local.kms_key_arn
   environment_variables = {
     TABLE_NAME = local.dynamodb_table_name
+    KMS_KEY_ID = local.kms_key_id
   }
   environment = var.environment
 

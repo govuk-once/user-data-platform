@@ -7,7 +7,7 @@ import createError from 'http-errors';
 import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
 import { extractCompositeKey } from '@libs/utils';
 
-const client = new DynamoDbClient<DynamoDBEntity>(process.env.TABLE_NAME);
+const client = new DynamoDbClient<DynamoDBEntity>(process.env.TABLE_NAME, process.env.KMS_KEY_ID);
 const service = client.getService();
 
 export const lambdaHandler = async (
