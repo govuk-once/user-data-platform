@@ -1,8 +1,13 @@
+variable "developer" {
+  description = "Developer Prefix"
+  type = string
+  default = "" 
+}
+
 variable "state_bucket" {
   description = "Bucket for terraform remote state"
   type = string
 }
-
 
 variable "handler" {
     description = "Lamda handler"

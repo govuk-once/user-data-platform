@@ -10,23 +10,30 @@
   ],
   "targets": {
     "init": {
+      "dependsOn": ["@udp:set-developer"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/getData-lambda && terraform init"
+        "command": "cd ./modules/getData-lambda && terraform init --backend-config='backend.tfvars' -reconfigure"
       }
     },
     "plan": {
       "dependsOn": ["^build", "^apply", "init"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/getData-lambda && terraform plan"
+        "command": "cd ./modules/getData-lambda && terraform plan -out=tfplan"
       }
     },
     "apply": {
       "dependsOn": ["^build", "plan"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/getData-lambda && terraform apply -auto-approve"
+        "command": "cd ./modules/getData-lambda && terraform apply tfplan"
+      }
+    },
+     "destroy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd ./modules/getData-lambda && terraform destroy -auto-approve"
       }
     }
   }

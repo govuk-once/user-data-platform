@@ -134,3 +134,25 @@ command: nx run @test/e2e:e2e will run the tests against currently deployed code
 .pre-commit
 
 ```
+
+## Developer environments
+
+Each developer gets and isolated AWS infrastructure environment to prevent Terraform state conflicts ans resource collisions
+
+### How it works
+
+A unique developer ID is  **auto-generated** from yout git email and user
+- Format: `<first0name>-<6-char-hash>` (eg `tim-b3b4n5`)
+- The hash ensures uniqueness even if two devs have the same name
+- All Terraform state files and AWS resources are prefixed with this ID
+
+### usage
+
+Before running any terraform commands, the `set-developer` targets run automatically (as a dependancy of the `init`),  this generates:
+
+- `backend.tfvars` - Backend config with developer state key
+- `terraform.auto.tfvars` - Contains the `developer` variable (auto-loaded by terraform)
+
+```sh
+npx nx run @test/e2d:deploy-and-test
+```

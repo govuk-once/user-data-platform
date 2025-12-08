@@ -3,6 +3,11 @@ variable "function_name" {
     type = string
 }
 
+variable "prefix" {
+    description = "Prfix of lambda for developer scoping"
+    type = string
+}
+
 variable "handler" {
     description = "Lamda handler"
     type = string

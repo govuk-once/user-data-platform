@@ -4,7 +4,7 @@ data "terraform_remote_state" "dynamodb" {
   backend = "s3"
   config = {
     bucket = var.state_bucket
-    key = "udp/dynamodb/terraform.tfstate"
+    key = "${var.developer}/dev/dynamodb/terraform.tfstate"
   }
 }
 
@@ -14,11 +14,14 @@ data "terraform_remote_state" "api_gateway" {
   backend = "s3"
   config = {
     bucket = var.state_bucket
-    key = "udp/api-gateway/terraform.tfstate"
+    key = "${var.developer}/dev/api-gateway/terraform.tfstate"
   }
 }
 
 locals {
+
+  prefix = "${var.developer != "" ? "${var.developer}-" : ""}lambda-${var.environment}"
+
   dynamodb_table_name = var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_name : var.dynamodb_table_name
   dynamodb_table_arn =  var.use_remote_state ? data.terraform_remote_state.dynamodb[0].outputs.table_arn : var.dynamodb_table_arn
 
@@ -31,6 +34,7 @@ module "lambda" {
   source = "../lambda-base"
 
   function_name = "getDataLambda"
+  prefix = local.prefix
   handler = var.handler
   runtime = var.runtime
   source_path = var.source_path

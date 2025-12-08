@@ -1,3 +1,9 @@
+variable "developer" {
+  description = "Developer Prefix"
+  type = string
+  default = "" 
+}
+
 variable "use_remote_state" {
   description = "Use remote state flag"
   type = bool

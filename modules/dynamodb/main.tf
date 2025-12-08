@@ -1,5 +1,9 @@
+locals {
+    prefix = "${var.developer != "" ? "${var.developer}-" : ""}dynamodb-${var.environment}"
+}
+
 resource "aws_dynamodb_table" "this" {
-    name = "${var.table_name}-${var.environment}"
+    name = "${local.prefix}-${var.table_name}"
     billing_mode = "PAY_PER_REQUEST"
     hash_key = var.hash_key
     range_key = var.sort_key
@@ -24,7 +28,7 @@ resource "aws_dynamodb_table" "this" {
     }
 
     tags = merge(var.tags, {
-      name = "${var.table_name}=${var.environment}"
+      name = "${local.prefix}-${var.table_name}"
       environment = var.environment
     })
 }
@@ -38,10 +42,10 @@ resource "aws_dynamodb_table" "this" {
 resource "aws_sns_topic" "dynamodb_alarms" {
   count = var.alarms.enabled ? 1 : 0
 
-  name = "${var.table_name}-${var.environment}-dynamodb-alarms"
+  name = "${local.prefix}-${var.table_name}-dynamodb-alarms"
 
   tags = merge(var.tags, {
-    Name = "${var.table_name}-${var.environment}-dynamodb-alarms"
+    Name = "${local.prefix}-${var.table_name}-dynamodb-alarms"
     Environment = var.environment
   })
   
@@ -63,7 +67,7 @@ resource "aws_sns_topic_subscription" "dynamo_alarm_emails" {
 resource "aws_cloudwatch_metric_alarm" "consumed_rcu" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.table_name}-${var.environment}-high-rcu"
+  alarm_name = "${local.prefix}-${var.table_name}-high-rcu"
   alarm_description = "High dynamoDB read capacity usage"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods = var.alarms.read_capacity.evaluation_periods
@@ -89,7 +93,7 @@ resource "aws_cloudwatch_metric_alarm" "consumed_rcu" {
 resource "aws_cloudwatch_metric_alarm" "consumed_wcu" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.table_name}-${var.environment}-high-wcu"
+  alarm_name = "${local.prefix}-${var.table_name}-high-wcu"
   alarm_description = "High dynamoDB write capacity usage"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods = var.alarms.write_capacity.evaluation_periods
@@ -117,7 +121,7 @@ resource "aws_cloudwatch_metric_alarm" "consumed_wcu" {
 resource "aws_cloudwatch_metric_alarm" "read_throttle" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.table_name}-${var.environment}-read-throttle"
+  alarm_name = "${local.prefix}-${var.table_name}-read-throttle"
   alarm_description = "Dynamo read throttle events for ${var.table_name}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods = var.alarms.threshold_requests.evaluation_periods
@@ -135,7 +139,7 @@ resource "aws_cloudwatch_metric_alarm" "read_throttle" {
   ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.table_name}-${var.environment}-read-throttle"
+    Name = "${local.prefix}-${var.table_name}-read-throttle"
     Environment = var.environment
   })
 }
@@ -144,7 +148,7 @@ resource "aws_cloudwatch_metric_alarm" "read_throttle" {
 resource "aws_cloudwatch_metric_alarm" "write_throttle" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.table_name}-${var.environment}-write-throttle"
+  alarm_name = "${local.prefix}-${var.table_name}-write-throttle"
   alarm_description = "Dynamo write throttle events for ${var.table_name}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods = var.alarms.threshold_requests.evaluation_periods
@@ -162,7 +166,7 @@ resource "aws_cloudwatch_metric_alarm" "write_throttle" {
   ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.table_name}-${var.environment}-write-throttle"
+    Name = "${local.prefix}-${var.table_name}-write-throttle"
     Environment = var.environment
   })
 }
