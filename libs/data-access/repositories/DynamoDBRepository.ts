@@ -1,7 +1,4 @@
-import {
-  DynamoDBEntity,
-  EncryptionConfig,
-} from '../types/Entity';
+import { DynamoDBEntity, EncryptionConfig } from '../types/Entity';
 import { Repository } from './Repository';
 import {
   DynamoDBDocumentClient,

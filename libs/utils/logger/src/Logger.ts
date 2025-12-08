@@ -39,8 +39,8 @@ export class Logger extends PowerToolLogger {
       if (!Object.prototype.hasOwnProperty.call(clone, key)) continue;
 
       if (this.redactedFields.includes(key)) {
-        clone[key] = "***REDACTED***";
-      } else if (typeof clone[key] === "object") {
+        clone[key] = '***REDACTED***';
+      } else if (typeof clone[key] === 'object') {
         clone[key] = this.redactObject(clone[key]);
       }
     }
@@ -54,23 +54,38 @@ export class Logger extends PowerToolLogger {
 
   /** -------- Override Powertools Logging Methods -------- */
 
-  public override info(message: string, fields?: Record<string, unknown>): void {
-    super.info(message, this.wrapFields({...fields, ...this.commonFields}));
+  public override info(
+    message: string,
+    fields?: Record<string, unknown>,
+  ): void {
+    super.info(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 
-  public override error(message: string, fields?: Record<string, unknown>): void {
-    super.error(message, this.wrapFields({...fields, ...this.commonFields}));
+  public override error(
+    message: string,
+    fields?: Record<string, unknown>,
+  ): void {
+    super.error(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 
-  public override warn(message: string, fields?: Record<string, unknown>): void {
-    super.warn(message, this.wrapFields({...fields, ...this.commonFields}));
+  public override warn(
+    message: string,
+    fields?: Record<string, unknown>,
+  ): void {
+    super.warn(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 
-  public override debug(message: string, fields?: Record<string, unknown>): void {
-    super.debug(message, this.wrapFields({...fields, ...this.commonFields}));
+  public override debug(
+    message: string,
+    fields?: Record<string, unknown>,
+  ): void {
+    super.debug(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 
-  public override trace(message: string, fields?: Record<string, unknown>): void {
-    super.trace(message, this.wrapFields({...fields, ...this.commonFields}));
+  public override trace(
+    message: string,
+    fields?: Record<string, unknown>,
+  ): void {
+    super.trace(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 }

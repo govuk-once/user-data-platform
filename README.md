@@ -3,6 +3,7 @@
 ## Setup
 
 ### Prerequisites
+
 - Node.js (v18 or later)
 - pnpm
 - Python 3.7+ (for pre-commit hooks)
@@ -14,11 +15,13 @@
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 2. Install pre-commit and security tools:
+
 ```bash
 # macOS
 brew install pre-commit terraform tflint checkov detect-secrets
@@ -28,6 +31,7 @@ pip install pre-commit detect-secrets
 ```
 
 3. Install the git hook scripts:
+
 ```bash
 # Install pre-commit hooks
 pre-commit install
@@ -41,6 +45,7 @@ pre-commit install --hook-type pre-push
 The project uses pre-commit hooks to maintain code quality. Hooks run automatically on `git commit`:
 
 **On every commit:**
+
 - Trailing whitespace removal
 - End-of-file fixing
 - YAML/JSON validation
@@ -57,9 +62,11 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 - Terraform security scanning (`checkov`)
 
 **On git push:**
-- Run affected unit tests (only tests for changed code)
+
+- Run all unit tests (via `vitest run`)
 
 To run all hooks manually:
+
 ```bash
 # Run all pre-commit hooks
 pre-commit run --all-files
@@ -73,6 +80,7 @@ pre-commit run detect-secrets --all-files
 #### Managing Detected Secrets
 
 If `detect-secrets` flags a false positive:
+
 ```bash
 # Audit the baseline and mark false positives
 detect-secrets audit .secrets.baseline
@@ -82,18 +90,22 @@ detect-secrets scan --baseline .secrets.baseline
 ```
 
 ## Running tests use the following commands
-To test the get data lambda the command: nx run @src/getDataLambda:test 
-To test the post data lambda the command: nx run @src/postDataLambda:test 
+
+To test the get data lambda the command: nx run @src/getDataLambda:test
+To test the post data lambda the command: nx run @src/postDataLambda:test
 
 # Running a local build
-To build the get data lambda the command: nx run @src/getDataLambda:build 
-To build the post data lambda the command: nx run @src/postDataLambda:build 
+
+To build the get data lambda the command: nx run @src/getDataLambda:build
+To build the post data lambda the command: nx run @src/postDataLambda:build
 
 # Running the e2e Tests
+
 command: nx run @test/e2e:deploy-and-test will deploy the code to aws and run the feature tests against it
 command: nx run @test/e2e:e2e will run the tests against currently deployed code.
 
 # Folder Structure
+
 ```
 | .github
     | deploy.yaml
@@ -130,7 +142,7 @@ command: nx run @test/e2e:e2e will run the tests against currently deployed code
 .checkov
 .semgrep
 .prettier
-    
+
 .pre-commit
 
 ```
@@ -141,14 +153,15 @@ Each developer gets and isolated AWS infrastructure environment to prevent Terra
 
 ### How it works
 
-A unique developer ID is  **auto-generated** from yout git email and user
+A unique developer ID is **auto-generated** from yout git email and user
+
 - Format: `<first0name>-<6-char-hash>` (eg `tim-b3b4n5`)
 - The hash ensures uniqueness even if two devs have the same name
 - All Terraform state files and AWS resources are prefixed with this ID
 
 ### usage
 
-Before running any terraform commands, the `set-developer` targets run automatically (as a dependancy of the `init`),  this generates:
+Before running any terraform commands, the `set-developer` targets run automatically (as a dependancy of the `init`), this generates:
 
 - `backend.tfvars` - Backend config with developer state key
 - `terraform.auto.tfvars` - Contains the `developer` variable (auto-loaded by terraform)

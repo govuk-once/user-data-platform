@@ -60,14 +60,16 @@ export const lambdaHandler = async (
 
 export const handler = middy()
   .use(jsonBodyParser())
-  .use(httpResponseSerializer({
-    serializers: [
-      {
-        regex: /^application\/json$/,
-        serializer: ({ body }) => JSON.stringify(body),
-      },
-    ],
-    defaultContentType: 'application/json',
-  }))
+  .use(
+    httpResponseSerializer({
+      serializers: [
+        {
+          regex: /^application\/json$/,
+          serializer: ({ body }) => JSON.stringify(body),
+        },
+      ],
+      defaultContentType: 'application/json',
+    }),
+  )
   .use(httpErrorHandler())
   .handler(lambdaHandler);

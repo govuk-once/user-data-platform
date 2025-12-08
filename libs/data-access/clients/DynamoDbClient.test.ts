@@ -1,5 +1,9 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDbClient } from './DynamoDbClient';
 import { DynamoDBEntity, DynamoDBAttributeMap } from '../types/Entity';
@@ -66,7 +70,9 @@ describe('DynamoDbClient Integration Tests', () => {
     });
 
     it('should propagate GetError from repository through service', async () => {
-      dynamoMock.on(GetCommand).rejects(new Error('DynamoDB connection failed'));
+      dynamoMock
+        .on(GetCommand)
+        .rejects(new Error('DynamoDB connection failed'));
 
       const client = new DynamoDbClient<DynamoDBEntity>('test-table');
       const service = client.getService();

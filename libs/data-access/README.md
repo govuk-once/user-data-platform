@@ -64,10 +64,10 @@ const repository = new DynamoDBRepository<DynamoDBEntity>(
 
 ### `getByKey(pk: string, sk: string): Promise<T | null>`
 
-**`getByKey(pk: string, sk: string): Promise<T | null>`**  
+**`getByKey(pk: string, sk: string): Promise<T | null>`**
 Retrieves an entity by composite key.
 
-**`save(entity: T): Promise<void>`**  
+**`save(entity: T): Promise<void>`**
 Saves an entity with validation.
 
 ## Architecture

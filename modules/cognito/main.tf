@@ -1,5 +1,5 @@
 locals {
-  prefix  = "${var.developer != "" ? "${var.developer}-" : ""}auth-${var.environment}"
+  prefix = "${var.developer != "" ? "${var.developer}-" : ""}auth-${var.environment}"
 }
 
 
@@ -7,80 +7,80 @@ locals {
 # Cognito User pool
 # ----
 resource "aws_cognito_user_pool" "main" {
-    name = "${local.prefix}-${var.user_pool_name}"
+  name = "${local.prefix}-${var.user_pool_name}"
 
-    admin_create_user_config {
-      allow_admin_create_user_only = true
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
+
+  password_policy {
+    minimum_length                   = 12
+    require_lowercase                = true
+    require_numbers                  = true
+    require_symbols                  = true
+    require_uppercase                = true
+    temporary_password_validity_days = 7
+  }
+
+  account_recovery_setting {
+    recovery_mechanism {
+      name     = "admin_only"
+      priority = 1
     }
+  }
 
-    password_policy {
-      minimum_length = 12
-      require_lowercase = true
-      require_numbers = true
-      require_symbols = true
-      require_uppercase = true
-      temporary_password_validity_days = 7
+  # logging config
+  dynamic "user_pool_add_ons" {
+    for_each = var.logging.enabled ? [1] : []
+    content {
+      advanced_security_mode = var.logging.advanced_security_mode
     }
+  }
 
-    account_recovery_setting {
-      recovery_mechanism {
-        name = "admin_only"
-        priority = 1
-      }
-    }
-
-    # logging config
-    dynamic "user_pool_add_ons" {
-      for_each = var.logging.enabled ? [1] : []
-      content {
-        advanced_security_mode = var.logging.advanced_security_mode
-      }
-    }
-
-    tags = merge(var.tags, {
-        name = "${local.prefix}-${var.user_pool_name}"
-        environment = var.environment
-    })
+  tags = merge(var.tags, {
+    name        = "${local.prefix}-${var.user_pool_name}"
+    environment = var.environment
+  })
 }
 # ---
 # User pool domain
 # ----
 resource "aws_cognito_user_pool_domain" "main" {
-    domain = "${local.prefix}-${var.domain_prefix}"
-    user_pool_id = aws_cognito_user_pool.main.id
-  
+  domain       = "${local.prefix}-${var.domain_prefix}"
+  user_pool_id = aws_cognito_user_pool.main.id
+
 }
 # ---
 # Resource server
 # ----
 resource "aws_cognito_resource_server" "api" {
-    identifier = var.resource_server_identifier
-    name = "${local.prefix}-${var.resource_server_name}"
-    user_pool_id = aws_cognito_user_pool.main.id  
+  identifier   = var.resource_server_identifier
+  name         = "${local.prefix}-${var.resource_server_name}"
+  user_pool_id = aws_cognito_user_pool.main.id
 
-    dynamic "scope" {
-      for_each = var.resource_server_scopes
-      content {
-        scope_name = scope.value.name
-        scope_description = scope.value.description
-      }
+  dynamic "scope" {
+    for_each = var.resource_server_scopes
+    content {
+      scope_name        = scope.value.name
+      scope_description = scope.value.description
     }
+  }
 }
 
 # ---
 # Cloudwatch log group
 # ----
 resource "aws_cloudwatch_log_group" "cognito" {
-    count = var.logging.enabled ? 1 : 0
+  count = var.logging.enabled ? 1 : 0
 
-    name = "/aws/cognito/userpools/${aws_cognito_user_pool.main.id}"
-    retention_in_days = var.logging.retention_days
-    kms_key_id = var.logging.kms_key_arn
+  name              = "/aws/cognito/userpools/${aws_cognito_user_pool.main.id}"
+  retention_in_days = var.logging.retention_days
+  kms_key_id        = var.logging.kms_key_arn
 
-    tags = merge(var.tags,  {
-        name = "${local.prefix}-${var.user_pool_name}-logs"
-    })
-  
+  tags = merge(var.tags, {
+    name = "${local.prefix}-${var.user_pool_name}-logs"
+  })
+
 }
 
 # ---
@@ -92,22 +92,22 @@ data "aws_iam_policy_document" "cognito_logging" {
   statement {
     effect = "Allow"
     principals {
-       type = "Service"
-       identifiers = ["cognito-idp.amazonaws.com"]
+      type        = "Service"
+      identifiers = ["cognito-idp.amazonaws.com"]
     }
     actions = [
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
     ]
     resources = ["${aws_cloudwatch_log_group.cognito[0].arn}:*"]
   }
 }
 
 resource "aws_cloudwatch_log_resource_policy" "cognito" {
-    count = var.logging.enabled ? 1 : 0
+  count = var.logging.enabled ? 1 : 0
 
-    policy_name = "${local.prefix}-${var.user_pool_name}-logs"
-    policy_document = data.aws_iam_policy_document.cognito_logging[0].json
+  policy_name     = "${local.prefix}-${var.user_pool_name}-logs"
+  policy_document = data.aws_iam_policy_document.cognito_logging[0].json
 }
 
 
@@ -115,29 +115,29 @@ resource "aws_cloudwatch_log_resource_policy" "cognito" {
 # M2M App CLient
 # ----
 resource "aws_cognito_user_pool_client" "m2m" {
-    for_each = var.m2m_clients
+  for_each = var.m2m_clients
 
-    name = "${each.key}-${local.prefix}-${var.environment}"
-    user_pool_id = aws_cognito_user_pool.main.id
+  name         = "${each.key}-${local.prefix}-${var.environment}"
+  user_pool_id = aws_cognito_user_pool.main.id
 
-    generate_secret = true
+  generate_secret = true
 
-    allowed_oauth_flows = ["client_credentials"]
-    allowed_oauth_flows_user_pool_client = true
-    allowed_oauth_scopes = each.value.scopes
+  allowed_oauth_flows                  = ["client_credentials"]
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_scopes                 = each.value.scopes
 
-    access_token_validity = each.value.access_token_validity_minutes
-    token_validity_units {
-      access_token = "minutes"
-    }
+  access_token_validity = each.value.access_token_validity_minutes
+  token_validity_units {
+    access_token = "minutes"
+  }
 
-    explicit_auth_flows = []
+  explicit_auth_flows = []
 
-    supported_identity_providers = []
+  supported_identity_providers = []
 
-    prevent_user_existence_errors = "ENABLED"
+  prevent_user_existence_errors = "ENABLED"
 
-    depends_on = [ aws_cognito_resource_server.api ]
+  depends_on = [aws_cognito_resource_server.api]
 }
 
 
@@ -146,102 +146,102 @@ resource "aws_cognito_user_pool_client" "m2m" {
 # ----
 
 resource "aws_sns_topic" "cognito_alarms" {
-   count = var.logging.enabled ? 1 : 0
+  count = var.logging.enabled ? 1 : 0
 
-   name = "${local.prefix}-${var.user_pool_name}-cognito-alarms"
+  name = "${local.prefix}-${var.user_pool_name}-cognito-alarms"
 
-   tags = merge(var.tags, {
+  tags = merge(var.tags, {
     name = "${local.prefix}-${var.user_pool_name}-cognito-alarms"
-   })
+  })
 }
 
 resource "aws_sns_topic_subscription" "alarm_email" {
-    for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
+  for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
 
-    topic_arn = aws_sns_topic.cognito_alarms[0].arn
-    protocol = "email"
-    endpoint = each.value
+  topic_arn = aws_sns_topic.cognito_alarms[0].arn
+  protocol  = "email"
+  endpoint  = each.value
 }
 
 #alarm Throttling - token requests are being throttled
 resource "aws_cloudwatch_metric_alarm" "throttling" {
-    count = var.alarms.enabled ? 1 : 0
+  count = var.alarms.enabled ? 1 : 0
 
-    alarm_name = "${local.prefix}-${var.user_pool_name}-throttling"
-    alarm_description = "Alert when cognito requests are being throttled"
-    comparison_operator = "GreaterThanThreshold"
-    evaluation_periods = var.alarms.throttling.evaluation_periods
-    metric_name = "CallCount"
-    namespace = "AWS/Cognito"
-    period = var.alarms.throttling.period_seconds
-    statistic = "Sum"
-    threshold = var.alarms.throttling.threashold
+  alarm_name          = "${local.prefix}-${var.user_pool_name}-throttling"
+  alarm_description   = "Alert when cognito requests are being throttled"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = var.alarms.throttling.evaluation_periods
+  metric_name         = "CallCount"
+  namespace           = "AWS/Cognito"
+  period              = var.alarms.throttling.period_seconds
+  statistic           = "Sum"
+  threshold           = var.alarms.throttling.threashold
 
-    dimensions = {
-        UserPool = aws_cognito_user_pool.main.id
-        Service = "Cognito User Pools"
-    }
+  dimensions = {
+    UserPool = aws_cognito_user_pool.main.id
+    Service  = "Cognito User Pools"
+  }
 
-    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
-    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  ok_actions    = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
 
-    tags = merge(var.tags, {
-        name = "${local.prefix}-${var.user_pool_name}-throttling"
-    })
-  
+  tags = merge(var.tags, {
+    name = "${local.prefix}-${var.user_pool_name}-throttling"
+  })
+
 }
 
 
 resource "aws_cloudwatch_metric_alarm" "compromised-credentials" {
-    count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
+  count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
 
-    alarm_name = "${local.prefix}-${var.user_pool_name}-compromised-credentials"
-    alarm_description = "Alert when compromised credentials are detected"
-    comparison_operator = "GreaterThanThreshold"
-    evaluation_periods = 1
-    metric_name = "CompromisedCredentialRisk"
-    namespace = "AWS/Cognito"
-    period = 300
-    statistic = "Sum"
-    threshold = 0
-    treat_missing_data = "notBreaching"
+  alarm_name          = "${local.prefix}-${var.user_pool_name}-compromised-credentials"
+  alarm_description   = "Alert when compromised credentials are detected"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "CompromisedCredentialRisk"
+  namespace           = "AWS/Cognito"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
 
-    dimensions = {
-        UserPool = aws_cognito_user_pool.main.id
-        RiskLevel = "High"
-    }
+  dimensions = {
+    UserPool  = aws_cognito_user_pool.main.id
+    RiskLevel = "High"
+  }
 
-    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
-    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  ok_actions    = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
 
-    tags = merge(var.tags, {
-        name = "${local.prefix}-${var.user_pool_name}-comprmised-credentials"
-    })
+  tags = merge(var.tags, {
+    name = "${local.prefix}-${var.user_pool_name}-comprmised-credentials"
+  })
 }
 
 resource "aws_cloudwatch_metric_alarm" "account_takeover_risk" {
-    count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
+  count = var.alarms.enabled && var.logging.advanced_security_mode != "OFF" ? 1 : 0
 
-    alarm_name = "${local.prefix}-${var.user_pool_name}-account-takeover-risk"
-    alarm_description = "Alert when Account takeover risk is detected"
-    comparison_operator = "GreaterThanThreshold"
-    evaluation_periods = 1
-    metric_name = "AccountTakeoverRisk"
-    namespace = "AWS/Cognito"
-    period = 300
-    statistic = "Sum"
-    threshold = 0
-    treat_missing_data = "notBreaching"
+  alarm_name          = "${local.prefix}-${var.user_pool_name}-account-takeover-risk"
+  alarm_description   = "Alert when Account takeover risk is detected"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "AccountTakeoverRisk"
+  namespace           = "AWS/Cognito"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
 
-    dimensions = {
-        UserPool = aws_cognito_user_pool.main.id
-        RiskLevel = "High"
-    }
+  dimensions = {
+    UserPool  = aws_cognito_user_pool.main.id
+    RiskLevel = "High"
+  }
 
-    alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
-    ok_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  alarm_actions = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
+  ok_actions    = var.alarms.enabled ? [aws_sns_topic.cognito_alarms[0].arn] : []
 
-    tags = merge(var.tags, {
-        name = "${local.prefix}-${var.user_pool_name}-account-takeover-risk"
-    })
+  tags = merge(var.tags, {
+    name = "${local.prefix}-${var.user_pool_name}-account-takeover-risk"
+  })
 }
