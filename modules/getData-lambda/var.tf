@@ -1,3 +1,9 @@
+variable "developer" {
+  description = "Developer Prefix"
+  type = string
+  default = "" 
+}
+
 variable "state_bucket" {
    description = "State Bucket"
    type = string

@@ -1,3 +1,9 @@
+variable "developer" {
+  description = "Developer Prefix"
+  type = string
+  default = "" 
+}
+
 variable "environment" {
     description = "Enviroment name"
     type = string

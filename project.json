@@ -1,0 +1,15 @@
+{
+  "name": "@udp",
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "set-developer": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./scripts/set-developer.sh",
+        "cwd": "."
+      },
+      "cache": true
+    }
+  }
+}
