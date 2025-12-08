@@ -1,7 +1,7 @@
 variable "developer" {
   description = "Developer Prefix"
-  type = string
-  default = "" 
+  type        = string
+  default     = ""
 }
 
 variable "name_prefix" {
@@ -20,12 +20,12 @@ variable "enable_key_rotation" {
 
 variable "deletion_window_in_days" {
   description = "Duration in days after which the key is deleted after destruction"
-  type = number
-  default = 30
+  type        = number
+  default     = 30
 }
 
 variable "tags" {
   description = "Tags to apply to resource"
   type        = map(string)
-  default = {}
+  default     = {}
 }

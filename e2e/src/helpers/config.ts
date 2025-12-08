@@ -2,9 +2,8 @@ import { config as dotevvConfig } from 'dotenv';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotevvConfig({ path: resolve(__dirname, '../../.env') });
 
@@ -85,9 +84,9 @@ export const config: E2EConfig = {
 };
 
 export function getCognitoClient(clientName: string): CognitoClientConfig {
-    const client = config.cognito.clients[clientName];
-    if(!client) {
-        throw new Error(`Unknown Cognito Client "${clientName}"`)
-    }
-    return client
+  const client = config.cognito.clients[clientName];
+  if (!client) {
+    throw new Error(`Unknown Cognito Client "${clientName}"`);
+  }
+  return client;
 }

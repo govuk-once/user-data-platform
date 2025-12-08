@@ -5,7 +5,6 @@ import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
 import { logger } from '../utils/Logger';
 
-
 interface TestEntity extends DynamoDBEntity {
   data?: {
     status?: string;

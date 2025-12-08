@@ -35,7 +35,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
       throw new GetError(
         'entity',
         `${pk || 'undefined'}#${sk || 'undefined'}`,
-        new Error('Both pk and sk are required')
+        new Error('Both pk and sk are required'),
       );
     }
 
@@ -101,7 +101,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
       throw new SaveError(
         'entity',
         `${entity.pk || 'undefined'}#${entity.sk || 'undefined'}`,
-        new Error('Entity must have both pk and sk')
+        new Error('Entity must have both pk and sk'),
       );
     }
 
@@ -111,7 +111,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
         throw new SaveError(
           'entity',
           `${entity.pk}#${entity.sk}`,
-          new Error('TTL must be a future timestamp in seconds since epoch')
+          new Error('TTL must be a future timestamp in seconds since epoch'),
         );
       }
     }

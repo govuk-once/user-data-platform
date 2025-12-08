@@ -24,7 +24,7 @@ When(
 When(
   'i send a get to {string}',
   async function (this: CustomWorld, path: string) {
-    const response = await this.api.get(path,{
+    const response = await this.api.get(path, {
       authenticated: this.authenticated,
     });
     this.storeResponse(response);
@@ -54,7 +54,10 @@ Then(
   },
 );
 
-Then('The response will contain message {string}', function(this:CustomWorld, message:string) {
-  const data = this.lastResponse?.data as Record<string, unknown>;
-  expect(data.message).toEqual(message);
-})
+Then(
+  'The response will contain message {string}',
+  function (this: CustomWorld, message: string) {
+    const data = this.lastResponse?.data as Record<string, unknown>;
+    expect(data.message).toEqual(message);
+  },
+);

@@ -1,5 +1,10 @@
 // Types
-export type { Entity, DynamoDBEntity, DynamoDBValue, DynamoDBAttributeMap } from './types/Entity';
+export type {
+  Entity,
+  DynamoDBEntity,
+  DynamoDBValue,
+  DynamoDBAttributeMap,
+} from './types/Entity';
 export type { Repository } from './repositories/Repository';
 
 // Repositories

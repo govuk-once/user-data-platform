@@ -662,7 +662,7 @@ describe('DynamoDBRepository', () => {
         __dataKey: 'encrypted-key',
       };
 
-      dynamoMock.on(GetCommand).resolves({Item:entity});
+      dynamoMock.on(GetCommand).resolves({ Item: entity });
 
       const mockEncryptionService = {
         decryptFields: vi.fn(),
@@ -692,7 +692,7 @@ describe('DynamoDBRepository', () => {
       ]);
 
       expect(response).toEqual({
-         data: {
+        data: {
           name: 'John Doe',
           email: 'john@example.com',
         },

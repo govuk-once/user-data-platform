@@ -1,49 +1,49 @@
 variable "developer" {
   description = "Developer Prefix"
-  type = string
-  default = "" 
+  type        = string
+  default     = ""
 }
 
 variable "state_bucket" {
-   description = "State Bucket"
-   type = string
-   default = ""
+  description = "State Bucket"
+  type        = string
+  default     = ""
 }
 
 variable "handler" {
-    description = "Lamda handler"
-    type = string
-    default = "index.handler"
+  description = "Lamda handler"
+  type        = string
+  default     = "index.handler"
 }
 
 variable "runtime" {
-    description = "Lambda runtime"
-    type = string
-    default = "nodejs20.x"
+  description = "Lambda runtime"
+  type        = string
+  default     = "nodejs20.x"
 }
 
 variable "source_path" {
   description = "Path to lambda source code zip"
-  type = string
-  default = "../../build/getDataLambda.js"
+  type        = string
+  default     = "../../build/getDataLambda.js"
 }
 
 variable "timeout" {
-    description = "Lambda timeout in seconds"
-    type = number 
-    default = 30
+  description = "Lambda timeout in seconds"
+  type        = number
+  default     = 30
 }
 
 variable "memory_size" {
-    description = "Lambda memory size in MB"
-    type = number
-    default = 250
+  description = "Lambda memory size in MB"
+  type        = number
+  default     = 250
 }
 
 variable "environment_variables" {
-    description = "Environment variables for the lambda"
-    type = map(string)
-    default = {} 
+  description = "Environment variables for the lambda"
+  type        = map(string)
+  default     = {}
 }
 
 variable "environment" {
@@ -54,37 +54,37 @@ variable "environment" {
 
 variable "use_remote_state" {
   description = "Flag use remote state"
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "dynamodb_table_name" {
   description = "Dynamo Table Name"
-  type = string
+  type        = string
 }
 
 variable "dynamodb_table_arn" {
   description = "Dynamo Table Name"
-  type = string
+  type        = string
 }
 
 variable "api_gateway_id" {
   description = "Api Gateway ID"
-  type = string
+  type        = string
 }
 
 variable "api_gateway_execution_arn" {
   description = "Api Gateway ARN"
-  type = string
+  type        = string
 }
 
 variable "api_gateway_authorizer_id" {
   description = "Api Gateway Authorizer ID"
-  type = string
+  type        = string
 }
 
 variable "api_gateway_authorizsation_scopes" {
-    description = "OAuth2 scopes required to access this route"
-    type = list(string)
-    default = []
+  description = "OAuth2 scopes required to access this route"
+  type        = list(string)
+  default     = []
 }

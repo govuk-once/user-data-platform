@@ -27,8 +27,8 @@ resource "aws_kms_key" "this" {
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-        Action   = [
-          "kms:Descrypt", 
+        Action = [
+          "kms:Descrypt",
           "kms:GenerateDataKey"
         ]
         Resource = "*"
@@ -39,11 +39,11 @@ resource "aws_kms_key" "this" {
         Principal = {
           Service = "logs.eu-west-2.amazonaws.com"
         }
-        Action   = [
-          "kms:Encrypt*", 
-          "kms:Decrypt*", 
-          "kms:ReEncrypt*", 
-          "kms:GenerateDataKey*", 
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
           "kms:Describe*"
         ]
         Resource = "*"

@@ -43,7 +43,9 @@ export class SaveError extends RepositoryError {
    * @param originalError - The underlying error that caused the save to fail
    */
   constructor(entityName: string, id: string, originalError: Error) {
-    super(`Failed to save ${entityName} with id ${id}: ${originalError.message}`);
+    super(
+      `Failed to save ${entityName} with id ${id}: ${originalError.message}`,
+    );
     this.name = 'SaveError';
     this.cause = originalError;
   }
@@ -65,7 +67,9 @@ export class GetError extends RepositoryError {
    * @param originalError - The underlying error that caused the retrieval to fail
    */
   constructor(entityName: string, id: string, originalError: Error) {
-    super(`Failed to get ${entityName} with id ${id}: ${originalError.message}`);
+    super(
+      `Failed to get ${entityName} with id ${id}: ${originalError.message}`,
+    );
     this.name = 'GetError';
     this.cause = originalError;
   }

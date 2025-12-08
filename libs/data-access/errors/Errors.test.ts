@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  RepositoryError,
-  NotFoundError,
-  SaveError,
-  GetError,
-} from './Errors';
+import { RepositoryError, NotFoundError, SaveError, GetError } from './Errors';
 
 describe('Error Classes', () => {
   describe('RepositoryError', () => {
@@ -57,7 +52,9 @@ describe('Error Classes', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(RepositoryError);
       expect(error).toBeInstanceOf(SaveError);
-      expect(error.message).toBe('Failed to save User with id 456: Database connection failed');
+      expect(error.message).toBe(
+        'Failed to save User with id 456: Database connection failed',
+      );
       expect(error.name).toBe('SaveError');
       expect(error.cause).toBe(originalError);
       expect(error.cause).toBeInstanceOf(Error);
@@ -75,7 +72,9 @@ describe('Error Classes', () => {
       const originalError = new Error('Network error');
       const error = new SaveError('item', 'ORG#123#CONFIG', originalError);
 
-      expect(error.message).toBe('Failed to save item with id ORG#123#CONFIG: Network error');
+      expect(error.message).toBe(
+        'Failed to save item with id ORG#123#CONFIG: Network error',
+      );
     });
 
     it('should inherit from RepositoryError', () => {
@@ -103,7 +102,9 @@ describe('Error Classes', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(RepositoryError);
       expect(error).toBeInstanceOf(GetError);
-      expect(error.message).toBe('Failed to get User with id 789: Connection refused');
+      expect(error.message).toBe(
+        'Failed to get User with id 789: Connection refused',
+      );
       expect(error.name).toBe('GetError');
       expect(error.cause).toBe(originalError);
       expect(error.cause).toBeInstanceOf(Error);
@@ -121,7 +122,9 @@ describe('Error Classes', () => {
       const originalError = new Error('Table not found');
       const error = new GetError('item', 'PRODUCT#ABC#DETAILS', originalError);
 
-      expect(error.message).toBe('Failed to get item with id PRODUCT#ABC#DETAILS: Table not found');
+      expect(error.message).toBe(
+        'Failed to get item with id PRODUCT#ABC#DETAILS: Table not found',
+      );
     });
 
     it('should inherit from RepositoryError', () => {

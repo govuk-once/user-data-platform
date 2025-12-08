@@ -87,7 +87,7 @@ generate_all_backends() {
 developer = "$developer"
 EOF
         echo " Generated modules/$module_name/{backend.terraform}.auto.tfvars"
-        
+
     done
 
 }

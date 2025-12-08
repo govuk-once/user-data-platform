@@ -1,11 +1,11 @@
 data "terraform_remote_state" "api_gateway" {
-  count = var.use_remote_state ? 1 : 0
+  count   = var.use_remote_state ? 1 : 0
   backend = "s3"
   config = {
     bucket = var.state_bucket
-    key = "udp/api-gateway/terraform.tfstate"
+    key    = "udp/api-gateway/terraform.tfstate"
     region = "eu-west-2"
-  } 
+  }
 }
 
 locals {
@@ -14,9 +14,9 @@ locals {
 
 
 resource "aws_wafv2_web_acl" "this" {
-  name = "${var.name_prefix}-waf-${var.environment}"
+  name        = "${var.name_prefix}-waf-${var.environment}"
   description = "WAF Web ACL for ${var.name_prefix} API Gateway"
-  scope = "REGIONAL"
+  scope       = "REGIONAL"
 
   default_action {
     allow {}
@@ -25,33 +25,33 @@ resource "aws_wafv2_web_acl" "this" {
   dynamic "rule" {
     for_each = var.rate_limiting.enabled ? [1] : []
     content {
-        name = "RateLimitRule"
-        priority = 1
+      name     = "RateLimitRule"
+      priority = 1
 
-        action {
-          block {}
-        }
+      action {
+        block {}
+      }
 
-        statement {
-          rate_based_statement {
-            limit = var.rate_limiting.limit
-            aggregate_key_type = "IP"
-          }
+      statement {
+        rate_based_statement {
+          limit              = var.rate_limiting.limit
+          aggregate_key_type = "IP"
         }
+      }
 
-        visibility_config {
-          cloudwatch_metrics_enabled = true
-          metric_name = "${var.name_prefix}-rate-limit"
-          sampled_requests_enabled = true
-        }
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.name_prefix}-rate-limit"
+        sampled_requests_enabled   = true
+      }
     }
-    
+
   }
 
   dynamic "rule" {
-    for_each = var.managed_rules.sql_injection.enabled ? [1] :[]
+    for_each = var.managed_rules.sql_injection.enabled ? [1] : []
     content {
-      name = "AWSManagedRulesSQLiRuleSet"
+      name     = "AWSManagedRulesSQLiRuleSet"
       priority = 10
 
       override_action {
@@ -67,24 +67,24 @@ resource "aws_wafv2_web_acl" "this" {
 
       statement {
         managed_rule_group_statement {
-          name = "AWSManagedRulesSQLiRuleSet"
+          name        = "AWSManagedRulesSQLiRuleSet"
           vendor_name = "AWS"
         }
       }
 
       visibility_config {
         cloudwatch_metrics_enabled = true
-        metric_name = "${var.name_prefix}-sql"
-        sampled_requests_enabled = true
+        metric_name                = "${var.name_prefix}-sql"
+        sampled_requests_enabled   = true
       }
     }
-    
+
   }
 
   dynamic "rule" {
     for_each = var.managed_rules.common.enabled ? [1] : []
     content {
-      name = "AWSManagedRulesCommonRuleSet"
+      name     = "AWSManagedRulesCommonRuleSet"
       priority = 20
 
       override_action {
@@ -100,44 +100,44 @@ resource "aws_wafv2_web_acl" "this" {
 
       statement {
         managed_rule_group_statement {
-          name = "AWSManagedRulesCommonRuleSet"
+          name        = "AWSManagedRulesCommonRuleSet"
           vendor_name = "AWS"
         }
       }
 
       visibility_config {
         cloudwatch_metrics_enabled = true
-        metric_name = "${var.name_prefix}-common"
-        sampled_requests_enabled = true
+        metric_name                = "${var.name_prefix}-common"
+        sampled_requests_enabled   = true
       }
     }
   }
 
   visibility_config {
-     cloudwatch_metrics_enabled = true
-     metric_name = "${var.name_prefix}-waf"
-     sampled_requests_enabled = true
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.name_prefix}-waf"
+    sampled_requests_enabled   = true
   }
 
   tags = merge(var.tags, {
-    name = "${var.name_prefix}-waf-${var.environment}"
+    name        = "${var.name_prefix}-waf-${var.environment}"
     environment = var.environment
   })
 }
 
 resource "aws_wafv2_web_acl_association" "this" {
-    resource_arn = local.api_gateway_stage_arn
-    web_acl_arn = aws_wafv2_web_acl.this.arn 
+  resource_arn = local.api_gateway_stage_arn
+  web_acl_arn  = aws_wafv2_web_acl.this.arn
 }
 
 resource "aws_cloudwatch_log_group" "waf" {
   count = var.logging.enabled ? 1 : 0
 
-  name = "aws-waf-logs-${var.name_prefix}-${var.environment}"
+  name              = "aws-waf-logs-${var.name_prefix}-${var.environment}"
   retention_in_days = var.logging.retention_days
-  
+
   tags = merge(var.tags, {
-    name = "aws-waf-logs-${var.name_prefix}-waf-${var.environment}"
+    name        = "aws-waf-logs-${var.name_prefix}-waf-${var.environment}"
     environment = var.environment
   })
 }
@@ -146,14 +146,14 @@ resource "aws_wafv2_web_acl_logging_configuration" "this" {
   count = var.logging.enabled ? 1 : 0
 
   log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
-  resource_arn = aws_wafv2_web_acl.this.arn
+  resource_arn            = aws_wafv2_web_acl.this.arn
 
   dynamic "redacted_fields" {
     for_each = var.logging.redact_authorization ? [1] : []
     content {
-       single_header {
-         name = "authorization"
-       }
+      single_header {
+        name = "authorization"
+      }
     }
   }
 }
@@ -169,19 +169,19 @@ resource "aws_sns_topic" "dynamodb_alarms" {
   name = "${var.name_prefix}-${var.environment}-dynamodb-alarms"
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-${var.environment}-dynamodb-alarms"
+    Name        = "${var.name_prefix}-${var.environment}-dynamodb-alarms"
     Environment = var.environment
   })
-  
+
 }
 
 resource "aws_sns_topic_subscription" "dynamo_alarm_emails" {
   for_each = var.alarms.enabled ? toset(var.alarms.notification_emails) : toset([])
 
   topic_arn = aws_sns_topic.dynamodb_alarms[0].arn
-  protocol = "email"
-  endpoint = each.value
-  
+  protocol  = "email"
+  endpoint  = each.value
+
 }
 
 #--------------------
@@ -191,28 +191,28 @@ resource "aws_sns_topic_subscription" "dynamo_alarm_emails" {
 resource "aws_cloudwatch_metric_alarm" "blocked_requests" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
-  alarm_description = "High Number of requests blocked by WAF"
+  alarm_name          = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
+  alarm_description   = "High Number of requests blocked by WAF"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = var.alarms.blocked_requests.evaluation_periods
-  metric_name = "BlockedRequests"
-  namespace = "AWS/WAFV2"
-  period = var.alarms.blocked_requests.period_seconds
-  statistic = "Sum"
-  threshold = var.alarms.blocked_requests.threshold
-  treat_missing_data = "notBreaching"
+  evaluation_periods  = var.alarms.blocked_requests.evaluation_periods
+  metric_name         = "BlockedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = var.alarms.blocked_requests.period_seconds
+  statistic           = "Sum"
+  threshold           = var.alarms.blocked_requests.threshold
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     WebACL = aws_wafv2_web_acl.this.name
-    Rule = "ALL"
+    Rule   = "ALL"
     Region = "eu-west-2"
   }
 
   alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
-  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions    = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
+    Name        = "${var.name_prefix}-${var.environment}-waf-blocked-requests"
     Environment = var.environment
   })
 }
@@ -221,28 +221,28 @@ resource "aws_cloudwatch_metric_alarm" "blocked_requests" {
 resource "aws_cloudwatch_metric_alarm" "high_request_count" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.name_prefix}-${var.environment}-waf-high-request-count"
-  alarm_description = "Unusually High request count (potential dDoS)"
+  alarm_name          = "${var.name_prefix}-${var.environment}-waf-high-request-count"
+  alarm_description   = "Unusually High request count (potential dDoS)"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = var.alarms.high_request_count.evaluation_periods
-  metric_name = "AllowedRequests"
-  namespace = "AWS/WAFV2"
-  period = var.alarms.high_request_count.period_seconds
-  statistic = "Sum"
-  threshold = var.alarms.high_request_count.threshold
-  treat_missing_data = "notBreaching"
+  evaluation_periods  = var.alarms.high_request_count.evaluation_periods
+  metric_name         = "AllowedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = var.alarms.high_request_count.period_seconds
+  statistic           = "Sum"
+  threshold           = var.alarms.high_request_count.threshold
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     WebACL = aws_wafv2_web_acl.this.name
-    Rule = "ALL"
+    Rule   = "ALL"
     Region = "eu-west-2"
   }
 
   alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
-  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions    = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-${var.environment}-waf-high-request-count"
+    Name        = "${var.name_prefix}-${var.environment}-waf-high-request-count"
     Environment = var.environment
   })
 }
@@ -251,28 +251,28 @@ resource "aws_cloudwatch_metric_alarm" "high_request_count" {
 resource "aws_cloudwatch_metric_alarm" "rate_limited_requests" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
-  alarm_description = "Requests are being rate limited"
+  alarm_name          = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
+  alarm_description   = "Requests are being rate limited"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = var.alarms.rate_limited_requests.evaluation_periods
-  metric_name = "BlockedRequests"
-  namespace = "AWS/WAFV2"
-  period = var.alarms.rate_limited_requests.period_seconds
-  statistic = "Sum"
-  threshold = var.alarms.rate_limited_requests.threshold
-  treat_missing_data = "notBreaching"
+  evaluation_periods  = var.alarms.rate_limited_requests.evaluation_periods
+  metric_name         = "BlockedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = var.alarms.rate_limited_requests.period_seconds
+  statistic           = "Sum"
+  threshold           = var.alarms.rate_limited_requests.threshold
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     WebACL = aws_wafv2_web_acl.this.name
-    Rule = "RateLimitRule"
+    Rule   = "RateLimitRule"
     Region = "eu-west-2"
   }
 
   alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
-  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions    = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
+    Name        = "${var.name_prefix}-${var.environment}-waf-rate-limited-requests"
     Environment = var.environment
   })
 }
@@ -282,28 +282,28 @@ resource "aws_cloudwatch_metric_alarm" "rate_limited_requests" {
 resource "aws_cloudwatch_metric_alarm" "sql_injection_attempts" {
   count = var.alarms.enabled ? 1 : 0
 
-  alarm_name = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
-  alarm_description = "SQL injection attepts detected by WAF"
+  alarm_name          = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
+  alarm_description   = "SQL injection attepts detected by WAF"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = var.alarms.sql_injection_attempts.evaluation_periods
-  metric_name = var.managed_rules.sql_injection.action == "block" ? "BlockedRequests" : "CountedRequests"
-  namespace = "AWS/WAFV2"
-  period = var.alarms.sql_injection_attempts.period_seconds
-  statistic = "Sum"
-  threshold = var.alarms.sql_injection_attempts.threshold
-  treat_missing_data = "notBreaching"
+  evaluation_periods  = var.alarms.sql_injection_attempts.evaluation_periods
+  metric_name         = var.managed_rules.sql_injection.action == "block" ? "BlockedRequests" : "CountedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = var.alarms.sql_injection_attempts.period_seconds
+  statistic           = "Sum"
+  threshold           = var.alarms.sql_injection_attempts.threshold
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     WebACL = aws_wafv2_web_acl.this.name
-    Rule = "AWSManagedRulesSQLiRuleSet"
+    Rule   = "AWSManagedRulesSQLiRuleSet"
     Region = "eu-west-2"
   }
 
   alarm_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
-  ok_actions = [aws_sns_topic.dynamodb_alarms[0].arn]
+  ok_actions    = [aws_sns_topic.dynamodb_alarms[0].arn]
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
+    Name        = "${var.name_prefix}-${var.environment}-waf-sql-injection-attempts"
     Environment = var.environment
   })
 }

@@ -22,15 +22,9 @@
     },
     "deploy-and-test": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "@tf/getDataLambda:apply",
-        "@tf/postDataLambda:apply"
-      ],
+      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply"],
       "options": {
-        "commands": [
-          "nx run e2e:extract-env",
-          "nx run e2e:e2e"
-        ],
+        "commands": ["nx run e2e:extract-env", "nx run e2e:e2e"],
         "parallel": false
       }
     }

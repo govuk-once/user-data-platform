@@ -2,9 +2,7 @@
   "name": "@tf/api-gateway",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": [
-    "@tf/cognito"
-  ],
+  "implicitDependencies": ["@tf/cognito"],
   "targets": {
     "init": {
       "dependsOn": ["@udp:set-developer"],
@@ -28,7 +26,7 @@
       }
     },
     "destroy": {
-      "dependsOn": ["@tf/getDataLambda:destroy","@tf/postDataLambda:destroy"],
+      "dependsOn": ["@tf/getDataLambda:destroy", "@tf/postDataLambda:destroy"],
       "executor": "nx:run-commands",
       "options": {
         "command": "cd ./modules/api-gateway && terraform destroy -auto-approve"

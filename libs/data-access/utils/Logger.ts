@@ -27,13 +27,15 @@ class StructuredLogger {
    */
   info(message: string, context?: Record<string, any>): void {
     if (!this.enabled) return;
-    
-    console.log(JSON.stringify({
-      level: 'INFO',
-      message,
-      timestamp: new Date().toISOString(),
-      ...context,
-    }));
+
+    console.log(
+      JSON.stringify({
+        level: 'INFO',
+        message,
+        timestamp: new Date().toISOString(),
+        ...context,
+      }),
+    );
   }
 
   /**
@@ -43,13 +45,15 @@ class StructuredLogger {
    */
   error(message: string, context?: Record<string, any>): void {
     if (!this.enabled) return;
-    
-    console.error(JSON.stringify({
-      level: 'ERROR',
-      message,
-      timestamp: new Date().toISOString(),
-      ...context,
-    }));
+
+    console.error(
+      JSON.stringify({
+        level: 'ERROR',
+        message,
+        timestamp: new Date().toISOString(),
+        ...context,
+      }),
+    );
   }
 
   /**
@@ -59,13 +63,15 @@ class StructuredLogger {
    */
   debug(message: string, context?: Record<string, any>): void {
     if (!this.enabled) return;
-    
-    console.debug(JSON.stringify({
-      level: 'DEBUG',
-      message,
-      timestamp: new Date().toISOString(),
-      ...context,
-    }));
+
+    console.debug(
+      JSON.stringify({
+        level: 'DEBUG',
+        message,
+        timestamp: new Date().toISOString(),
+        ...context,
+      }),
+    );
   }
 }
 

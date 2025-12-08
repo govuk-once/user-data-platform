@@ -2,7 +2,7 @@
 #
 # Extract terraform outputs to generate .env.file for the E2E tests
 #
-# 
+#
 
 set -e
 

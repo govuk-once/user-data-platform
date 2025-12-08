@@ -57,7 +57,7 @@ resource "aws_iam_role" "lambda" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
   tags = merge(var.tags, {
-    Name       = "${var.prefix}-${var.function_name}-role"
+    Name        = "${var.prefix}-${var.function_name}-role"
     Environment = var.environment
   })
 }
@@ -132,11 +132,11 @@ resource "aws_iam_role_policy" "dynamodb_access" {
 resource "aws_apigatewayv2_integration" "this" {
   count = var.api_gateway_id != "" ? 1 : 0
 
-  api_id               = var.api_gateway_id
-  integration_type     = "AWS_PROXY"
-  integration_uri      = aws_lambda_function.this.invoke_arn
-  integration_method   = "POST"
-  passthrough_behavior = "WHEN_NO_MATCH"
+  api_id                 = var.api_gateway_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.this.invoke_arn
+  integration_method     = "POST"
+  passthrough_behavior   = "WHEN_NO_MATCH"
   payload_format_version = "2.0"
 
 }

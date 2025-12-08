@@ -10,16 +10,16 @@ describe('Logger', () => {
     vi.restoreAllMocks();
   });
 
-  const createLogger = (redact: (string)[] = []) =>
+  const createLogger = (redact: string[] = []) =>
     new Logger(
       {
         serviceName,
         environment,
       },
-      { redact }
+      { redact },
     );
 
-describe('Appends common fields', () => {
+  describe('Appends common fields', () => {
     it('logs info with addtional fields', () => {
       const logger = createLogger();
       const infoSpy = vi
@@ -37,9 +37,9 @@ describe('Appends common fields', () => {
       const [, loggedFields] = infoSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
     });
     it('logs error with addtional fields', () => {
@@ -59,9 +59,9 @@ describe('Appends common fields', () => {
       const [, loggedFields] = errorSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
     });
     it('logs warn with addtional fields', () => {
@@ -81,9 +81,9 @@ describe('Appends common fields', () => {
       const [, loggedFields] = warnSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
     });
     it('logs debug with addtional fields', () => {
@@ -103,9 +103,9 @@ describe('Appends common fields', () => {
       const [, loggedFields] = debugSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
     });
     it('logs trace with addtional fields', () => {
@@ -125,9 +125,9 @@ describe('Appends common fields', () => {
       const [, loggedFields] = traceSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
     });
   });
@@ -140,8 +140,8 @@ describe('Appends common fields', () => {
         .mockImplementation(() => {});
 
       const fields = {
-        environment:"test",
-        serviceName: "test-service",
+        environment: 'test',
+        serviceName: 'test-service',
         username: 'alice',
         password: 'super-secret',
       };
@@ -153,10 +153,10 @@ describe('Appends common fields', () => {
       const [, loggedFields] = infoSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
+        environment: 'test',
         username: 'alice',
         password: '***REDACTED***',
-        serviceName: "test-service"
+        serviceName: 'test-service',
       });
       // original object must not be mutated
       expect(fields.password).toBe('super-secret');
@@ -183,8 +183,8 @@ describe('Appends common fields', () => {
       const [, loggedFields] = infoSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
-        serviceName: "test-service",
+        environment: 'test',
+        serviceName: 'test-service',
         user: {
           id: '123',
           password: '***REDACTED***',
@@ -216,8 +216,8 @@ describe('Appends common fields', () => {
       const [, loggedFields] = infoSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
-        serviceName: "test-service",
+        environment: 'test',
+        serviceName: 'test-service',
         headers: {
           authorization: '***REDACTED***',
           'x-correlation-id': 'corr-1',
@@ -226,7 +226,7 @@ describe('Appends common fields', () => {
     });
 
     it('redacts fields using regex rules (e.g. /token/i)', () => {
-      const logger = createLogger(["accessToken", "refresh_token", "token"]);
+      const logger = createLogger(['accessToken', 'refresh_token', 'token']);
       const infoSpy = vi
         .spyOn(PowerToolLogger.prototype as any, 'info')
         .mockImplementation(() => {});
@@ -246,8 +246,8 @@ describe('Appends common fields', () => {
       const [, loggedFields] = infoSpy.mock.calls[0];
 
       expect(loggedFields).toEqual({
-        environment:"test",
-        serviceName: "test-service",
+        environment: 'test',
+        serviceName: 'test-service',
         token: '***REDACTED***',
         nested: {
           accessToken: '***REDACTED***',
@@ -265,8 +265,8 @@ describe('Appends common fields', () => {
         .mockImplementation(() => {});
 
       const fields = {
-        environment:"test",
-        serviceName: "test-service",
+        environment: 'test',
+        serviceName: 'test-service',
         safe: 'ok',
         other: 123,
       };

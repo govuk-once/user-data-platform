@@ -25,7 +25,7 @@
         "command": "cd ./modules/waf && terraform apply tfplan"
       }
     },
-     "destroy": {
+    "destroy": {
       "dependsOn": ["plan"],
       "executor": "nx:run-commands",
       "options": {

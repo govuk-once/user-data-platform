@@ -56,21 +56,21 @@ describe('getDataLambda handler', () => {
 
   describe('successful operations', () => {
     it('should return 200 with entity data when entity is found', async () => {
-    const mockEntity = {
-      pk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-      sk: 'topics',
-      name: 'Test Topic',
-    };
-    mockGetByKey.mockResolvedValue(mockEntity);
+      const mockEntity = {
+        pk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        sk: 'topics',
+        name: 'Test Topic',
+      };
+      mockGetByKey.mockResolvedValue(mockEntity);
 
-    const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
-    const response = await lambdaHandler(event, mockContext);
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+      const response = await lambdaHandler(event, mockContext);
 
-    expect(mockGetByKey).toHaveBeenCalledWith(
-      'topics',
-      'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    );
-    expect(response).toEqual(mockEntity);
+      expect(mockGetByKey).toHaveBeenCalledWith(
+        'topics',
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
+      expect(response).toEqual(mockEntity);
     });
   });
 
@@ -100,13 +100,13 @@ describe('getDataLambda handler', () => {
 
   describe('validation errors', () => {
     it('should return 400 when rawPath is missing', async () => {
-    const event = createEvent('');
+      const event = createEvent('');
 
-    await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-      createError.BadRequest,
-    );
-    expect(mockGetByKey).not.toHaveBeenCalled();
-  });
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        createError.BadRequest,
+      );
+      expect(mockGetByKey).not.toHaveBeenCalled();
+    });
 
     it('should return 400 when path has less than 2 segments', async () => {
       const event = createEvent('/topics');
@@ -143,10 +143,10 @@ describe('getDataLambda handler', () => {
 
   describe('error handling', () => {
     it('should return 500 for unexpected errors', async () => {
-    const unexpectedError = new Error('Database connection failed');
-    mockGetByKey.mockRejectedValue(unexpectedError);
+      const unexpectedError = new Error('Database connection failed');
+      mockGetByKey.mockRejectedValue(unexpectedError);
 
-    const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
       await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
         createError.InternalServerError,
@@ -163,7 +163,9 @@ describe('getDataLambda handler', () => {
 
       const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(httpError);
+      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
+        httpError,
+      );
       expect(mockGetByKey).toHaveBeenCalledWith(
         'topics',
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890',

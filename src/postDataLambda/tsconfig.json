@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base",
   "compilerOptions": {
     "outDir": "../../dist",
-    "types": ["node"],
+    "types": ["node"]
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules"],
