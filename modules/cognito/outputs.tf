@@ -15,7 +15,7 @@ output "user_pool_endpoint" {
 
 output "user_pool_domain" {
   description = "Domain for the user pool"
-  value       = aws_cognito_user_pool.main.domain
+  value       = aws_cognito_user_pool_domain.main.domain
 }
 
 output "token_endpoint" {

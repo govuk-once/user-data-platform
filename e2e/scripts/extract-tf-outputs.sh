@@ -12,6 +12,7 @@ E2E_DIR="$(dirname "$SCRIPT_DIR")"
 MODULE_DIR="$(dirname "$E2E_DIR")/modules"
 ENV_FILE="$E2E_DIR/.env"
 
+rm -f "$ENV_FILE"
 
 echo "Extracting Terraform outputs for: $DEV"
 echo "Module Directory $MODULE_DIR"

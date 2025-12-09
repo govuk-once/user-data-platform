@@ -48,7 +48,6 @@ resource "aws_cognito_user_pool" "main" {
 resource "aws_cognito_user_pool_domain" "main" {
   domain       = "${local.prefix}-${var.domain_prefix}"
   user_pool_id = aws_cognito_user_pool.main.id
-
 }
 # ---
 # Resource server
