@@ -29,7 +29,7 @@
       "dependsOn": ["@tf/api-gateway:destroy"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd ./modules/dynamodb && terraform destroy -auto-approve"
+        "command": "cd ./modules/kms && terraform destroy -auto-approve"
       }
     }
   }
