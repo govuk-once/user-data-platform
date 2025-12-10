@@ -13,13 +13,13 @@
     "test:unit": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest libs/data-access/**/* --project unit"
+        "command": "vitest libs/data-access/**/*"
       }
     },
     "test:coverage": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run libs/data-access/**/* --coverage --project unit"
+        "command": "vitest run libs/data-access/**/* --coverage"
       }
     }
   }

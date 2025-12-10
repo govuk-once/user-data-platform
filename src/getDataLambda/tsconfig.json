@@ -5,13 +5,5 @@
     "types": ["node"]
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules"],
-  "references": [
-    {
-      "path": "../../libs/data-access"
-    },
-    {
-      "path": "../../libs/utils"
-    }
-  ]
+  "exclude": ["node_modules"]
 }

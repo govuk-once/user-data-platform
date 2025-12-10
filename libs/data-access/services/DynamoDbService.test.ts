@@ -3,7 +3,13 @@ import { DynamoDbService } from './DynamoDbService';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import { Logger } from '@libs/utils';
+import { LogLevel } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger(
+  { serviceName: 'DynamoTest', environment: 'testing' },
+  { redact: ['__dataKey'] },
+);
 
 interface TestEntity extends DynamoDBEntity {
   data?: {
@@ -17,12 +23,12 @@ describe('DynamoDbService', () => {
   let service: DynamoDbService<TestEntity>;
 
   beforeEach(() => {
-    logger.setEnabled(false);
+    logger.setLogLevel(LogLevel.SILENT);
     mockRepository = {
       get: vi.fn(),
       save: vi.fn(),
     } as unknown as DynamoDBRepository<TestEntity>;
-    service = new DynamoDbService(mockRepository);
+    service = new DynamoDbService(mockRepository, logger);
   });
 
   describe('getByKey', () => {
@@ -34,6 +40,8 @@ describe('DynamoDbService', () => {
           status: 'active',
         },
       };
+
+      const logSpy = vi.spyOn(logger, "info")
 
       vi.mocked(mockRepository.get).mockResolvedValue(mockEntity);
 
@@ -48,6 +56,7 @@ describe('DynamoDbService', () => {
         sk: 'topics',
       });
       expect(mockRepository.get).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalled()
     });
 
     it('should return null when entity does not exist', async () => {
@@ -63,11 +72,15 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when pk is missing', async () => {
+      const logSpy = vi.spyOn(logger, "error")
+
+
       await expect(service.getByKey('', 'topics')).rejects.toThrow(GetError);
       await expect(service.getByKey('', 'topics')).rejects.toThrow(
         'Both pk and sk are required',
       );
       expect(mockRepository.get).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled()
     });
 
     it('should throw error when sk is missing', async () => {

@@ -8,13 +8,22 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from './DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
 import { EncryptionService } from '../services/EncryptionService';
+import { Logger } from '@libs/utils';
+import { LogLevel } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger(
+  { serviceName: 'DynamoTest', environment: 'testing' },
+  { redact: ['__dataKey', 'data'] },
+);
+
+logger.setLogLevel(LogLevel.SILENT)
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 interface TestEntity extends DynamoDBEntity {
   data?: Record<string, any>;
+  __dataKey?:string
 }
 
 describe('DynamoDBRepository', () => {
@@ -46,10 +55,11 @@ describe('DynamoDBRepository', () => {
 
   beforeEach(() => {
     dynamoMock.reset();
-    logger.setEnabled(false);
     repository = new DynamoDBRepository<TestEntity>(
       tableName,
       dynamoMock as unknown as DynamoDBDocumentClient,
+      undefined,
+      logger,
     );
   });
 
@@ -63,6 +73,8 @@ describe('DynamoDBRepository', () => {
           email: 'john@example.com',
         },
       };
+
+      const loggerSpy = vi.spyOn(logger, 'debug')
 
       dynamoMock.on(GetCommand).resolves({
         Item: mockItem,
@@ -89,6 +101,7 @@ describe('DynamoDBRepository', () => {
           sk: 'topics',
         },
       });
+      expect(loggerSpy).toHaveBeenCalled()
     });
 
     it('should return null when item does not exist', async () => {
@@ -164,6 +177,9 @@ describe('DynamoDBRepository', () => {
       const mockError = new Error('DynamoDB error');
       dynamoMock.on(GetCommand).rejects(mockError);
 
+      const loggerSpy = vi.spyOn(logger, 'error')
+
+
       await expect(
         repository.get({
           pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
@@ -178,6 +194,8 @@ describe('DynamoDBRepository', () => {
       ).rejects.toThrow(
         'Failed to get item with id a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d#topics: DynamoDB error',
       );
+
+      expect(loggerSpy).toHaveBeenCalled()
     });
 
     it('should throw GetError when pk is missing', async () => {
@@ -418,7 +436,7 @@ describe('DynamoDBRepository', () => {
 
   describe('constructor', () => {
     it('should create repository with provided DynamoDB Document Client', () => {
-      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock);
+      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock as unknown as DynamoDBDocumentClient);
 
       expect(repo).toBeInstanceOf(DynamoDBRepository);
     });
@@ -598,10 +616,9 @@ describe('DynamoDBRepository', () => {
     });
   });
 
-  describe('encription', () => {
+  describe('encryption', () => {
     it('should encript the the field if encription config is passed', async () => {
       dynamoMock.reset();
-      logger.setEnabled(false);
 
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
@@ -628,7 +645,7 @@ describe('DynamoDBRepository', () => {
         sk: 'topics',
       });
 
-      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock, {
+      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock as unknown as DynamoDBDocumentClient, {
         service: mockEncryptionService,
         dataFields: ['data'],
       });
@@ -653,12 +670,11 @@ describe('DynamoDBRepository', () => {
 
     it('should decrypt the the field if encription config is passed', async () => {
       dynamoMock.reset();
-      logger.setEnabled(false);
 
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         sk: 'topics',
-        data: 'encrypted-value',
+        data: 'encrypted-value' as unknown as  Record<string, unknown>,
         __dataKey: 'encrypted-key',
       };
 
@@ -680,7 +696,7 @@ describe('DynamoDBRepository', () => {
         sk: 'topics',
       });
 
-      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock, {
+      const repo = new DynamoDBRepository<TestEntity>(tableName, dynamoMock as unknown as DynamoDBDocumentClient, {
         service: mockEncryptionService,
         dataFields: ['data'],
       });
@@ -690,6 +706,7 @@ describe('DynamoDBRepository', () => {
       expect(mockEncryptionService.decryptFields).toHaveBeenCalledWith(entity, [
         'data',
       ]);
+      
 
       expect(response).toEqual({
         data: {

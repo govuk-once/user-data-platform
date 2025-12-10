@@ -1,6 +1,4 @@
 import { Logger as PowerToolLogger } from '@aws-lambda-powertools/logger';
-import { search } from '@aws-lambda-powertools/logger/correlationId';
-import { Console } from 'console';
 
 export interface LoggerOptions {
   redact?: string[]; // list of fields to redact

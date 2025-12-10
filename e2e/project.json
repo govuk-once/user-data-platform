@@ -15,9 +15,21 @@
     },
     "e2e": {
       "executor": "nx:run-commands",
+      "dependsOn": ["@test/e2e:extract-env"],
       "options": {
         "command": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
         "cwd": "e2e"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply"],
+      "options": {
+        "commands": [
+          "echo 'Deployment complete'"
+        ],
+        "cwd": "e2e",
+        "parallel": false
       }
     },
     "deploy-and-test": {
