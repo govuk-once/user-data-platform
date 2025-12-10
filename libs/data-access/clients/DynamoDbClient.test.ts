@@ -8,14 +8,22 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDbClient } from './DynamoDbClient';
 import { DynamoDBEntity, DynamoDBAttributeMap } from '../types/Entity';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import {
+  DecryptCommand,
+  GenerateDataKeyCommand,
+  KMSClient,
+} from '@aws-sdk/client-kms';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
+const kmsMock = mockClient(KMSClient);
+
+const mockPlainTextKey = Buffer.alloc(32, 'a');
+const mockEncryptedKey = Buffer.from('encrypted-key-data');
 
 describe('DynamoDbClient Integration Tests', () => {
   beforeEach(() => {
     dynamoMock.reset();
-    logger.setEnabled(false);
+    kmsMock.reset();
   });
 
   describe('Client Initialization', () => {
@@ -250,6 +258,39 @@ describe('DynamoDbClient Integration Tests', () => {
       await service.save(updatedEntity);
 
       expect(dynamoMock.calls()).toHaveLength(2);
+    });
+  });
+
+  describe('Encryption', () => {
+    it('should enable Encryption', async () => {
+      kmsMock.on(GenerateDataKeyCommand).resolves({
+        Plaintext: mockPlainTextKey,
+        CiphertextBlob: mockEncryptedKey,
+      });
+
+      kmsMock.on(DecryptCommand).resolves({ Plaintext: mockPlainTextKey });
+
+      const entity: DynamoDBEntity = {
+        pk: 'user-123',
+        sk: 'topics',
+        data: { status: 'inactive' },
+      };
+
+      dynamoMock.on(PutCommand).resolves({});
+
+      const client = new DynamoDbClient<DynamoDBEntity>(
+        'test-table',
+        'testKmsKey',
+      );
+      const service = client.getService();
+
+      await service.save(entity);
+
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(dynamoMock.call(0).args[0].input).not.toEqual({
+        TableName: 'test-table',
+        Item: entity,
+      });
     });
   });
 });

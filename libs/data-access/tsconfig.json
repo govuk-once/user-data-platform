@@ -1,16 +1,14 @@
 {
   "extends": "../../tsconfig.base",
   "compilerOptions": {
-    "outDir": "../../dist",
-    "composite": true,
+    "outDir": "../../dist/libs/data-access",
+    "types": ["node"],
+    "composite": false,
     "declaration": true
   },
   "include": ["**/*.ts", "index.ts"],
   "exclude": [
     "node_modules",
-    "**/tests/**",
-    "**/**/vitest.*.ts",
-    "**/*.test.ts",
-    "../../dist/libs/**"
+    "**/*.test.ts"
   ]
 }

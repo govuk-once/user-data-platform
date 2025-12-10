@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import path from 'path';
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
@@ -11,6 +12,11 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: './coverage',
     },
-    isolate: true,
   },
+  resolve: {
+    alias: {
+      "@libs/data-access": path.resolve(__dirname, './libs/data-access/index.ts'),
+      "@libs/utils": path.resolve(__dirname, './libs/utils/index.ts')
+    }
+  }
 });

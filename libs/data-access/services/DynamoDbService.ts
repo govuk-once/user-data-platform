@@ -1,7 +1,8 @@
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import { Logger } from '@libs/utils';
+
 
 /**
  * Service class for DynamoDB entity operations with business logic.
@@ -10,7 +11,11 @@ import { logger } from '../utils/Logger';
  * @template T - The entity type that extends DynamoDBEntity
  */
 export class DynamoDbService<T extends DynamoDBEntity> {
-  constructor(private readonly repository: DynamoDBRepository<T>) {}
+  private readonly logger
+
+  constructor(private readonly repository: DynamoDBRepository<T>, logger?: Logger) {
+    this.logger = logger
+  }
 
   /**
    * Retrieves an entity by its composite key.
@@ -20,14 +25,14 @@ export class DynamoDbService<T extends DynamoDBEntity> {
    * @throws {GetError} if pk or sk is missing
    */
   async getByKey(pk: string, sk: string): Promise<T | null> {
-    logger.info('Getting entity by key', {
+    this.logger?.info('Getting entity by key', {
       operation: 'getByKey',
       pk,
       sk,
     });
 
     if (!pk || !sk) {
-      logger.error('Invalid keys provided', {
+      this.logger?.error('Invalid keys provided', {
         operation: 'getByKey',
         pk: pk || 'undefined',
         sk: sk || 'undefined',
@@ -41,7 +46,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
 
     try {
       const result = await this.repository.get({ pk, sk } as Partial<T>);
-      logger.info('Get entity completed', {
+      this.logger?.info('Get entity completed', {
         operation: 'getByKey',
         pk,
         sk,
@@ -49,7 +54,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
       });
       return result;
     } catch (error) {
-      logger.error('Get entity failed', {
+      this.logger?.error('Get entity failed', {
         operation: 'getByKey',
         pk,
         sk,
@@ -66,7 +71,7 @@ export class DynamoDbService<T extends DynamoDBEntity> {
    * @throws {SaveError} if entity is invalid
    */
   async save(entity: T): Promise<void> {
-    logger.info('Saving entity', {
+    this.logger?.info('Saving entity', {
       operation: 'save',
       pk: entity.pk,
       sk: entity.sk,
@@ -75,13 +80,13 @@ export class DynamoDbService<T extends DynamoDBEntity> {
     try {
       this.validateEntity(entity);
       await this.repository.save(entity);
-      logger.info('Save entity completed', {
+      this.logger?.info('Save entity completed', {
         operation: 'save',
         pk: entity.pk,
         sk: entity.sk,
       });
     } catch (error) {
-      logger.error('Save entity failed', {
+      this.logger?.error('Save entity failed', {
         operation: 'save',
         pk: entity.pk || 'undefined',
         sk: entity.sk || 'undefined',

@@ -24,5 +24,3 @@ export {
   GetError,
 } from './errors/Errors';
 
-// Utils
-export { logger } from './utils/Logger';

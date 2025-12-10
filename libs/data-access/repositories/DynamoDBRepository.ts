@@ -6,8 +6,9 @@ import {
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { GetError, SaveError } from '../errors/Errors';
-import { logger } from '../utils/Logger';
+import { Logger } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
+
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -22,6 +23,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
   private readonly client: DynamoDBDocumentClient;
   private readonly tableName: string;
   private readonly encryption?: EncryptionConfig;
+  private readonly logger?: Logger
 
   /**
    * Creates a new DynamoDB repository instance.
@@ -32,10 +34,12 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     tableName: string,
     client: DynamoDBDocumentClient,
     encryption?: EncryptionConfig,
+    logger?: Logger
   ) {
     this.tableName = tableName;
     this.client = client;
     this.encryption = encryption;
+    this.logger = logger;
   }
 
   /**
@@ -60,7 +64,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
     const { pk, sk } = keys as { pk: string; sk: string };
 
-    logger.debug('Getting item from DynamoDB', {
+    this.logger?.debug('Getting item from DynamoDB', {
       operation: 'get',
       tableName: this.tableName,
       pk,
@@ -76,11 +80,11 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       const response = await this.client.send(command);
 
       if (!response.Item) {
-        logger.debug('Item not found', { pk, sk });
+        this.logger?.debug('Item not found', { pk, sk });
         return null;
       }
 
-      logger.debug('Item retrieved successfully', { pk, sk });
+      this.logger?.debug('Item retrieved successfully', { pk, sk });
 
       return this.encryption
         ? ((await this.encryption.service.decryptFields(
@@ -89,7 +93,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
           )) as T)
         : (response.Item as T);
     } catch (error) {
-      logger.error('Failed to get item from DynamoDB', {
+      this.logger?.error('Failed to get item from DynamoDB', {
         operation: 'get',
         tableName: this.tableName,
         pk,
@@ -109,7 +113,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
    * @throws {SaveError} When the DynamoDB operation fails
    */
   async save(entity: T): Promise<void> {
-    logger.debug('Saving item to DynamoDB', {
+    this.logger?.debug('Saving item to DynamoDB', {
       operation: 'save',
       tableName: this.tableName,
       pk: entity.pk,
@@ -132,12 +136,12 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
       await this.client.send(command);
 
-      logger.debug('Item saved successfully', {
+      this.logger?.debug('Item saved successfully', {
         pk: entity.pk,
         sk: entity.sk,
       });
     } catch (error) {
-      logger.error('Failed to save item to DynamoDB', {
+      this.logger?.error('Failed to save item to DynamoDB', {
         operation: 'save',
         tableName: this.tableName,
         pk: entity.pk,
