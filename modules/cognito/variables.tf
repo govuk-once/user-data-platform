@@ -65,6 +65,10 @@ variable "resource_server_scopes" {
     {
       name        = "write"
       description = "Write access to api"
+    },
+    {
+      name        = "delete"
+      description = "Delete access to api"
     }
   ]
 }
@@ -77,7 +81,7 @@ variable "m2m_clients" {
   }))
   default = {
     flex : {
-      scopes                        = ["udp/read", "udp/write"]
+      scopes                        = ["udp/read", "udp/write", "udp/delete"]
       access_token_validity_minutes = 5
     }
   }

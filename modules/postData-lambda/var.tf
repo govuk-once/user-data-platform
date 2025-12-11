@@ -84,5 +84,5 @@ variable "api_gateway_authorizer_id" {
 variable "api_gateway_authorizsation_scopes" {
   description = "OAuth2 scopes required to access this route"
   type        = list(string)
-  default     = []
+  default     = ["udp/write"]
 }
