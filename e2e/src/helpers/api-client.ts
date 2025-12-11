@@ -5,6 +5,7 @@ export interface ApiResponse<T = unknown> {
   status: number;
   headers: Headers;
   data: T;
+  body: T;
   ok: boolean;
 }
 
@@ -78,6 +79,13 @@ export class ApiClient {
     options?: Omit<ApiRequestOptions, 'method' | 'body'>,
   ): Promise<ApiResponse<T>> {
     return this.request<T>(path, { ...options, method: 'GET' });
+  }
+
+  delete<T = unknown>(
+    path: string,
+    options?: Omit<ApiRequestOptions, 'method' | 'body'>,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(path, { ...options, method: 'DELETE' });
   }
 
   post<T = unknown>(
