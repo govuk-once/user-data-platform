@@ -5,10 +5,23 @@ import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
-import { extractCompositeKey } from '@libs/utils';
+import { createEnvValidator, extractCompositeKey } from '@libs/utils';
 
-const client = new DynamoDbClient<DynamoDBEntity>(process.env.TABLE_NAME, process.env.KMS_KEY_ID);
-const service = client.getService();
+const { middleware: envMiddleware, getEnv } = createEnvValidator({
+  required: ['TABLE_NAME'],
+  optional: { KMS_KEY_ID: undefined },
+});
+
+let service;
+
+function getService() {
+  if (!service) {
+    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID);
+    service = client.getService();
+  }
+  return service;
+}
 
 export const lambdaHandler = async (
   event: APIGatewayProxyEventV2,
@@ -16,6 +29,8 @@ export const lambdaHandler = async (
 ) => {
   let pk: string;
   let sk: string;
+
+  const service = await getService();
 
   try {
     const compositeKey = extractCompositeKey(event.rawPath);
@@ -59,17 +74,18 @@ export const lambdaHandler = async (
 };
 
 export const handler = middy()
+  .use(envMiddleware)
   .use(jsonBodyParser())
+  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => JSON.stringify(body),
+          serializer: ({ body }) => body ? JSON.stringify(body) : null,
         },
       ],
       defaultContentType: 'application/json',
     }),
   )
-  .use(httpErrorHandler())
   .handler(lambdaHandler);

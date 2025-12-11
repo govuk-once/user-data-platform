@@ -20,8 +20,10 @@ vi.mock('@libs/data-access', () => ({
   DynamoDBEntity: {},
 }));
 
+process.env['TABLE_NAME'] = 'dynamo';
+
 // Import after mocks
-const { lambdaHandler } = await import('./handler');
+const { handler: lambdaHandler } = await import('./handler');
 
 describe('getDataLambda handler', () => {
   const mockContext: Context = {
@@ -70,7 +72,11 @@ describe('getDataLambda handler', () => {
         'topics',
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       );
-      expect(response).toEqual(mockEntity);
+      expect(response).toEqual({
+        body: JSON.stringify(mockEntity),
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     });
   });
 
@@ -83,7 +89,11 @@ describe('getDataLambda handler', () => {
       const response = await lambdaHandler(event, mockContext);
 
       expect(mockGetByKey).toHaveBeenCalledWith('org456', 'config');
-      expect(response).toEqual(mockEntity);
+      expect(response).toEqual({
+        body: JSON.stringify(mockEntity),
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     });
 
     it('should extract pk and sk from simple two-segment path', async () => {
@@ -94,7 +104,11 @@ describe('getDataLambda handler', () => {
       const response = await lambdaHandler(event, mockContext);
 
       expect(mockGetByKey).toHaveBeenCalledWith('pk1', 'sk1');
-      expect(response).toEqual(mockEntity);
+      expect(response).toEqual({
+        body: JSON.stringify(mockEntity),
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     });
   });
 
@@ -102,17 +116,21 @@ describe('getDataLambda handler', () => {
     it('should return 400 when rawPath is missing', async () => {
       const event = createEvent('');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        createError.BadRequest,
-      );
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe('Path is required');
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
 
     it('should return 400 when path has less than 2 segments', async () => {
       const event = createEvent('/topics');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        createError.BadRequest,
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Invalid path format. Expected at least two path segments for pk and sk',
       );
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
@@ -120,8 +138,11 @@ describe('getDataLambda handler', () => {
     it('should return 400 when path segments are empty', async () => {
       const event = createEvent('///');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        createError.BadRequest,
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Invalid path format. Expected at least two path segments for pk and sk',
       );
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
@@ -131,9 +152,10 @@ describe('getDataLambda handler', () => {
 
       const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        createError.NotFound,
-      );
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(404);
+      expect(result.body).toBe('Not Found');
       expect(mockGetByKey).toHaveBeenCalledWith(
         'topics',
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
@@ -148,9 +170,8 @@ describe('getDataLambda handler', () => {
 
       const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        createError.InternalServerError,
-      );
+      const result = await lambdaHandler(event, mockContext);
+      expect(result.statusCode).toBe(500);
       expect(mockGetByKey).toHaveBeenCalledWith(
         'topics',
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
@@ -163,12 +184,23 @@ describe('getDataLambda handler', () => {
 
       const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow(
-        httpError,
-      );
+      const result = await lambdaHandler(event, mockContext);
+      expect(result.statusCode).toBe(401);
+      expect(result.body).toBe('Unauthorized');
       expect(mockGetByKey).toHaveBeenCalledWith(
         'topics',
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
+    });
+
+    it('should handle missing required', async () => {
+      delete process.env['TABLE_NAME'];
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+
+      const result = await lambdaHandler(event, mockContext);
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Missing required environment variables: TABLE_NAME',
       );
     });
   });

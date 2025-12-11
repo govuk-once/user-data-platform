@@ -21,7 +21,9 @@ vi.mock('@libs/data-access', () => ({
 }));
 
 // Import after mocks
-const { lambdaHandler } = await import('./handler');
+const { handler: lambdaHandler } = await import('./handler');
+
+process.env['TABLE_NAME'] = 'dynamo';
 
 describe('postDataLambda handler', () => {
   const mockContext: Context = {
@@ -47,16 +49,18 @@ describe('postDataLambda handler', () => {
   describe('successful operations', () => {
     it('should return 201 and save entity with valid data', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
-        body: {
+        body: JSON.stringify({
           data: { status: 'active', count: 5 },
-        } as any,
+        }) as any,
       };
 
       mockSave.mockResolvedValue(undefined);
@@ -64,7 +68,9 @@ describe('postDataLambda handler', () => {
       const response = (await lambdaHandler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual({ message: 'Entity saved successfully' });
+      expect(response.body).toEqual(
+        JSON.stringify({ message: 'Entity saved successfully' }),
+      );
       expect(mockSave).toHaveBeenCalledWith({
         pk: 'topics',
         sk: 'user-guid-123',
@@ -76,17 +82,19 @@ describe('postDataLambda handler', () => {
     it('should return 201 and save entity with TTL', async () => {
       const ttl = Math.floor(Date.now() / 1000) + 3600;
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
-        body: {
+        body: JSON.stringify({
           data: { status: 'active' },
           ttl,
-        } as any,
+        }),
       };
 
       mockSave.mockResolvedValue(undefined);
@@ -94,7 +102,9 @@ describe('postDataLambda handler', () => {
       const response = (await lambdaHandler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual({ message: 'Entity saved successfully' });
+      expect(response.body).toEqual(
+        JSON.stringify({ message: 'Entity saved successfully' }),
+      );
       expect(mockSave).toHaveBeenCalledWith({
         pk: 'topics',
         sk: 'user-guid-123',
@@ -105,14 +115,16 @@ describe('postDataLambda handler', () => {
 
     it('should return 201 and save entity with only pk and sk (no data field)', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
-        body: {} as any,
+        body: JSON.stringify({}) as any,
       };
 
       mockSave.mockResolvedValue(undefined);
@@ -120,7 +132,9 @@ describe('postDataLambda handler', () => {
       const response = (await lambdaHandler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual({ message: 'Entity saved successfully' });
+      expect(response.body).toEqual(
+        JSON.stringify({ message: 'Entity saved successfully' }),
+      );
       expect(mockSave).toHaveBeenCalledWith({
         pk: 'topics',
         sk: 'user-guid-123',
@@ -133,16 +147,18 @@ describe('postDataLambda handler', () => {
   describe('path parsing', () => {
     it('should extract pk and sk from the last two path segments', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/api/v1/data/my-partition/my-sort',
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /api/v1/data/{pk}/{sk}',
-        body: {
+        body: JSON.stringify({
           data: { test: 'value' },
-        } as any,
+        }) as any,
       };
 
       mockSave.mockResolvedValue(undefined);
@@ -161,23 +177,31 @@ describe('postDataLambda handler', () => {
   describe('validation errors', () => {
     it('should return 400 when rawPath is missing', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '',
         rawQueryString: '',
         version: '2.0',
         routeKey: '',
-        body: { data: {} } as any,
+        body: JSON.stringify({ data: {} }) as any,
       };
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow();
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe('Path is required');
+
       expect(mockSave).not.toHaveBeenCalled();
     });
 
     it('should return 400 when body is missing', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
@@ -187,13 +211,19 @@ describe('postDataLambda handler', () => {
         body: null as any,
       };
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow();
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe('Bad Request');
+
       expect(mockSave).not.toHaveBeenCalled();
     });
 
     it('should return 400 when body is undefined', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
@@ -203,23 +233,35 @@ describe('postDataLambda handler', () => {
         body: undefined as any,
       };
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow();
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(415);
+      expect(result.body).toBe('Invalid or malformed JSON was provided');
+
       expect(mockSave).not.toHaveBeenCalled();
     });
 
     it('should return 400 when path has less than 2 segments', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/single-segment',
         rawQueryString: '',
         version: '2.0',
         routeKey: '',
-        body: { data: {} } as any,
+        body: JSON.stringify({ data: {} }) as any,
       };
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow();
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Invalid path format. Expected at least two path segments for pk and sk',
+      );
+
       expect(mockSave).not.toHaveBeenCalled();
     });
   });
@@ -227,21 +269,50 @@ describe('postDataLambda handler', () => {
   describe('error handling', () => {
     it('should return 500 when save operation fails', async () => {
       const event: APIGatewayProxyEventV2 = {
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
-        body: {
+        body: JSON.stringify({
           data: { status: 'active' },
-        } as any,
+        }) as any,
       };
 
       mockSave.mockRejectedValue(new Error('DynamoDB error'));
 
-      await expect(lambdaHandler(event, mockContext)).rejects.toThrow();
+      const result = await lambdaHandler(event, mockContext);
+
+      expect(result.statusCode).toBe(500);
+      expect(result.body).toBe(undefined);
+    });
+
+    it('should handle missing required', async () => {
+      delete process.env['TABLE_NAME'];
+      const event: APIGatewayProxyEventV2 = {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        requestContext: {} as any,
+        isBase64Encoded: false,
+        rawPath: '/topics/user-guid-123',
+        rawQueryString: '',
+        version: '2.0',
+        routeKey: 'POST /topics/{pk}',
+        body: JSON.stringify({
+          data: { status: 'active' },
+        }) as any,
+      };
+
+      const result = await lambdaHandler(event, mockContext);
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Missing required environment variables: TABLE_NAME',
+      );
     });
   });
 });
