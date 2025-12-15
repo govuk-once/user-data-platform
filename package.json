@@ -1,6 +1,11 @@
 {
   "name": "user-data-platform",
   "version": "1.0.0",
+  "team": "udp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/govuk-once/user-data-platform.git"
+  },
   "devDependencies": {
     "@nx/esbuild": "22.1.0",
     "@nx/eslint": "22.1.0",
@@ -17,6 +22,7 @@
     "@typescript-eslint/eslint-plugin": "8.46.4",
     "@typescript-eslint/parser": "8.46.4",
     "@vitest/coverage-v8": "4.0.10",
+    "aws-cdk": "^2.1034.0",
     "aws-sdk-client-mock": "^4.1.0",
     "esbuild": "0.27.0",
     "eslint": "9.39.1",
@@ -41,7 +47,10 @@
     "@middy/http-error-handler": "^6.4.5",
     "@middy/http-json-body-parser": "^6.4.5",
     "@middy/http-response-serializer": "^6.4.5",
+    "aws-cdk-lib": "^2.232.1",
     "aws-lambda": "^1.0.7",
+    "cdk-nag": "^2.37.55",
+    "constructs": "^10.4.4",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "http-errors": "^2.0.1",
@@ -49,6 +58,6 @@
   },
   "workspaces": [
     "libs/*",
-    "modules/*"
+    "cdk/*"
   ]
 }

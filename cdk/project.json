@@ -1,0 +1,53 @@
+{
+  "name": "cdk",
+  "$schema": "../node_modules/nk/schemas/project-schema.json",
+  "sourceRoot": "cdk",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx",
+        "cwd": "cdk"
+      }
+    },
+    "diff": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "@src/getDataLambda:build",
+        "@src/postDataLambda:build",
+        "@src/deleteLambda:build"
+      ],
+      "options": {
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk diff",
+        "cwd": "cdk"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "@src/getDataLambda:build",
+        "@src/postDataLambda:build",
+        "@src/deleteLambda:build"
+      ],
+      "options": {
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk deploy --all -c env=dev --require-approval never",
+        "cwd": "cdk"
+      }
+    },
+
+    "destroy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk destroy --all -c env=dev --force",
+        "cwd": "cdk"
+      }
+    },
+    "bootstrap": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx cdk bootstrap",
+        "cwd": "cdk"
+      }
+    }
+  }
+}
