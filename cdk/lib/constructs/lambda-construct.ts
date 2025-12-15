@@ -10,24 +10,24 @@ import * as path from 'path';
 import { log } from 'console';
 
 export interface LambdaApiConstructProps {
-  developerId?: string;
-  environment: string;
-  functionName: string;
-  handler?: string;
-  runtime?: lambda.Runtime;
-  timeout?: Duration;
-  memorySize?: number;
-  sourcePath: string;
-  environmentVariables?: Record<string, string>;
-  kmsKey?: kms.IKey;
-  dynamoDBtable?: dynamodb.Table;
-  dynamoDbActions?: string[];
-  api?: apigatewayv2.HttpApi;
-  authorizer?: apigatewayv2.IHttpRouteAuthorizer;
-  httpMethod: apigatewayv2.HttpMethod;
-  routePath: string;
-  authorizationScopes?: string[];
-  logRetentionDays?: logs.RetentionDays;
+  readonly developerId?: string;
+  readonly environment: string;
+  readonly functionName: string;
+  readonly handler?: string;
+  readonly runtime?: lambda.Runtime;
+  readonly timeout?: Duration;
+  readonly memorySize?: number;
+  readonly sourcePath: string;
+  readonly environmentVariables?: Record<string, string>;
+  readonly kmsKey?: kms.IKey;
+  readonly dynamoDBtable?: dynamodb.Table;
+  readonly dynamoDbActions?: string[];
+  readonly api?: apigatewayv2.HttpApi;
+  readonly authorizer?: apigatewayv2.IHttpRouteAuthorizer;
+  readonly httpMethod: apigatewayv2.HttpMethod;
+  readonly routePath: string;
+  readonly authorizationScopes?: string[];
+  readonly logRetentionDays?: logs.RetentionDays;
 }
 
 export class LambdaApiConstruct extends Construct {
