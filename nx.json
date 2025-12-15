@@ -32,7 +32,7 @@
       "options": {
         "targetName": "lint"
       },
-      "exclude": ["package.json", "modules/*"]
+      "exclude": ["package.json", "cdk/*"]
     },
     {
       "plugin": "@nx/js/typescript",
@@ -41,7 +41,7 @@
           "targetName": "typecheck"
         }
       },
-      "exclude": ["modules/*"]
+      "exclude": ["cdk/*"]
     }
   ]
 }

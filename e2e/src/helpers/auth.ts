@@ -22,8 +22,7 @@ export async function getAccessToken(clientName?: string): Promise<string> {
   }
 
   const clientConfig = getCognitoClient(resolvedClientName);
-  const { domain } = config.cognito;
-  const tokenEndpoint = `https://${domain}/oauth2/token`;
+  const { domain, tokenEndpoint } = config.cognito;
 
   const credentials = Buffer.from(
     `${clientConfig.clientId}:${clientConfig.clientSecret}`,

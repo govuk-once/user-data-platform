@@ -17,6 +17,7 @@ export interface E2EConfig {
   apiBaseUrl: string;
   cognito: {
     domain: string;
+    tokenEndpoint: string;
     clients: Record<string, CognitoClientConfig>;
     defaultClient: string;
   };
@@ -74,6 +75,7 @@ export const config: E2EConfig = {
   apiBaseUrl: getRequiredEnv('API_BASE_URL'),
   cognito: {
     domain: getRequiredEnv('COGNITO_DOMAIN'),
+    tokenEndpoint: getRequiredEnv('TOKEN_ENDPOINT'),
     clients: loadCognitoClients(),
     defaultClient: getOptionalEnv('COGNITO_DEAULT_CLIENT', 'flex'),
   },

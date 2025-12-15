@@ -2,6 +2,7 @@
   "name": "@udp",
   "$schema": "./node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
+
   "targets": {
     "set-developer": {
       "executor": "nx:run-commands",
@@ -10,17 +11,6 @@
         "cwd": "."
       },
       "cache": true
-    },
-    "teardown": {
-      "executor": "nx:run-commands",
-      "options": {
-        "commands": [
-          "nx run @tf/dynamodb:destroy",
-          "nx run @tf/kms:destroy",
-          "nx run @tf/cognito:destroy"
-        ],
-        "parallel": false
-      }
     }
   }
 }

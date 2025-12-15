@@ -4,12 +4,11 @@
   "sourceRoot": "e2e",
   "projectType": "application",
   "tags": ["type:e2e"],
-  "implicitDependencies": ["@tf/getDataLambda"],
   "targets": {
     "extract-env": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "./scripts/extract-tf-outputs.sh development",
+        "command": "./scripts/extract-cdk-outputs.sh --personal",
         "cwd": "e2e"
       }
     },
@@ -23,7 +22,6 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply", "@tf/deleteDataLambda:apply"],
       "options": {
         "commands": [
           "echo 'Deployment complete'"
@@ -34,13 +32,11 @@
     },
     "deploy-and-test": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply", "@tf/deleteDataLambda:apply"],
       "options": {
         "commands": [
-          "sleep 30s",
-          "nx run @test/e2e:extract-env",
+          "nx run cdk:deploy",
           "nx run @test/e2e:e2e",
-          "nx run @udp:teardown",
+          "nx run cdk:destroy",
           "rm -f .env"
         ],
         "cwd": "e2e",

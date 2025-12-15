@@ -35,9 +35,15 @@ importers:
       '@middy/http-response-serializer':
         specifier: ^6.4.5
         version: 6.4.5
+      aws-cdk-lib:
+        specifier: ^2.232.1
+        version: 2.232.1(constructs@10.4.4)
       aws-lambda:
         specifier: ^1.0.7
         version: 1.0.7
+      constructs:
+        specifier: ^10.4.4
+        version: 10.4.4
       crypto:
         specifier: ^1.0.1
         version: 1.0.1
@@ -96,6 +102,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.0.10
         version: 4.0.10(vitest@4.0.10(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.1))
+      aws-cdk:
+        specifier: ^2.1034.0
+        version: 2.1034.0
       aws-sdk-client-mock:
         specifier: ^4.1.0
         version: 4.1.0
@@ -137,6 +146,19 @@ importers:
         version: 4.0.10(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.1)
 
 packages:
+
+  '@aws-cdk/asset-awscli-v1@2.2.242':
+    resolution: {integrity: sha512-4c1bAy2ISzcdKXYS1k4HYZsNrgiwbiDzj36ybwFVxEWZXVAP0dimQTCaB9fxu7sWzEjw3d+eaw6Fon+QTfTIpQ==}
+
+  '@aws-cdk/asset-node-proxy-agent-v6@2.1.0':
+    resolution: {integrity: sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==}
+
+  '@aws-cdk/cloud-assembly-schema@48.20.0':
+    resolution: {integrity: sha512-+eeiav9LY4wbF/EFuCt/vfvi/Zoxo8bf94PW5clbMraChEliq83w4TbRVy0jB9jE0v1ooFTtIjSQkowSPkfISg==}
+    engines: {node: '>= 18.0.0'}
+    bundledDependencies:
+      - jsonschema
+      - semver
 
   '@aws-crypto/sha256-browser@5.2.0':
     resolution: {integrity: sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==}
@@ -2472,6 +2494,29 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
+  aws-cdk-lib@2.232.1:
+    resolution: {integrity: sha512-F1vNcpWBo85pSxa0DJ5DO4k7Ok4vVp0vh1cFO4Y12LLX07ixOcnJn/6B97/XVC0fgZNvzPx/sYgioEd0u8oKkQ==}
+    engines: {node: '>= 18.0.0'}
+    peerDependencies:
+      constructs: ^10.0.0
+    bundledDependencies:
+      - '@balena/dockerignore'
+      - case
+      - fs-extra
+      - ignore
+      - jsonschema
+      - minimatch
+      - punycode
+      - semver
+      - table
+      - yaml
+      - mime-types
+
+  aws-cdk@2.1034.0:
+    resolution: {integrity: sha512-YsIeXmMP/9eGml/eoPs64kHzNR0IVezzwuH0XrLOtUCjYNb80cmmjoCNsMn96u9rJOte1Yg3jitrHi1wTqXAqw==}
+    engines: {node: '>= 18.0.0'}
+    hasBin: true
+
   aws-lambda@1.0.7:
     resolution: {integrity: sha512-9GNFMRrEMG5y3Jvv+V4azWvc+qNWdWLTjDdhf/zgMlz8haaaLWv0xeAIWxz9PuWUBawsVxy0zZotjCdR3Xq+2w==}
     hasBin: true
@@ -2700,6 +2745,9 @@ packages:
 
   confusing-browser-globals@1.0.11:
     resolution: {integrity: sha512-JsPKdmh8ZkmnHxDk55FZ1TqVLvEQTvoByJZRN9jzI0UjxK/QgAmsphz7PGtqgPieQZ/CQcHWXCR7ATDNhGe+YA==}
+
+  constructs@10.4.4:
+    resolution: {integrity: sha512-lP0qC1oViYf1cutHo9/KQ8QL637f/W29tDmv/6sy35F5zs+MD9f66nbAAIjicwc7fwyuF3rkg6PhZh4sfvWIpA==}
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
@@ -3081,6 +3129,11 @@ packages:
 
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
+
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -4539,6 +4592,12 @@ packages:
     resolution: {integrity: sha512-GKHFX2nXul2/4Dtfxhozv701jLQHdf6J34YDh2cEkpqoo8le5Mg6/LrdseVLrFarmFygZTlfIhHx/QKfb/QWXw==}
 
 snapshots:
+
+  '@aws-cdk/asset-awscli-v1@2.2.242': {}
+
+  '@aws-cdk/asset-node-proxy-agent-v6@2.1.0': {}
+
+  '@aws-cdk/cloud-assembly-schema@48.20.0': {}
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -7554,6 +7613,17 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
+  aws-cdk-lib@2.232.1(constructs@10.4.4):
+    dependencies:
+      '@aws-cdk/asset-awscli-v1': 2.2.242
+      '@aws-cdk/asset-node-proxy-agent-v6': 2.1.0
+      '@aws-cdk/cloud-assembly-schema': 48.20.0
+      constructs: 10.4.4
+
+  aws-cdk@2.1034.0:
+    optionalDependencies:
+      fsevents: 2.3.2
+
   aws-lambda@1.0.7:
     dependencies:
       aws-sdk: 2.1692.0
@@ -7834,6 +7904,8 @@ snapshots:
   concat-map@0.0.1: {}
 
   confusing-browser-globals@1.0.11: {}
+
+  constructs@10.4.4: {}
 
   convert-source-map@2.0.0: {}
 
@@ -8236,6 +8308,9 @@ snapshots:
   fs-constants@1.0.0: {}
 
   fs.realpath@1.0.0: {}
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true

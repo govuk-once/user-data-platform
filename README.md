@@ -109,21 +109,20 @@ command: nx run @test/e2e:e2e will run the tests against currently deployed code
 ```
 | .github
     | deploy.yaml
+| cdk
+    | bin
+    | constants
+    | lib
+        constructs
+        stacks    
+    | scripts
+    cdk.json
 | libs
     | middleware-utils
         |...ts
         |...unit.test.ts
     | test-utils
         | ...ts
-| modules
-    | Auth
-        |main.tf
-        |...tf
-        |project.json
-    | Data Stores
-        |main.tf
-        |project.json
-    | Api
 | src
     | getDataLambda
         handler.ts
