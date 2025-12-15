@@ -25,7 +25,7 @@ variable "runtime" {
 variable "source_path" {
   description = "Path to lambda source code zip"
   type        = string
-  default     = "../../build/getDataLambda.js"
+  default     = "../../build/deleteDataLambda.js"
 }
 
 variable "timeout" {
@@ -86,5 +86,5 @@ variable "api_gateway_authorizer_id" {
 variable "api_gateway_authorizsation_scopes" {
   description = "OAuth2 scopes required to access this route"
   type        = list(string)
-  default     = ["udp/read"]
+  default     = ["udp/delete"]
 }

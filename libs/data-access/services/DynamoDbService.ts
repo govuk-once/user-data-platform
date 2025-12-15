@@ -1,6 +1,6 @@
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { GetError, SaveError } from '../errors/Errors';
+import { DeleteError, GetError, SaveError } from '../errors/Errors';
 import { Logger } from '@libs/utils';
 
 
@@ -56,6 +56,51 @@ export class DynamoDbService<T extends DynamoDBEntity> {
     } catch (error) {
       this.logger?.error('Get entity failed', {
         operation: 'getByKey',
+        pk,
+        sk,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves an entity by its composite key.
+   * @param pk - Partition key
+   * @param sk - Sort key
+   * @returns A promise that resolves to the entity if found, or null if not found
+   * @throws {DeleteError} if pk or sk is missing
+   */
+  async deleteByKey(pk: string, sk: string): Promise<void> {
+    this.logger?.info('deleting entity by key', {
+      operation: 'getByKey',
+      pk,
+      sk,
+    });
+
+    if (!pk || !sk) {
+      this.logger?.error('Invalid keys provided', {
+        operation: 'deleteByKey',
+        pk: pk || 'undefined',
+        sk: sk || 'undefined',
+      });
+      throw new DeleteError(
+        'entity',
+        `${pk || 'undefined'}#${sk || 'undefined'}`,
+        new Error('Both pk and sk are required'),
+      );
+    }
+
+    try {
+      await this.repository.delete({ pk, sk } as Partial<T>);
+      this.logger?.info('Delete entity completed', {
+        operation: 'deleteByKey',
+        pk,
+        sk,
+      });
+    } catch (error) {
+      this.logger?.error('Delete entity failed', {
+        operation: 'deleteByKey',
         pk,
         sk,
         error: error instanceof Error ? error.message : String(error),

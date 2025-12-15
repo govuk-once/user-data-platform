@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { DynamoDbService } from './DynamoDbService';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { GetError, SaveError } from '../errors/Errors';
+import { DeleteError, GetError, SaveError } from '../errors/Errors';
 import { Logger } from '@libs/utils';
 import { LogLevel } from '@aws-lambda-powertools/logger';
 
@@ -27,6 +27,7 @@ describe('DynamoDbService', () => {
     mockRepository = {
       get: vi.fn(),
       save: vi.fn(),
+      delete: vi.fn()
     } as unknown as DynamoDBRepository<TestEntity>;
     service = new DynamoDbService(mockRepository, logger);
   });
@@ -41,7 +42,7 @@ describe('DynamoDbService', () => {
         },
       };
 
-      const logSpy = vi.spyOn(logger, "info")
+      const logSpy = vi.spyOn(logger, 'info');
 
       vi.mocked(mockRepository.get).mockResolvedValue(mockEntity);
 
@@ -56,7 +57,7 @@ describe('DynamoDbService', () => {
         sk: 'topics',
       });
       expect(mockRepository.get).toHaveBeenCalledTimes(1);
-      expect(logSpy).toHaveBeenCalled()
+      expect(logSpy).toHaveBeenCalled();
     });
 
     it('should return null when entity does not exist', async () => {
@@ -72,15 +73,14 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when pk is missing', async () => {
-      const logSpy = vi.spyOn(logger, "error")
-
+      const logSpy = vi.spyOn(logger, 'error');
 
       await expect(service.getByKey('', 'topics')).rejects.toThrow(GetError);
       await expect(service.getByKey('', 'topics')).rejects.toThrow(
         'Both pk and sk are required',
       );
       expect(mockRepository.get).not.toHaveBeenCalled();
-      expect(logSpy).toHaveBeenCalled()
+      expect(logSpy).toHaveBeenCalled();
     });
 
     it('should throw error when sk is missing', async () => {
@@ -330,6 +330,57 @@ describe('DynamoDbService', () => {
     });
   });
 
+  describe('deleteByKey', () => {
+    it('should delete entity when it exists', async () => {
+      const mockEntity: TestEntity = {
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+      };
+
+      const logSpy = vi.spyOn(logger, 'info');
+
+      vi.mocked(mockRepository.get).mockResolvedValue(mockEntity);
+
+      await service.deleteByKey(
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        'topics',
+      );
+
+      expect(mockRepository.delete).toHaveBeenCalledWith({
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+      });
+      expect(mockRepository.delete).toHaveBeenCalledTimes(1);
+      expect(logSpy).toHaveBeenCalled();
+    });
+
+     it('should throw error when pk is missing', async () => {
+      await expect(service.deleteByKey('', 'topics')).rejects.toThrow(DeleteError);
+      await expect(service.deleteByKey('', 'topics')).rejects.toThrow(
+        'Failed to delete entity with id undefined#topics: Both pk and sk are required',
+      );
+      expect(mockRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when sk is missing', async () => {
+      await expect(service.deleteByKey('entity', '')).rejects.toThrow(DeleteError);
+      await expect(service.deleteByKey('entity', '')).rejects.toThrow(
+        'Failed to delete entity with id entity#undefined: Both pk and sk are required',
+      );
+      expect(mockRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when both pk and sk are missing', async () => {
+      
+
+      await expect(service.deleteByKey('','')).rejects.toThrow(DeleteError);
+      await expect(service.deleteByKey('', '')).rejects.toThrow(
+        'Failed to delete entity with id undefined#undefined: Both pk and sk are required',
+      );
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+  });
+  
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
       const service = new DynamoDbService(mockRepository);

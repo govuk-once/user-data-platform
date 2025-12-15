@@ -52,6 +52,30 @@ export class SaveError extends RepositoryError {
 }
 
 /**
+ * Error thrown when deleting an entity to the repository fails.
+ */
+export class DeleteError extends RepositoryError {
+  /**
+   * The underlying error that caused the save to fail.
+   */
+  public readonly cause: Error;
+
+  /**
+   * Creates a new SaveError.
+   * @param entityName - The name of the entity type that failed to save
+   * @param id - The identifier of the entity that failed to save
+   * @param originalError - The underlying error that caused the save to fail
+   */
+  constructor(entityName: string, id: string, originalError: Error) {
+    super(
+      `Failed to delete ${entityName} with id ${id}: ${originalError.message}`,
+    );
+    this.name = 'DeleteError';
+    this.cause = originalError;
+  }
+}
+
+/**
  * Error thrown when retrieving an entity from the repository fails.
  */
 export class GetError extends RepositoryError {

@@ -23,7 +23,7 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply"],
+      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply", "@tf/deleteDataLambda:apply"],
       "options": {
         "commands": [
           "echo 'Deployment complete'"
@@ -34,7 +34,7 @@
     },
     "deploy-and-test": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply"],
+      "dependsOn": ["@tf/getDataLambda:apply", "@tf/postDataLambda:apply", "@tf/deleteDataLambda:apply"],
       "options": {
         "commands": [
           "sleep 30s",

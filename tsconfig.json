@@ -3,12 +3,5 @@
   "compileOnSave": false,
   "files": [],
   "exclude": ["node_modules"],
-  "references": [
-    {
-      "path": "./libs/data-access"
-    },
-    {
-      "path": "./libs/utils"
-    }
-  ]
+  "references": []
 }

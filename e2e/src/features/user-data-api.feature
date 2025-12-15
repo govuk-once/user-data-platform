@@ -15,3 +15,8 @@ Feature: User Data API
     Scenario: Successfully Retrive data
         When i send a get to '/123/topics'
         Then I should recieve a successful response
+        Then The response body contain body '{"data":{"test":"data"}, "pk":"123","sk":"topics"}'
+        
+    Scenario: Successfully delete data
+        When i send a delete to '/123/topics'
+        Then I should recieve a successful response

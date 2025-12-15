@@ -1,14 +1,14 @@
 import { DynamoDBEntity, EncryptionConfig } from '../types/Entity';
 import { Repository } from './Repository';
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { GetError, SaveError } from '../errors/Errors';
+import { GetError, SaveError, DeleteError } from '../errors/Errors';
 import { Logger } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
-
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -23,7 +23,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
   private readonly client: DynamoDBDocumentClient;
   private readonly tableName: string;
   private readonly encryption?: EncryptionConfig;
-  private readonly logger?: Logger
+  private readonly logger?: Logger;
 
   /**
    * Creates a new DynamoDB repository instance.
@@ -34,7 +34,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     tableName: string,
     client: DynamoDBDocumentClient,
     encryption?: EncryptionConfig,
-    logger?: Logger
+    logger?: Logger,
   ) {
     this.tableName = tableName;
     this.client = client;
@@ -149,6 +149,56 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
         error: error instanceof Error ? error.message : String(error),
       });
       throw new SaveError('item', `${entity.pk}#${entity.sk}`, error as Error);
+    }
+  }
+
+  /**
+   * Retrieves an entity by its key(s) from DynamoDB.
+   * @param keys - Partial entity containing the key properties needed to identify the entity
+   * @returns A promise that resolves when the delete operation is complete
+   * @throws {DeleteError} When the DynamoDB operation fails or required keys are missing
+   */
+  async delete(keys: Partial<T>): Promise<void> {
+    if (
+      !('pk' in keys) ||
+      !('sk' in keys) ||
+      keys.pk === undefined ||
+      keys.sk === undefined
+    ) {
+      throw new DeleteError(
+        'item',
+        JSON.stringify(keys),
+        new Error('Both pk and sk are required for composite key entities'),
+      );
+    }
+
+    const { pk, sk } = keys as { pk: string; sk: string };
+
+    this.logger?.debug('Deleting item from DynamoDB', {
+      operation: 'get',
+      tableName: this.tableName,
+      pk,
+      sk,
+    });
+
+    try {
+      const command = new DeleteCommand({
+        TableName: this.tableName,
+        Key: { pk, sk },
+      });
+
+      await this.client.send(command);
+
+      this.logger?.debug('Item deleted successfully', { pk, sk });
+    } catch (error) {
+      this.logger?.error('Failed to delete item from DynamoDB', {
+        operation: 'get',
+        tableName: this.tableName,
+        pk,
+        sk,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new DeleteError('item', `${pk}#${sk}`, error as Error);
     }
   }
 }

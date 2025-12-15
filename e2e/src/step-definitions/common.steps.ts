@@ -31,6 +31,16 @@ When(
   },
 );
 
+When(
+  'i send a delete to {string}',
+  async function (this: CustomWorld, path: string) {
+    const response = await this.api.delete(path, {
+      authenticated: this.authenticated,
+    });
+    this.storeResponse(response);
+  },
+);
+
 Then(
   'the response status should be {int}',
   function (this: CustomWorld, expectedStatus: number) {
@@ -59,5 +69,13 @@ Then(
   function (this: CustomWorld, message: string) {
     const data = this.lastResponse?.data as Record<string, unknown>;
     expect(data.message).toEqual(message);
+  },
+);
+
+Then(
+  'The response body contain body {string}',
+  function (this: CustomWorld, message: string) {
+    const data = this.lastResponse?.data as Record<string, unknown>;
+    expect(data).toEqual(JSON.parse(message));
   },
 );
