@@ -1,4 +1,4 @@
-import { App, Aspects } from 'aws-cdk-lib';
+import { App } from 'aws-cdk-lib';
 import { MainStack, MonitoringStack } from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
 
@@ -26,7 +26,7 @@ const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
   m2mClients: {
     flex: {
-      scopes: ['udp/read', 'udp/write'],
+      scopes: ['udp/read', 'udp/write', 'udp/delete'],
       accessTokenValidityMinutes: 60,
     },
   },

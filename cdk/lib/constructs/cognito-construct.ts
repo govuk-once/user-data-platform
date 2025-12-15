@@ -46,7 +46,7 @@ export class CognitoConstruct extends Construct {
       ],
       m2mClients = {
         flex: {
-          scopes: ['udp/read', 'udp/write'],
+          scopes: ['udp/read', 'udp/write', 'udp/delete'],
           accessTokenValidityMinutes: 60,
         },
       },

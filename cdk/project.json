@@ -12,7 +12,11 @@
     },
     "diff": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@src/getDataLambda:build", "@src/postDataLambda:build"],
+      "dependsOn": [
+        "@src/getDataLambda:build",
+        "@src/postDataLambda:build",
+        "@src/deleteLambda:build"
+      ],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk diff",
         "cwd": "cdk"
@@ -20,7 +24,11 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@src/getDataLambda:build", "@src/postDataLambda:build"],
+      "dependsOn": [
+        "@src/getDataLambda:build",
+        "@src/postDataLambda:build",
+        "@src/deleteLambda:build"
+      ],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk deploy --all -c env=dev --require-approval never",
         "cwd": "cdk"
@@ -29,7 +37,6 @@
 
     "destroy": {
       "executor": "nx:run-commands",
-      "dependsOn": ["@src/getDataLambda:build", "@src/postDataLambda:build"],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk destroy --all -c env=dev --require-approval never",
         "cwd": "cdk"

@@ -133,10 +133,25 @@ export class MainStack extends Stack {
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.GET,
       routePath: '/user/{proxy+}',
-      authorizationScopes: ['udp/write'],
+      authorizationScopes: ['udp/read'],
     });
 
-    this.lambdas = [postData.function, getData.function];
+    const deleteData = new LambdaApiConstruct(this, 'deleteData', {
+      developerId,
+      environment,
+      functionName: 'deleteDataLambda',
+      sourcePath: 'deleteDataLambda',
+      kmsKey: kms.key,
+      dynamoDBtable: db.table,
+      dynamoDbActions: ['dynamodb:DeleteItem', 'dynamodb:GetItem'],
+      api: apiGateway.api,
+      authorizer: jwtAuthorizer,
+      httpMethod: apigatewayv2.HttpMethod.DELETE,
+      routePath: '/user/{proxy+}',
+      authorizationScopes: ['udp/delete'],
+    });
+
+    this.lambdas = [postData.function, getData.function, deleteData.function];
 
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,

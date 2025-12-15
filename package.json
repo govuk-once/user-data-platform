@@ -49,6 +49,7 @@
     "@middy/http-response-serializer": "^6.4.5",
     "aws-cdk-lib": "^2.232.1",
     "aws-lambda": "^1.0.7",
+    "cdk-nag": "^2.37.55",
     "constructs": "^10.4.4",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",

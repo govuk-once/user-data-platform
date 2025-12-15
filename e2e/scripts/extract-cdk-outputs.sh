@@ -124,7 +124,7 @@ if [ -n "$M2M_OUTPUTS" ]; then
 # ${client_name} client
 COGNITO_CLIENT_${ENV_NAME}_ID=$client_id
 COGNITO_CLIENT_${ENV_NAME}_SECRET=$CLIENT_SECRET
-COGNITO_CLIENT_${ENV_NAME}_SCOPES=udp/read udp/write"
+COGNITO_CLIENT_${ENV_NAME}_SCOPES=udp/read udp/write udp/delete"
     done <<< "$M2M_OUTPUTS"
 fi
 
