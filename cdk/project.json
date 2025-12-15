@@ -38,7 +38,7 @@
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk destroy --all -c env=dev --require-approval never",
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk destroy --all -c env=dev --force",
         "cwd": "cdk"
       }
     },
