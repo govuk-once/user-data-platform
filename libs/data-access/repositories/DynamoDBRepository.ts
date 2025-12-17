@@ -158,7 +158,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
    * @returns A promise that resolves when the delete operation is complete
    * @throws {DeleteError} When the DynamoDB operation fails or required keys are missing
    */
-  async delete(keys: Partial<T>): Promise<void> {
+  async delete(keys: Partial<T>): Promise<boolean | null> {
     if (
       !('pk' in keys) ||
       !('sk' in keys) ||
@@ -185,12 +185,18 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       const command = new DeleteCommand({
         TableName: this.tableName,
         Key: { pk, sk },
+        ConditionExpression: 'attribute_exists(pk)',
       });
 
       await this.client.send(command);
-
       this.logger?.debug('Item deleted successfully', { pk, sk });
+      return true
     } catch (error) {
+
+      if(error.name === 'ConditionalCheckFailedException') {
+        return null
+      }
+
       this.logger?.error('Failed to delete item from DynamoDB', {
         operation: 'get',
         tableName: this.tableName,

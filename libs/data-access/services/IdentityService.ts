@@ -1,0 +1,100 @@
+import { IdentityInput, IdentityRecordEntity } from '../types/Entity';
+import { Logger } from '@libs/utils';
+import { Repository } from '../repositories/Repository';
+import createHttpError from 'http-errors';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Service class for DynamoDB entity operations with business logic.
+ * Provides a higher-level API with validation, transformation, and orchestration.
+ * Designed specifically for DynamoDB single-table design with composite keys.
+ * @template T - The entity type that extends DynamoDBEntity
+ */
+export class IdentityService<T extends IdentityRecordEntity> {
+  private readonly logger;
+
+  constructor(
+    private readonly repository: Repository<T>,
+    logger?: Logger,
+  ) {
+    this.logger = logger;
+  }
+
+  public async create(input: IdentityInput) {
+    const entity = await this.createFromInput(input);
+    this.validateEntity(entity);
+    await this.repository.save(entity);
+  }
+
+  public async getByIdentifier(serviceId: string) {
+    if (!serviceId) {
+      throw createHttpError.BadRequest(`A valid identifier must be provided`);
+    }
+
+    const result = await this.repository.get({
+      pk: 'IDENTITY_RECORD#',
+      sk: serviceId,
+    } as Partial<T>);
+
+    if (!result) {
+      throw createHttpError.NotFound('Identity record not found');
+    }
+
+    return result;
+  }
+
+  public async deleteByIdentiifier(serviceId: string) {
+    if (!serviceId) {
+      throw createHttpError.BadRequest(`A valid identifier must be provided`);
+    }
+
+    const result = await this.repository.delete({
+      pk: 'IDENTITY_RECORD#',
+      sk: serviceId,
+    } as Partial<T>);
+
+    if (!result) {
+      throw createHttpError.NotFound('Identity record not found');
+    }
+
+    return result;
+  }
+
+  private async createFromInput(input: IdentityInput): Promise<T> {
+    if (!input.appId || !input.serviceId) {
+      throw createHttpError.BadRequest(
+        'Missind required field serviceId or appId',
+      );
+    }
+    if (input.appId === input.serviceId) {
+      // Assume this is the first record of type
+      return {
+        pk: 'IDENTITY_RECORD#',
+        sk: input.serviceId,
+        udpId: uuidv4(),
+        ...(input.ttl ? { ttl: input.ttl } : {}),
+      } as T;
+    }
+
+    // look up the udp id by app id
+    const appIdentifier = await this.getByIdentifier(input.appId);
+
+    return {
+      pk: 'IDENTITY_RECORD#',
+      sk: input.serviceId,
+      serviceName: input.serviceName,
+      serviceId: input.serviceId,
+      udpId: appIdentifier.udpId,
+      accessToken: input.accessToken,
+      idToken: input.idToken,
+      refreshToken: input.refreshToken,
+      ...(input.ttl ? { ttl: input.ttl } : {}),
+    } as unknown as T;
+  }
+
+  private validateEntity(entity: T) {
+    if (!entity.sk) {
+      throw createHttpError('Service Id must be set');
+    }
+  }
+}
