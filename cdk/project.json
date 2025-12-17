@@ -15,7 +15,7 @@
       "dependsOn": [
         "@src/getDataLambda:build",
         "@src/postDataLambda:build",
-        "@src/deleteLambda:build"
+        "@src/deleteDataLambda:build"
       ],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk diff",
