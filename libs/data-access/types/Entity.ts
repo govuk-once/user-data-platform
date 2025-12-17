@@ -95,3 +95,42 @@ export interface EncryptionConfig {
   service: EncryptionService;
   dataFields: string[];
 }
+
+export interface IdentityRecordEntity {
+  /**
+   * Partition key for the entity always IDENTITY_RECORD#.
+   */
+  pk: string;
+  /**
+   * Sort key for the entity the SERVICE.ID#UDP.ID.
+   */
+  sk: string;
+
+  /**
+   * unique UUIDv4 for UDP.ID.
+   */
+  udpId: string;
+
+  /**
+   * Optional time-to-live (TTL) attribute for automatic expiration.
+   * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.
+   */
+  ttl?: number;
+}
+
+export interface IdentityInput {
+  serviceId: string;
+  serviceName: string;
+  appId: string;
+  udpId?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  idToken?: string;
+  ttl?: number;
+}
+
+export interface UserDataInput {
+  resourcePath: string;
+  ttl?: number;
+  [key: string]: unknown;
+}
