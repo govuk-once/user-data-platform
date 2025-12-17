@@ -6,6 +6,13 @@ import { Entity } from '../types/Entity';
  */
 export interface Repository<T extends Entity> {
   /**
+   * Removes an entity by its key(s).
+   * @param keys - Partial entity containing the key properties needed to identify the entity
+   * @returns A promise that resolves to the entity if found, or null if not found
+   */
+  delete(keys: Partial<T>): Promise<boolean | null>
+
+  /**
    * Retrieves an entity by its key(s).
    * @param keys - Partial entity containing the key properties needed to identify the entity
    * @returns A promise that resolves to the entity if found, or null if not found
