@@ -16,6 +16,7 @@ describe('Identity Service', () => {
       get: vi.fn(),
       save: vi.fn(),
       delete: vi.fn(),
+      skBeginswith: vi.fn(),
     } as unknown as DynamoDBRepository<IdentityRecordEntity>;
     service = new DynamoDBIdentityService(mockRepository);
   });
@@ -34,7 +35,8 @@ describe('Identity Service', () => {
 
       expect(mockRepository.save).toHaveBeenCalledWith({
         pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/mock-string-uuid4',
+        lsi_1: 'mock-string-uuid4/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         udpId: 'mock-string-uuid4',
       });
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
@@ -50,10 +52,12 @@ describe('Identity Service', () => {
         idToken: 'test_id_token',
       };
 
-      vi.mocked(mockRepository.get).mockResolvedValue({
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue({
         pk: 'IDENTITY_RECORD#',
         sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         udpId: 'mock-string-uuid4',
+        serviceId: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        serviceName: 'app',
       });
 
       vi.mocked(mockRepository.save).mockResolvedValue(undefined);
@@ -62,7 +66,8 @@ describe('Identity Service', () => {
 
       expect(mockRepository.save).toHaveBeenCalledWith({
         pk: 'IDENTITY_RECORD#',
-        sk: '2e3e32e3-23e3-23e2-23e23e23ee323',
+        sk: '2e3e32e3-23e3-23e2-23e23e23ee323/mock-string-uuid4',
+        lsi_1: 'mock-string-uuid4/2e3e32e3-23e3-23e2-23e23e23ee323',
         udpId: 'mock-string-uuid4',
         refreshToken: 'test_refresh',
         accessToken: 'test_access',
@@ -88,7 +93,8 @@ describe('Identity Service', () => {
 
       expect(mockRepository.save).toHaveBeenCalledWith({
         pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/mock-string-uuid4',
+        lsi_1: 'mock-string-uuid4/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         udpId: 'mock-string-uuid4',
         ttl,
       });
@@ -109,84 +115,92 @@ describe('Identity Service', () => {
     });
   });
 
-    describe('Get Identity Record', () => {
-      it('Should return the Identity Record if it extists', async () => {
-        const mockEntity: IdentityRecordEntity = {
-          pk: 'IDENTITY_RECORD#',
-          sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-          udpId: 'test-id'
-        };
+  describe('Get Identity Record', () => {
+    it('Should return the Identity Record if it extists', async () => {
+      const mockEntity: IdentityRecordEntity = {
+        pk: 'IDENTITY_RECORD#',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        udpId: 'test-id',
+        serviceId: 'test',
+        serviceName: 'test',
+      };
 
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(mockEntity);
 
-        vi.mocked(mockRepository.get).mockResolvedValue(mockEntity);
+      const result = await service.getById(
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+      );
 
-        const result = await service.getById(
-          'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        );
-
-        expect(result).toEqual(mockEntity);
-        expect(mockRepository.get).toHaveBeenCalledWith({
-          pk: 'IDENTITY_RECORD#',
-          sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        });
-        expect(mockRepository.get).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockEntity);
+      expect(mockRepository.skBeginswith).toHaveBeenCalledWith({
+        pk: 'IDENTITY_RECORD#',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
       });
-
-      it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
-        vi.mocked(mockRepository.get).mockResolvedValue(null);
-
-        await expect(
-          service.getById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
-        ).rejects.toThrow('Identity record not found');
-
-        expect(mockRepository.get).toHaveBeenCalledTimes(1);
-      });
-
-      it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
-        vi.mocked(mockRepository.get).mockResolvedValue(null);
-
-        await expect(service.getById('')).rejects.toThrow(
-          'A valid identifier must be provided',
-        );
-
-        expect(mockRepository.get).toHaveBeenCalledTimes(0);
-      });
+      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(1);
     });
 
-    describe('Delete Identity Record', () => {
-      it('Should delete the Identity Record if it extists', async () => {
+    it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
 
-        vi.mocked(mockRepository.delete).mockResolvedValue(true);
+      await expect(
+        service.getById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+      ).rejects.toThrow('Identity record not found');
 
-        await service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
-
-        expect(mockRepository.delete).toHaveBeenCalledWith({
-          pk: 'IDENTITY_RECORD#',
-          sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        });
-        expect(mockRepository.delete).toHaveBeenCalledTimes(1);
-      });
-
-      it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
-        vi.mocked(mockRepository.delete).mockRejectedValue(null);
-
-        await expect(
-          service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
-        ).rejects.toThrow('Identity record not found');
-
-        expect(mockRepository.delete).toHaveBeenCalledTimes(1);
-      });
-
-      it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
-        vi.mocked(mockRepository.get).mockResolvedValue(null);
-
-        await expect(service.deleteById('')).rejects.toThrow(
-          'A valid identifier must be provided',
-        );
-
-        expect(mockRepository.get).toHaveBeenCalledTimes(0);
-      });
+      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(1);
     });
+
+    it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
+
+      await expect(service.getById('')).rejects.toThrow(
+        'A valid identifier must be provided',
+      );
+
+      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('Delete Identity Record', () => {
+    it('Should delete the Identity Record if it extists', async () => {
+      vi.mocked(mockRepository.delete).mockResolvedValue(true);
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue({
+        pk: 'IDENTITY_RECORD#',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        serviceId: '',
+        serviceName: '',
+        udpId: '',
+      });
+
+      await service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
+
+      expect(mockRepository.delete).toHaveBeenCalledWith({
+        pk: 'IDENTITY_RECORD#',
+        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+      });
+      expect(mockRepository.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
+      vi.mocked(mockRepository.delete).mockRejectedValue(null);
+      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
+
+      await expect(
+        service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+      ).rejects.toThrow('Identity record not found');
+
+      expect(mockRepository.delete).toHaveBeenCalledTimes(0);
+    });
+
+    it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
+      vi.mocked(mockRepository.get).mockResolvedValue(null);
+
+      await expect(service.deleteById('')).rejects.toThrow(
+        'A valid identifier must be provided',
+      );
+
+      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(0);
+    });
+  });
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {

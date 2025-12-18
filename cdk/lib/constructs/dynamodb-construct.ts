@@ -3,6 +3,14 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
+export interface LocalSecondaryIndexeConfig {
+  readonly indexName: string;
+  readonly sortKeyName: string;
+  readonly sortKeyType?: dynamodb.AttributeType;
+  readonly projectionType?: dynamodb.ProjectionType;
+  readonly nonKeyAttributes?: string[];
+}
+
 export interface DynamoDBConstructProps {
   readonly developerId?: string;
   readonly environment: string;
@@ -11,6 +19,8 @@ export interface DynamoDBConstructProps {
   readonly sortKey?: string;
   readonly kmsKey?: kms.IKey;
   readonly pointInTimeRecovery?: boolean;
+  readonly localSecondaryIndexes?: LocalSecondaryIndexeConfig[];
+  readonly ttlAttributeName?: string;
 }
 
 export class DynamoDBConstruct extends Construct {
@@ -27,6 +37,8 @@ export class DynamoDBConstruct extends Construct {
       sortKey = 'sk',
       kmsKey,
       pointInTimeRecovery = true,
+      localSecondaryIndexes = [],
+      ttlAttributeName,
     } = props;
 
     const fullTableName = developerId
@@ -46,6 +58,23 @@ export class DynamoDBConstruct extends Construct {
         pointInTimeRecoveryEnabled: pointInTimeRecovery,
       },
       removalPolicy: RemovalPolicy.DESTROY,
+      timeToLiveAttribute: ttlAttributeName,
     });
+
+    for (const lsiConfig of localSecondaryIndexes) {
+      this.table.addLocalSecondaryIndex({
+        indexName: lsiConfig.indexName,
+        sortKey: {
+          name: lsiConfig.sortKeyName,
+          type: dynamodb.AttributeType.STRING,
+        },
+        ...(lsiConfig.projectionType && {
+          projectionType: lsiConfig.projectionType,
+        }),
+        ...(lsiConfig.nonKeyAttributes && {
+          nonKeyAttributes: lsiConfig.nonKeyAttributes,
+        }),
+      });
+    }
   }
 }

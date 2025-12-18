@@ -102,20 +102,53 @@ export interface IdentityRecordEntity {
    */
   pk: string;
   /**
-   * Sort key for the entity the SERVICE.ID#UDP.ID.
+   * Sort key for the entity the SERVICE.ID/UDP.ID.
    */
   sk: string;
 
+ /**
+   * local secondary index UDP.ID/SERVICE.ID.
+   */
+  lsi_1?:string
   /**
    * unique UUIDv4 for UDP.ID.
    */
   udpId: string;
 
   /**
+   * Service Id
+   * The unique user id from the service eg DWP, Flex
+   */
+  serviceId: string;
+
+   /**
+   * Service Name
+   * The unique name for the service eg DWP, Flex
+   */
+  serviceName: string;
+
+   /**
    * Optional time-to-live (TTL) attribute for automatic expiration.
    * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.
    */
   ttl?: number;
+
+  /**
+   * Access Token for the service
+   */
+  accessToken?: string
+
+  /**
+   * Id Token for the service
+   */
+  idToken?: string
+
+  /**
+   * Refresh Token for the service
+   */
+  refreshToken?: string
+
+
 }
 
 export interface IdentityInput {
@@ -129,8 +162,11 @@ export interface IdentityInput {
   ttl?: number;
 }
 
+export type CreateIdentityRequest = Omit<IdentityInput, 'serviceId'>
+
 export interface UserDataInput {
   resourcePath: string;
   ttl?: number;
   [key: string]: unknown;
 }
+

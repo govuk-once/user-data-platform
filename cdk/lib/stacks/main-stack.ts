@@ -69,6 +69,13 @@ export class MainStack extends Stack {
       environment,
       tableName: 'user-data-store',
       kmsKey: kms.key,
+      localSecondaryIndexes: [
+        {
+          indexName: 'lsi-index',
+          sortKeyName: 'lsi'
+        }
+      ],
+      ttlAttributeName: 'ttl'
     });
 
     this.table = db.table;

@@ -33,7 +33,7 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       throw createHttpError.BadRequest(`A valid identifier must be provided`);
     }
 
-    const result = await this.repository.get({
+    const result = await this.repository.skBeginswith({
       pk: PK_CONSTANT,
       sk: serviceId,
     } as Partial<T>);
@@ -50,9 +50,11 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       throw createHttpError.BadRequest(`A valid identifier must be provided`);
     }
 
+    const identifier = await this.getById(serviceId);
+
     const result = await this.repository.delete({
       pk: PK_CONSTANT,
-      sk: serviceId,
+      sk: identifier.sk,
     } as Partial<T>);
 
     if (!result) {
@@ -70,9 +72,11 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     }
     if (input.appId === input.serviceId) {
       // Assume this is the first record of type
+      const udpId = uuidv4();
       return {
         pk: PK_CONSTANT,
-        sk: input.serviceId,
+        sk: `${input.serviceId}/${udpId}`,
+        lsi_1: `${udpId}/${input.serviceId}`,
         udpId: uuidv4(),
         ...(input.ttl ? { ttl: input.ttl } : {}),
       } as T;
@@ -83,7 +87,8 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
     return {
       pk: PK_CONSTANT,
-      sk: input.serviceId,
+      sk: `${input.serviceId}/${appIdentifier.udpId}`,
+      lsi_1: `${appIdentifier.udpId}/${input.serviceId}`,
       serviceName: input.serviceName,
       serviceId: input.serviceId,
       udpId: appIdentifier.udpId,
@@ -91,7 +96,7 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       idToken: input.idToken,
       refreshToken: input.refreshToken,
       ...(input.ttl ? { ttl: input.ttl } : {}),
-    } as unknown as T;
+    } as T;
   }
 
   private validateEntity(entity: T) {
