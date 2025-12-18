@@ -6,7 +6,8 @@
     "@src/deleteDataLambda",
     "@src/postDataLambda",
     "@src/getDataLambda",
-    "@src/createIdentityLambda"
+    "@src/createIdentityLambda",
+    "@src/readIdentityLambda"
   ],
   "targets": {
     "build": {
