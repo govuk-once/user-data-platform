@@ -2,6 +2,7 @@ import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -55,7 +56,7 @@ export class LambdaApiConstruct extends Construct {
       httpMethod,
       authorizationScopes,
       logRetentionDays = logs.RetentionDays.ONE_MONTH,
-      routePath
+      routePath,
     } = props;
 
     const fullFunctionName = developerId
@@ -78,8 +79,8 @@ export class LambdaApiConstruct extends Construct {
       envVars['TABLE_NAME'] = dynamoDBtable.tableName;
     }
 
-    if(kmsKey) {
-        envVars['KMS_KEY_ID'] = kmsKey.keyId;
+    if (kmsKey) {
+      envVars['KMS_KEY_ID'] = kmsKey.keyId;
     }
 
     const codePath = path.resolve(process.cwd(), '..', 'build', sourcePath);
@@ -96,28 +97,36 @@ export class LambdaApiConstruct extends Construct {
       logGroup: this.logGroup,
     });
 
-    if(dynamoDBtable) {
-        dynamoDBtable.grant(this.function, ...dynamoDbActions)
+    if (dynamoDBtable) {
+      this.function.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: dynamoDbActions,
+          resources: [
+            dynamoDBtable.tableArn,
+            `${dynamoDBtable.tableArn}/index/*`,
+          ],
+        }),
+      );
     }
 
-    if(kmsKey) {
-        kmsKey.grantDecrypt(this.function)
-        kmsKey.grantEncrypt(this.function)
+    if (kmsKey) {
+      kmsKey.grantDecrypt(this.function);
+      kmsKey.grantEncrypt(this.function);
     }
 
-    if(api) {
-        const integration = new HttpLambdaIntegration(
-            `${id}Integration`,
-            this.function
-        )
+    if (api) {
+      const integration = new HttpLambdaIntegration(
+        `${id}Integration`,
+        this.function,
+      );
 
-        api.addRoutes({
-            path:routePath,
-            methods: [httpMethod],
-            integration,
-            authorizer,
-            authorizationScopes: authorizer ? authorizationScopes : undefined
-        })
+      api.addRoutes({
+        path: routePath,
+        methods: [httpMethod],
+        integration,
+        authorizer,
+        authorizationScopes: authorizer ? authorizationScopes : undefined,
+      });
     }
   }
 }

@@ -9,6 +9,7 @@ import {
 import { GetError, SaveError, DeleteError } from '../errors/Errors';
 import { Logger } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
+import { QueryCommand } from '@aws-sdk/client-dynamodb';
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -92,6 +93,74 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
             this.encryption.dataFields,
           )) as T)
         : (response.Item as T);
+    } catch (error) {
+      this.logger?.error('Failed to get item from DynamoDB', {
+        operation: 'get',
+        tableName: this.tableName,
+        pk,
+        sk,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new GetError('item', `${pk}#${sk}`, error as Error);
+    }
+  }
+
+  /**
+   * Retrieves an entity by its key(s) from DynamoDB.
+   * @param keys - Partial entity containing the key properties needed to identify the entity
+   * @returns A promise that resolves to the entity if found, or null if not found
+   * @throws {GetError} When the DynamoDB operation fails or required keys are missing
+   */
+  async skBeginswith(keys: Partial<T>): Promise<T | null> {
+    if (
+      !('pk' in keys) ||
+      !('sk' in keys) ||
+      keys.pk === undefined ||
+      keys.sk === undefined
+    ) {
+      throw new GetError(
+        'item',
+        JSON.stringify(keys),
+        new Error('Both pk and sk are required for composite key entities'),
+      );
+    }
+
+    const { pk, sk } = keys as { pk: string; sk: string };
+
+    this.logger?.debug('Getting item from DynamoDB', {
+      operation: 'get',
+      tableName: this.tableName,
+      pk,
+      sk,
+    });
+
+    try {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk,:skPrefix',
+        ExpressionAttributeValues: {
+          ':pk': { S: pk },
+          ':skPrefix': { S: sk },
+        },
+      });
+
+      const response = await this.client.send(command);
+
+      if (!response.Items && response.Items.length < 1) {
+        this.logger?.debug('Item not found', { pk, sk });
+        return null;
+      }
+
+      this.logger?.debug('Item retrieved successfully', { pk, sk });
+
+      const firstItem = response.Items[0];
+
+      return this.encryption
+        ? ((await this.encryption.service.decryptFields(
+            firstItem as Record<string, unknown> & EncryptedData,
+            this.encryption.dataFields,
+          )) as T)
+        : (firstItem as unknown as T);
     } catch (error) {
       this.logger?.error('Failed to get item from DynamoDB', {
         operation: 'get',
@@ -190,11 +259,10 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
       await this.client.send(command);
       this.logger?.debug('Item deleted successfully', { pk, sk });
-      return true
+      return true;
     } catch (error) {
-
-      if(error.name === 'ConditionalCheckFailedException') {
-        return null
+      if (error.name === 'ConditionalCheckFailedException') {
+        return null;
       }
 
       this.logger?.error('Failed to delete item from DynamoDB', {

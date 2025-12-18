@@ -69,7 +69,7 @@ export class EncryptionService {
       const encryptedValue = decryptedData[
         field as keyof typeof decryptedData
       ] as string;
-      const decryptedValue = this.decrypt(encryptedValue, plaintextKey);
+      const decryptedValue = encryptedValue ? this.decrypt(encryptedValue, plaintextKey) : undefined;
 
       try {
         (decryptedData as Record<string, unknown>)[field] =

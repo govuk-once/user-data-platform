@@ -1,0 +1,38 @@
+@udp
+Feature: identity Api
+    As a UDP Authenticated Client
+    I want to be able to save data identity records
+    And link records to a single udpId for a user
+
+    Background:
+        Given I am authenticated as "flex"
+
+    Scenario: Successfully create initial app User
+        When I send a post to '/user/123' with the body '{"appId":"123", "serviceName": "app"}'
+        Then I should recieve a successful response
+        Then the response status should be 201
+
+    Scenario: Successfully link initial app User to another service
+        When I send a post to '/user/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        Then I should recieve a successful response
+        Then the response status should be 201
+
+    Scenario: Successfully re link a user 
+        When I send a post to '/user/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
+        Then I should recieve a successful response
+        Then the response status should be 201
+
+    Scenario: Returns a 404 if the appId isnt found when linking
+        When I send a post to '/user/321' with the body '{"appId":"doesnt-exist", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        Then the response status should be 404
+
+    Scenario: Returns a 400 if the appId isnt set
+        When I send a post to '/user/321' with the body '{ "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        Then the response status should be 400
+    
+    Scenario: Returns a 400 if the serviceName isnt set
+        When I send a post to '/user/321' with the body '{ "appId":"123", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        Then the response status should be 400
+
+
+ 

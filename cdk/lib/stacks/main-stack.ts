@@ -69,6 +69,13 @@ export class MainStack extends Stack {
       environment,
       tableName: 'user-data-store',
       kmsKey: kms.key,
+      localSecondaryIndexes: [
+        {
+          indexName: 'lsi-index',
+          sortKeyName: 'lsi'
+        }
+      ],
+      ttlAttributeName: 'ttl'
     });
 
     this.table = db.table;
@@ -106,6 +113,21 @@ export class MainStack extends Stack {
       },
     );
 
+     const createIdentity = new LambdaApiConstruct(this, 'createIdentity', {
+      developerId,
+      environment,
+      functionName: 'createIdentityLambda',
+      sourcePath: 'createIdentityLambda',
+      kmsKey: kms.key,
+      dynamoDBtable: db.table,
+      dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem'],
+      api: apiGateway.api,
+      authorizer: jwtAuthorizer,
+      httpMethod: apigatewayv2.HttpMethod.POST,
+      routePath: '/user/{userId}',
+      authorizationScopes: ['udp/write'],
+    });
+
     const postData = new LambdaApiConstruct(this, 'postData', {
       developerId,
       environment,
@@ -117,7 +139,7 @@ export class MainStack extends Stack {
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.POST,
-      routePath: '/user/{proxy+}',
+      routePath: '/user/{userid}/{proxy+}',
       authorizationScopes: ['udp/write'],
     });
 
@@ -132,7 +154,7 @@ export class MainStack extends Stack {
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.GET,
-      routePath: '/user/{proxy+}',
+      routePath: '/user/{userid}/{proxy+}',
       authorizationScopes: ['udp/read'],
     });
 
@@ -147,11 +169,11 @@ export class MainStack extends Stack {
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.DELETE,
-      routePath: '/user/{proxy+}',
+      routePath: '/user/{userid}/{proxy+}',
       authorizationScopes: ['udp/delete'],
     });
 
-    this.lambdas = [postData.function, getData.function, deleteData.function];
+    this.lambdas = [createIdentity.function, postData.function, getData.function, deleteData.function];
 
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,
