@@ -6,9 +6,9 @@ import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
-  BodySchema,
+  CraateIdentityRequestSchema,
   createEnvValidator,
-  PathSchema,
+  IdentityPathSchema,
   zodValidator,
 } from '@libs/utils';
 import { z } from 'zod';
@@ -32,7 +32,7 @@ function getFactory() {
   return factory;
 }
 
-type CreatItemBody = z.infer<typeof BodySchema>;
+type CreatItemBody = z.infer<typeof CraateIdentityRequestSchema>;
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
@@ -61,7 +61,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(jsonBodyParser())
-  .use(zodValidator({ pathParameters: PathSchema, body: BodySchema }))
+  .use(zodValidator({ pathParameters: IdentityPathSchema, body: CraateIdentityRequestSchema }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
