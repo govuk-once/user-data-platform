@@ -1,7 +1,7 @@
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 import { IdentityInput, IdentityRecordEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { IdentityService } from './IdentityService';
+import { DynamoDBIdentityService } from './DynamoDbIdentityService';
 
 vi.mock('uuid', () => ({
   v4: vi.fn(() => 'mock-string-uuid4'),
@@ -9,7 +9,7 @@ vi.mock('uuid', () => ({
 
 describe('Identity Service', () => {
   let mockRepository: DynamoDBRepository<IdentityRecordEntity>;
-  let service: IdentityService<IdentityRecordEntity>;
+  let service: DynamoDBIdentityService<IdentityRecordEntity>;
 
   beforeEach(() => {
     mockRepository = {
@@ -17,7 +17,7 @@ describe('Identity Service', () => {
       save: vi.fn(),
       delete: vi.fn(),
     } as unknown as DynamoDBRepository<IdentityRecordEntity>;
-    service = new IdentityService(mockRepository);
+    service = new DynamoDBIdentityService(mockRepository);
   });
 
   describe('Create Identity Record', () => {
@@ -103,7 +103,7 @@ describe('Identity Service', () => {
       };
 
       await expect(service.create(entity)).rejects.toThrow(
-        'Missind required field serviceId or appId',
+        'Missing required field serviceId or appId',
       );
       expect(mockRepository.save).not.toHaveBeenCalled();
     });
@@ -120,7 +120,7 @@ describe('Identity Service', () => {
 
         vi.mocked(mockRepository.get).mockResolvedValue(mockEntity);
 
-        const result = await service.getByIdentifier(
+        const result = await service.getById(
           'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         );
 
@@ -136,7 +136,7 @@ describe('Identity Service', () => {
         vi.mocked(mockRepository.get).mockResolvedValue(null);
 
         await expect(
-          service.getByIdentifier('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+          service.getById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
         ).rejects.toThrow('Identity record not found');
 
         expect(mockRepository.get).toHaveBeenCalledTimes(1);
@@ -145,7 +145,7 @@ describe('Identity Service', () => {
       it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
         vi.mocked(mockRepository.get).mockResolvedValue(null);
 
-        await expect(service.getByIdentifier('')).rejects.toThrow(
+        await expect(service.getById('')).rejects.toThrow(
           'A valid identifier must be provided',
         );
 
@@ -158,7 +158,7 @@ describe('Identity Service', () => {
 
         vi.mocked(mockRepository.delete).mockResolvedValue(true);
 
-        await service.deleteByIdentiifier('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
+        await service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
 
         expect(mockRepository.delete).toHaveBeenCalledWith({
           pk: 'IDENTITY_RECORD#',
@@ -171,7 +171,7 @@ describe('Identity Service', () => {
         vi.mocked(mockRepository.delete).mockRejectedValue(null);
 
         await expect(
-          service.deleteByIdentiifier('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+          service.deleteById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
         ).rejects.toThrow('Identity record not found');
 
         expect(mockRepository.delete).toHaveBeenCalledTimes(1);
@@ -180,7 +180,7 @@ describe('Identity Service', () => {
       it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
         vi.mocked(mockRepository.get).mockResolvedValue(null);
 
-        await expect(service.deleteByIdentiifier('')).rejects.toThrow(
+        await expect(service.deleteById('')).rejects.toThrow(
           'A valid identifier must be provided',
         );
 
@@ -190,8 +190,8 @@ describe('Identity Service', () => {
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const service = new IdentityService(mockRepository);
-      expect(service).toBeInstanceOf(IdentityService);
+      const service = new DynamoDBIdentityService(mockRepository);
+      expect(service).toBeInstanceOf(DynamoDBIdentityService);
     });
   });
 });

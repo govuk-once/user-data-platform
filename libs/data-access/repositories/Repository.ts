@@ -19,4 +19,12 @@ export interface Repository<T extends Entity> {
    * @returns A promise that resolves when the save operation is complete
    */
   save(entity: T): Promise<void>;
+
+  /**
+   * Saves an entity to the repository.
+   * If an entity with the same key(s) exists, it will be overwritten.
+   * @param keys - The entity to save
+   * @returns A promise that resolves when the delete operation is complete
+   */
+  delete(keys: Partial<T>): Promise<boolean | null>;
 }

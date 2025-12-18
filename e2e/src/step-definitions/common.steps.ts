@@ -13,7 +13,6 @@ When(
   'I send a post to {string} with the body {string}',
   async function (this: CustomWorld, path: string, json: string) {
     const data = JSON.parse(json);
-
     const response = await this.api.post(path, data, {
       authenticated: this.authenticated,
     });
@@ -59,7 +58,7 @@ Then('I should recieve an error response', function (this: CustomWorld) {
 Then(
   'The response should contain {string} with value {string}',
   function (this: CustomWorld, field: string, value: string) {
-    const data = this.lastResponse?.data as Record<string, unknown>;
+    const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data[field]).toEqual(value);
   },
 );
@@ -67,7 +66,7 @@ Then(
 Then(
   'The response will contain message {string}',
   function (this: CustomWorld, message: string) {
-    const data = this.lastResponse?.data as Record<string, unknown>;
+    const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data.message).toEqual(message);
   },
 );
@@ -75,7 +74,7 @@ Then(
 Then(
   'The response body contain body {string}',
   function (this: CustomWorld, message: string) {
-    const data = this.lastResponse?.data as Record<string, unknown>;
+    const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data).toEqual(JSON.parse(message));
   },
 );

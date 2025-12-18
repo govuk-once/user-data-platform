@@ -4,7 +4,6 @@ import { config } from './config.js';
 export interface ApiResponse<T = unknown> {
   status: number;
   headers: Headers;
-  data: T;
   body: T;
   ok: boolean;
 }
@@ -69,7 +68,7 @@ export class ApiClient {
     return {
       status: response.status,
       headers: response.headers,
-      data,
+      body: data,
       ok: response.ok,
     };
   }

@@ -4,13 +4,15 @@ import { Repository } from '../repositories/Repository';
 import createHttpError from 'http-errors';
 import { v4 as uuidv4 } from 'uuid';
 
+const PK_CONSTANT = 'IDENTITY_RECORD#';
+
 /**
  * Service class for DynamoDB entity operations with business logic.
  * Provides a higher-level API with validation, transformation, and orchestration.
  * Designed specifically for DynamoDB single-table design with composite keys.
  * @template T - The entity type that extends DynamoDBEntity
  */
-export class IdentityService<T extends IdentityRecordEntity> {
+export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
   private readonly logger;
 
   constructor(
@@ -26,13 +28,13 @@ export class IdentityService<T extends IdentityRecordEntity> {
     await this.repository.save(entity);
   }
 
-  public async getByIdentifier(serviceId: string) {
+  public async getById(serviceId: string) {
     if (!serviceId) {
       throw createHttpError.BadRequest(`A valid identifier must be provided`);
     }
 
     const result = await this.repository.get({
-      pk: 'IDENTITY_RECORD#',
+      pk: PK_CONSTANT,
       sk: serviceId,
     } as Partial<T>);
 
@@ -43,13 +45,13 @@ export class IdentityService<T extends IdentityRecordEntity> {
     return result;
   }
 
-  public async deleteByIdentiifier(serviceId: string) {
+  public async deleteById(serviceId: string) {
     if (!serviceId) {
       throw createHttpError.BadRequest(`A valid identifier must be provided`);
     }
 
     const result = await this.repository.delete({
-      pk: 'IDENTITY_RECORD#',
+      pk: PK_CONSTANT,
       sk: serviceId,
     } as Partial<T>);
 
@@ -63,13 +65,13 @@ export class IdentityService<T extends IdentityRecordEntity> {
   private async createFromInput(input: IdentityInput): Promise<T> {
     if (!input.appId || !input.serviceId) {
       throw createHttpError.BadRequest(
-        'Missind required field serviceId or appId',
+        'Missing required field serviceId or appId',
       );
     }
     if (input.appId === input.serviceId) {
       // Assume this is the first record of type
       return {
-        pk: 'IDENTITY_RECORD#',
+        pk: PK_CONSTANT,
         sk: input.serviceId,
         udpId: uuidv4(),
         ...(input.ttl ? { ttl: input.ttl } : {}),
@@ -77,10 +79,10 @@ export class IdentityService<T extends IdentityRecordEntity> {
     }
 
     // look up the udp id by app id
-    const appIdentifier = await this.getByIdentifier(input.appId);
+    const appIdentifier = await this.getById(input.appId);
 
     return {
-      pk: 'IDENTITY_RECORD#',
+      pk: PK_CONSTANT,
       sk: input.serviceId,
       serviceName: input.serviceName,
       serviceId: input.serviceId,
