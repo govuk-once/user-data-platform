@@ -141,6 +141,21 @@ export class MainStack extends Stack {
       authorizationScopes: ['udp/read'],
     });
 
+    const deleteIdentity = new LambdaApiConstruct(this, 'deleteIdentity', {
+      developerId,
+      environment,
+      functionName: 'deleteIdentityLambda',
+      sourcePath: 'deleteIdentityLambda',
+      kmsKey: kms.key,
+      dynamoDBtable: db.table,
+      dynamoDbActions: ['dynamodb:DeleteItem', 'dynamodb:Query'],
+      api: apiGateway.api,
+      authorizer: jwtAuthorizer,
+      httpMethod: apigatewayv2.HttpMethod.DELETE,
+      routePath: '/user/{userId}',
+      authorizationScopes: ['udp/read'],
+    });
+
     const postData = new LambdaApiConstruct(this, 'postData', {
       developerId,
       environment,
@@ -189,6 +204,7 @@ export class MainStack extends Stack {
     this.lambdas = [
       createIdentity.function,
       readIdentity.function,
+      deleteIdentity.function,
       postData.function,
       getData.function,
       deleteData.function,
