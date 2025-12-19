@@ -43,11 +43,11 @@ Feature: identity Api
         Then I should recieve a successful response
         Then The response body contain body '{"serviceId":"321", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
 
-    Scenario: Successfully Retrive linked identity Record
+    Scenario: Returns a 404 if not found
         When i send a get to '/user/unknown'
         Then the response status should be 404
 
-    Scenario: Successfully Retrive linked identity Record
+    Scenario: Reutrns a 400 if url is invalid
         When i send a get to '/user/'
         Then the response status should be 400
 
