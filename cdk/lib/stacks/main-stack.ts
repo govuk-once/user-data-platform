@@ -114,7 +114,11 @@ export class MainStack extends Stack {
       sourcePath: 'createIdentityLambda',
       kmsKey: kms.key,
       dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query'],
+      dynamoDbActions: [
+        'dynamodb:PutItem',
+        'dynamodb:GetItem',
+        'dynamodb:Query',
+      ],
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.POST,
