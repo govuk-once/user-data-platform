@@ -1,0 +1,35 @@
+{
+  "name": "@src/deleteIdentityLambda",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run src/deleteIdentityLambda/*"
+      }
+    },
+    "build": {
+      "dependsOn": ["typecheck", "test"],
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{option.outputPath}"],
+      "options": {
+        "main": "src/deleteIdentityLambda/handler.ts",
+        "tsConfig": "src/deleteIdentityLambda/tsconfig.json",
+        "outputPath": "build/deleteIdentityLambda",
+        "minify": true,
+        "bundle": true,
+        "thirdParty": true,
+        "platform": "node",
+        "declaration": false,
+        "target": "node20",
+        "format": ["cjs"],
+        "external": ["@aws-sdk/*"],
+        "skipTypeCheck": true,
+        "esbuildOptions": {
+          "outfile": "./build/deleteIdentityLambda/index.js"
+        }
+      }
+    }
+  }
+}

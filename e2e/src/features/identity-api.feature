@@ -51,5 +51,17 @@ Feature: identity Api
         When i send a get to '/user/'
         Then the response status should be 400
 
+    Scenario: Successfully unlink an identity Record
+        When i send a delete to '/user/321'
+        Then I should recieve a successful response
+
+    Scenario: Return a 404 if not found
+        When i send a delete to '/user/321'
+        Then the response status should be 404
+
+    Scenario: Return a 400 bad request if invalid url
+        When i send a delete to '/user/'
+        Then the response status should be 400
+
 
  
