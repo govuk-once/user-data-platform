@@ -1,17 +1,15 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
-import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { ServiceFactory, IdentityInput } from '@libs/data-access';
+import { ServiceFactory } from '@libs/data-access';
 import {
-  BodySchema,
   createEnvValidator,
-  PathSchema,
+  IdentityPathSchema,
+  responseSanitiser,
   zodValidator,
 } from '@libs/utils';
-import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -40,10 +38,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: identity
+      body: identity,
     };
   } catch (error) {
-    console.log({error})
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -54,7 +51,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
-  .use(zodValidator({ pathParameters: PathSchema }))
+  .use(zodValidator({ pathParameters: IdentityPathSchema }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
@@ -67,4 +64,5 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(responseSanitiser({}))
   .handler(lambdaHandler);

@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { handler } from './handler';
 import { beforeEach } from 'node:test';
 import createHttpError from 'http-errors';
-import { Service } from 'aws-cdk-lib/aws-servicediscovery';
 
 process.env['TABLE_NAME'] = 'test-table';
 
@@ -53,13 +52,13 @@ describe('readIdentityLambda', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: '/user/',
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /user/{userId}',
-        body: JSON.stringify({
-          data: { status: 'active' },
-        }) as any,
+        routeKey: 'POST /user/{userId}',
+        pathParameters: {
+          userId: undefined
+        }
       };
 
       const result = await handler(event, mockContext);
@@ -69,8 +68,8 @@ describe('readIdentityLambda', () => {
     });
   });
 
-  describe('Create', () => {
-    it('Should return a 201 if creation is successful when the userId is equal to the appId', async () => {
+  describe('Get', () => {
+    it('Should return a 200 if record is found', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -83,31 +82,33 @@ describe('readIdentityLambda', () => {
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /user/{userId}',
-        body: JSON.stringify({
-          appId: 'test-user-id',
-          serviceName: 'test',
-        }) as any,
+        routeKey: 'POST /user/{userId}',
       };
 
-      const identityRecord = {
-        pk: 'IDENTITY_RECORD#',
-        sk: '33f2323e-23e23e-23e23e-23e23e2erff-2323/udp-id',
-        serviceId: '33f2323e-23e23e-23e23e-23e23e2erff-2323',
+      const record = {
+        pk:'test',
+        sk: 'test',
         serviceName: 'app',
-        accessToken: 'access_token',
-        idToken: 'id_token',
-        refreshToken: 'refresh_token',
-      };
+        serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
+        accessToken: '',
+        idToken: '',
+        refreshToken: ''
+      }
 
-      mockGet.mockResolvedValue(identityRecord);
+      mockGet.mockResolvedValue(record);
 
       const result = await handler(event, mockContext);
 
       expect(mockGet).toHaveBeenCalled();
 
       expect(result?.statusCode).toBe(200);
-      expect(result?.body).toEqual(JSON.stringify(identityRecord));
+      expect(result.body).toEqual(JSON.stringify({
+        serviceName: 'app',
+        serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
+        accessToken: '',
+        idToken: '',
+        refreshToken: ''
+      }))
     });
 
     it('Should return a 404 if app user cannot be found', async () => {
@@ -123,14 +124,12 @@ describe('readIdentityLambda', () => {
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /user/{userId}',
+        routeKey: 'POST /user/{userId}',
       };
 
       mockGet.mockRejectedValue(createHttpError.NotFound());
 
       const result = await handler(event, mockContext);
-
-      console.log({result})
 
       expect(result.statusCode).toBe(404);
     });
@@ -148,7 +147,7 @@ describe('readIdentityLambda', () => {
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /user/{userId}',
+        routeKey: 'POST /user/{userId}'
       };
 
       mockGet.mockRejectedValue(Error('Unknown'));

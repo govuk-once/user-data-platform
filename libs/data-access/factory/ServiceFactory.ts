@@ -21,7 +21,9 @@ export class ServiceFactory {
     this.kmsKeyId = config.kmsKeyId;
 
     const client = new DynamoDBClient({});
-    this.docClient = DynamoDBDocumentClient.from(client);
+    this.docClient = DynamoDBDocumentClient.from(client, {
+      marshallOptions: { removeUndefinedValues: true },
+    });
   }
 
   getService(name: 'identity'): DynamoDBIdentityService<IdentityRecordEntity>;
@@ -41,7 +43,9 @@ export class ServiceFactory {
     }
   }
 
-  private getEncryptionConfig(dataFields:string[]): EncryptionConfig | undefined {
+  private getEncryptionConfig(
+    dataFields: string[],
+  ): EncryptionConfig | undefined {
     if (this.kmsKeyId) {
       return {
         service: new EncryptionService({ kmsKeyId: this.kmsKeyId }),

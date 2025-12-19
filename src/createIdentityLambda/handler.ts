@@ -2,7 +2,7 @@ import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
@@ -51,8 +51,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     if (createError.isHttpError(error)) {
       throw error;
     }
-
-    console.log(error)
 
     throw new createError.InternalServerError();
   }

@@ -23,12 +23,16 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
   }
 
   public async create(input: IdentityInput) {
+    if (input.appId === input.serviceId) {
+      const result = await this.getById(input.appId, false);
+      if (result) return;
+    }
     const entity = await this.createFromInput(input);
     this.validateEntity(entity);
     await this.repository.save(entity);
   }
 
-  public async getById(serviceId: string) {
+  public async getById(serviceId: string, throwNotFound = true) {
     if (!serviceId) {
       throw createHttpError.BadRequest(`A valid identifier must be provided`);
     }
@@ -39,7 +43,10 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     } as Partial<T>);
 
     if (!result) {
-      throw createHttpError.NotFound('Identity record not found');
+      if (throwNotFound) {
+        throw createHttpError.NotFound('Identity record not found');
+      }
+      return null;
     }
 
     return result;
