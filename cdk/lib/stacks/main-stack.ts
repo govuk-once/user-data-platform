@@ -47,15 +47,9 @@ export class MainStack extends Stack {
       },
     } = props;
 
-    cdk.Tags.of(this).add(
-      'ServiceName',
-      serviceName || 'UnknownService',
-    );
+    cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
     cdk.Tags.of(this).add('TeamName', teamName || 'UnknownTeam');
-    cdk.Tags.of(this).add(
-      'Environment',
-      environment || 'UnknownEnvironment',
-    );
+    cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
 
     const kms = new KmsConstruct(this, 'Kms', {
@@ -72,10 +66,10 @@ export class MainStack extends Stack {
       localSecondaryIndexes: [
         {
           indexName: 'lsi-index',
-          sortKeyName: 'lsi'
-        }
+          sortKeyName: 'lsi',
+        },
       ],
-      ttlAttributeName: 'ttl'
+      ttlAttributeName: 'ttl',
     });
 
     this.table = db.table;
@@ -113,19 +107,38 @@ export class MainStack extends Stack {
       },
     );
 
-     const createIdentity = new LambdaApiConstruct(this, 'createIdentity', {
+    const createIdentity = new LambdaApiConstruct(this, 'createIdentity', {
       developerId,
       environment,
       functionName: 'createIdentityLambda',
       sourcePath: 'createIdentityLambda',
       kmsKey: kms.key,
       dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem'],
+      dynamoDbActions: [
+        'dynamodb:PutItem',
+        'dynamodb:GetItem',
+        'dynamodb:Query',
+      ],
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.POST,
       routePath: '/user/{userId}',
       authorizationScopes: ['udp/write'],
+    });
+
+    const readIdentity = new LambdaApiConstruct(this, 'readIdentity', {
+      developerId,
+      environment,
+      functionName: 'readIdentityLambda',
+      sourcePath: 'readIdentityLambda',
+      kmsKey: kms.key,
+      dynamoDBtable: db.table,
+      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+      api: apiGateway.api,
+      authorizer: jwtAuthorizer,
+      httpMethod: apigatewayv2.HttpMethod.GET,
+      routePath: '/user/{userId}',
+      authorizationScopes: ['udp/read'],
     });
 
     const postData = new LambdaApiConstruct(this, 'postData', {
@@ -173,7 +186,13 @@ export class MainStack extends Stack {
       authorizationScopes: ['udp/delete'],
     });
 
-    this.lambdas = [createIdentity.function, postData.function, getData.function, deleteData.function];
+    this.lambdas = [
+      createIdentity.function,
+      readIdentity.function,
+      postData.function,
+      getData.function,
+      deleteData.function,
+    ];
 
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,

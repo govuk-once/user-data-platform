@@ -5,11 +5,11 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { GetError, SaveError, DeleteError } from '../errors/Errors';
 import { Logger } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
-import { QueryCommand } from '@aws-sdk/client-dynamodb';
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -137,11 +137,12 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     try {
       const command = new QueryCommand({
         TableName: this.tableName,
-        KeyConditionExpression: 'pk = :pk AND begins_with(sk,:skPrefix',
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
         ExpressionAttributeValues: {
-          ':pk': { S: pk },
-          ':skPrefix': { S: sk },
+          ':pk': pk,
+          ':skPrefix': sk,
         },
+        Limit: 1,
       });
 
       const response = await this.client.send(command);
@@ -154,6 +155,11 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       this.logger?.debug('Item retrieved successfully', { pk, sk });
 
       const firstItem = response.Items[0];
+
+      if (!firstItem) {
+        this.logger?.debug('Item not found', { pk, sk });
+        return null;
+      }
 
       return this.encryption
         ? ((await this.encryption.service.decryptFields(

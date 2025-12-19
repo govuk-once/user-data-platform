@@ -1,17 +1,15 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
-import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2 } from 'aws-lambda';
+import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { ServiceFactory, IdentityInput } from '@libs/data-access';
+import { ServiceFactory } from '@libs/data-access';
 import {
-  CraateIdentityRequestSchema,
   createEnvValidator,
   IdentityPathSchema,
+  responseSanitiser,
   zodValidator,
 } from '@libs/utils';
-import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -32,20 +30,15 @@ function getFactory() {
   return factory;
 }
 
-type CreatItemBody = z.infer<typeof CraateIdentityRequestSchema>;
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
-    const input = {
-      ...(event.body as unknown as CreatItemBody),
-      serviceId: event.pathParameters.userId,
-    } as unknown as IdentityInput;
-
-    await getFactory().getService('identity').create(input);
+    const identity = await getFactory()
+      .getService('identity')
+      .getById(event.pathParameters.userId);
 
     return {
-      statusCode: 201,
-      body: 'Identity Successfully created',
+      statusCode: 200,
+      body: identity,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -58,18 +51,18 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
-  .use(jsonBodyParser())
-  .use(zodValidator({ pathParameters: IdentityPathSchema, body: CraateIdentityRequestSchema }))
+  .use(zodValidator({ pathParameters: IdentityPathSchema }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => body ? JSON.stringify(body) : null,
+          serializer: ({ body }) => (body ? JSON.stringify(body) : null),
         },
       ],
       defaultContentType: 'application/json',
     }),
   )
+  .use(responseSanitiser({}))
   .handler(lambdaHandler);
