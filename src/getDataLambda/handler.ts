@@ -1,12 +1,12 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
 import { createEnvValidator, extractCompositeKey } from '@libs/utils';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
+const { middleware: envMiddleware } = createEnvValidator({
   required: ['TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
@@ -15,7 +15,7 @@ let service;
 
 function getService() {
   if (!service) {
-    const  { TABLE_NAME, KMS_KEY_ID } = process.env
+    const { TABLE_NAME, KMS_KEY_ID } = process.env;
     const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID);
     service = client.getService();
   }
@@ -23,10 +23,7 @@ function getService() {
   return service;
 }
 
-export const lambdaHandler = async (
-  event: APIGatewayProxyEventV2,
-  context: Context,
-) => {
+export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   let pk: string;
   let sk: string;
 
@@ -56,7 +53,7 @@ export const lambdaHandler = async (
       throw error;
     }
 
-    throw new createError.InternalServerError()
+    throw new createError.InternalServerError();
   }
 };
 
@@ -68,10 +65,11 @@ export const handler = middy()
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => (body && typeof body === 'object' ? JSON.stringify(body) : null),
+          serializer: ({ body }) =>
+            body && typeof body === 'object' ? JSON.stringify(body) : null,
         },
       ],
       defaultContentType: 'application/json',
     }),
   )
-  .handler(lambdaHandler)
+  .handler(lambdaHandler);

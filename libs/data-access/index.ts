@@ -17,7 +17,7 @@ export { DynamoDbService } from './services/DynamoDbService';
 // Clients
 export { DynamoDbClient } from './clients/DynamoDbClient';
 
-export * from './factory/ServiceFactory'
+export * from './factory/ServiceFactory';
 
 // Errors
 export {
@@ -26,4 +26,3 @@ export {
   SaveError,
   GetError,
 } from './errors/Errors';
-

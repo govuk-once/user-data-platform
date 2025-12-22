@@ -27,7 +27,7 @@ describe('DynamoDbService', () => {
     mockRepository = {
       get: vi.fn(),
       save: vi.fn(),
-      delete: vi.fn()
+      delete: vi.fn(),
     } as unknown as DynamoDBRepository<TestEntity>;
     service = new DynamoDbService(mockRepository, logger);
   });
@@ -354,8 +354,10 @@ describe('DynamoDbService', () => {
       expect(logSpy).toHaveBeenCalled();
     });
 
-     it('should throw error when pk is missing', async () => {
-      await expect(service.deleteByKey('', 'topics')).rejects.toThrow(DeleteError);
+    it('should throw error when pk is missing', async () => {
+      await expect(service.deleteByKey('', 'topics')).rejects.toThrow(
+        DeleteError,
+      );
       await expect(service.deleteByKey('', 'topics')).rejects.toThrow(
         'Failed to delete entity with id undefined#topics: Both pk and sk are required',
       );
@@ -363,7 +365,9 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when sk is missing', async () => {
-      await expect(service.deleteByKey('entity', '')).rejects.toThrow(DeleteError);
+      await expect(service.deleteByKey('entity', '')).rejects.toThrow(
+        DeleteError,
+      );
       await expect(service.deleteByKey('entity', '')).rejects.toThrow(
         'Failed to delete entity with id entity#undefined: Both pk and sk are required',
       );
@@ -371,16 +375,13 @@ describe('DynamoDbService', () => {
     });
 
     it('should throw error when both pk and sk are missing', async () => {
-      
-
-      await expect(service.deleteByKey('','')).rejects.toThrow(DeleteError);
+      await expect(service.deleteByKey('', '')).rejects.toThrow(DeleteError);
       await expect(service.deleteByKey('', '')).rejects.toThrow(
         'Failed to delete entity with id undefined#undefined: Both pk and sk are required',
       );
       expect(mockRepository.save).not.toHaveBeenCalled();
     });
   });
-  
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
       const service = new DynamoDbService(mockRepository);

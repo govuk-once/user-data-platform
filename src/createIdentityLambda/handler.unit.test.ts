@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import { describe, it, expect, vi } from 'vitest';
 import { handler } from './handler';
@@ -171,7 +172,6 @@ describe('createItentityHandler', () => {
       mockSave.mockResolvedValue(undefined);
 
       const result = await handler(event, mockContext);
-
 
       expect(mockSave).toHaveBeenCalled();
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import { describe, it, expect, vi } from 'vitest';
 import { handler } from './handler';
@@ -57,8 +58,8 @@ describe('readIdentityLambda', () => {
         version: '2.0',
         routeKey: 'POST /user/{userId}',
         pathParameters: {
-          userId: undefined
-        }
+          userId: undefined,
+        },
       };
 
       const result = await handler(event, mockContext);
@@ -86,14 +87,14 @@ describe('readIdentityLambda', () => {
       };
 
       const record = {
-        pk:'test',
+        pk: 'test',
         sk: 'test',
         serviceName: 'app',
         serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
         accessToken: '',
         idToken: '',
-        refreshToken: ''
-      }
+        refreshToken: '',
+      };
 
       mockGet.mockResolvedValue(record);
 
@@ -102,13 +103,15 @@ describe('readIdentityLambda', () => {
       expect(mockGet).toHaveBeenCalled();
 
       expect(result?.statusCode).toBe(200);
-      expect(result.body).toEqual(JSON.stringify({
-        serviceName: 'app',
-        serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
-        accessToken: '',
-        idToken: '',
-        refreshToken: ''
-      }))
+      expect(result.body).toEqual(
+        JSON.stringify({
+          serviceName: 'app',
+          serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
+          accessToken: '',
+          idToken: '',
+          refreshToken: '',
+        }),
+      );
     });
 
     it('Should return a 404 if app user cannot be found', async () => {
@@ -147,7 +150,7 @@ describe('readIdentityLambda', () => {
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}'
+        routeKey: 'POST /user/{userId}',
       };
 
       mockGet.mockRejectedValue(Error('Unknown'));

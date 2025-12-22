@@ -83,7 +83,15 @@ export class LambdaApiConstruct extends Construct {
       envVars['KMS_KEY_ID'] = kmsKey.keyId;
     }
 
-    const codePath = path.resolve(process.cwd(), '..', 'build', sourcePath);
+    // Sanitize sourcePath to prevent path traversal by using only the basename
+    const sanitizedSourcePath = path.basename(sourcePath);
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const codePath = path.resolve(
+      process.cwd(),
+      '..',
+      'build',
+      sanitizedSourcePath,
+    );
 
     this.function = new lambda.Function(this, 'Function', {
       functionName: fullFunctionName,

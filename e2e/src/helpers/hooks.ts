@@ -1,7 +1,6 @@
-import { AfterAll, Before } from "@cucumber/cucumber";
-import { clearTokenCache } from "./auth";
+import { AfterAll } from '@cucumber/cucumber';
+import { clearTokenCache } from './auth';
 
-AfterAll(async function() {
-    clearTokenCache()
-})
-
+AfterAll(async function () {
+  clearTokenCache();
+});

@@ -8,10 +8,10 @@ type SanitiseOptions = {
 };
 
 const sanitiseObject = (
-  value: any,
+  value: unknown,
   omitKeys: Set<string>,
   deep: boolean,
-): any => {
+): unknown => {
   if (Array.isArray(value)) {
     return value.map((v) => sanitiseObject(v, omitKeys, deep));
   }
@@ -35,27 +35,23 @@ const sanitiseObject = (
 export function responseSanitiser(options: SanitiseOptions): MiddlewareObj {
   return {
     after: async (request) => {
-      try {
-        const response = request.response;
-        if (!response || !('body' in response)) return;
+      const response = request.response;
+      if (!response || !('body' in response)) return;
 
-        const ommitSet = new Set(options.omitKeys ?? omitvalues);
-        const deep = options.deep ?? false;
+      const ommitSet = new Set(options.omitKeys ?? omitvalues);
+      const deep = options.deep ?? false;
 
-        const parsedBody =
-          typeof response.body === 'string'
-            ? JSON.parse(response.body)
-            : response.body;
+      const parsedBody =
+        typeof response.body === 'string'
+          ? JSON.parse(response.body)
+          : response.body;
 
-        const sanitised = sanitiseObject(parsedBody, ommitSet, deep);
+      const sanitised = sanitiseObject(parsedBody, ommitSet, deep);
 
-        response.body =
-          typeof response.body === 'string'
-            ? JSON.stringify(sanitised)
-            : sanitised;
-      } catch (error) {
-        throw error;
-      }
+      response.body =
+        typeof response.body === 'string'
+          ? JSON.stringify(sanitised)
+          : sanitised;
     },
   };
 }

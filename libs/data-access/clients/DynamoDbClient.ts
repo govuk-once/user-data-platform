@@ -12,7 +12,7 @@ import { EncryptionService } from '../services/EncryptionService';
 export class DynamoDbClient<T extends DynamoDBEntity> {
   private readonly service: DynamoDbService<T>;
 
-  constructor(tableName: string | undefined, kmsKeyId?:string) {
+  constructor(tableName: string | undefined, kmsKeyId?: string) {
     if (!tableName) {
       throw new Error('TABLE_NAME environment variable is required');
     }
@@ -22,12 +22,19 @@ export class DynamoDbClient<T extends DynamoDBEntity> {
     const docClient = DynamoDBDocumentClient.from(client);
 
     let encryption = undefined;
-    if(kmsKeyId) {
-      encryption = { service: new EncryptionService({kmsKeyId}), dataFields: ['data']}
+    if (kmsKeyId) {
+      encryption = {
+        service: new EncryptionService({ kmsKeyId }),
+        dataFields: ['data'],
+      };
     }
 
     // Initialize repository and service
-    const repository = new DynamoDBRepository<T>(tableName, docClient, encryption);
+    const repository = new DynamoDBRepository<T>(
+      tableName,
+      docClient,
+      encryption,
+    );
     this.service = new DynamoDbService(repository);
   }
 

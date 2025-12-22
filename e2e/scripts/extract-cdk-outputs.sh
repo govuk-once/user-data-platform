@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Extract terraform outputs to generate .env.file for the E2E tests
+# Extract CDK outputs to generate .env file for the E2E tests
 #
 #
 
@@ -13,7 +13,7 @@ USE_PERSONAL=false
 
 
 while [[ $# -gt 0 ]]; do
-    case $1 in 
+    case $1 in
         --env)
          ENV="$2"
          shift 2
@@ -46,7 +46,7 @@ if [ "$USE_PERSONAL" = true ] && [ -z "$DEVELOPER_ID" ]; then
         exit 1
     fi
 fi
-    
+
 if [ -n "$DEVELOPER_ID" ]; then
     STACK_NAME="${DEVELOPER_ID}-${ENV}-main"
 else
@@ -78,8 +78,8 @@ if ! aws cloudformation describe-stacks --stack-name "$STACK_NAME" &>/dev/null; 
     echo "Error: Stack '$STACK_NAME' not found"
     echo ""
     echo "Available stacks;"
-    aws cloudformation list-stacks \ 
-        --stack-status-filter CREATE_COMPLETE \ 
+    aws cloudformation list-stacks \
+        --stack-status-filter CREATE_COMPLETE \
         --query "StackSummaries[?contains(StackName, 'main')].StackName" \
         --output table
     exit 1

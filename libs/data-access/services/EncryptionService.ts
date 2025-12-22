@@ -69,7 +69,9 @@ export class EncryptionService {
       const encryptedValue = decryptedData[
         field as keyof typeof decryptedData
       ] as string;
-      const decryptedValue = encryptedValue ? this.decrypt(encryptedValue, plaintextKey) : undefined;
+      const decryptedValue = encryptedValue
+        ? this.decrypt(encryptedValue, plaintextKey)
+        : undefined;
 
       try {
         (decryptedData as Record<string, unknown>)[field] =
@@ -139,7 +141,9 @@ export class EncryptionService {
     const authTag = combined.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
     const encrypted = combined.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
     decipher.setAuthTag(authTag);
 
     const decrypted = Buffer.concat([

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
@@ -58,7 +59,6 @@ describe('deleteDataLambda handler', () => {
 
   describe('successful operations', () => {
     it('should return 200 when successfully deleted', async () => {
-    
       mockDeleteByKey.mockResolvedValue('success');
 
       const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');

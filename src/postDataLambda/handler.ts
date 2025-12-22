@@ -2,7 +2,7 @@ import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
 import { createEnvValidator, extractCompositeKey } from '@libs/utils';
@@ -23,10 +23,7 @@ function getService() {
   return service;
 }
 
-export const lambdaHandler = async (
-  event: APIGatewayProxyEventV2,
-  context: Context,
-) => {
+export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   let pk: string;
   let sk: string;
 
@@ -44,7 +41,7 @@ export const lambdaHandler = async (
   }
 
   // After jsonBodyParser middleware, body will be parsed object
-  const parsedData = event.body as any;
+  const parsedData = event.body as Record<string, unknown>;
 
   if (!parsedData) {
     throw new createError.BadRequest();
@@ -82,7 +79,7 @@ export const handler = middy()
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => body ? JSON.stringify(body) : null,
+          serializer: ({ body }) => (body ? JSON.stringify(body) : null),
         },
       ],
       defaultContentType: 'application/json',

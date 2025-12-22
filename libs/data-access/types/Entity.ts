@@ -4,9 +4,7 @@ import { EncryptionService } from '../services/EncryptionService';
  * Base entity interface that all entities must extend.
  * Provides the foundation for different entity types.
  */
-export interface Entity {
-  // Marker interface for type safety
-}
+export type Entity = object;
 
 /**
  * DynamoDB-compatible value types.
@@ -106,10 +104,10 @@ export interface IdentityRecordEntity {
    */
   sk: string;
 
- /**
+  /**
    * local secondary index UDP.ID/SERVICE.ID.
    */
-  lsi_1?:string
+  lsi_1?: string;
   /**
    * unique UUIDv4 for UDP.ID.
    */
@@ -121,13 +119,13 @@ export interface IdentityRecordEntity {
    */
   serviceId: string;
 
-   /**
+  /**
    * Service Name
    * The unique name for the service eg DWP, Flex
    */
   serviceName: string;
 
-   /**
+  /**
    * Optional time-to-live (TTL) attribute for automatic expiration.
    * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.
    */
@@ -136,19 +134,17 @@ export interface IdentityRecordEntity {
   /**
    * Access Token for the service
    */
-  accessToken?: string
+  accessToken?: string;
 
   /**
    * Id Token for the service
    */
-  idToken?: string
+  idToken?: string;
 
   /**
    * Refresh Token for the service
    */
-  refreshToken?: string
-
-
+  refreshToken?: string;
 }
 
 export interface IdentityInput {
@@ -162,11 +158,10 @@ export interface IdentityInput {
   ttl?: number;
 }
 
-export type CreateIdentityRequest = Omit<IdentityInput, 'serviceId'>
+export type CreateIdentityRequest = Omit<IdentityInput, 'serviceId'>;
 
 export interface UserDataInput {
   resourcePath: string;
   ttl?: number;
   [key: string]: unknown;
 }
-

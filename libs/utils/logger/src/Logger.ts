@@ -31,7 +31,7 @@ export class Logger extends PowerToolLogger {
   private redactObject<T>(input: T): T {
     if (!input || typeof input !== 'object') return input;
 
-    const clone: any = Array.isArray(input) ? [...input] : { ...input };
+    const clone: unknown = Array.isArray(input) ? [...input] : { ...input };
 
     for (const key in clone) {
       if (!Object.prototype.hasOwnProperty.call(clone, key)) continue;

@@ -22,7 +22,7 @@ export async function getAccessToken(clientName?: string): Promise<string> {
   }
 
   const clientConfig = getCognitoClient(resolvedClientName);
-  const { domain, tokenEndpoint } = config.cognito;
+  const { tokenEndpoint } = config.cognito;
 
   const credentials = Buffer.from(
     `${clientConfig.clientId}:${clientConfig.clientSecret}`,
