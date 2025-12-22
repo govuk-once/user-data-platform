@@ -23,9 +23,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": [
-          "echo 'Deployment complete'"
-        ],
+        "commands": ["echo 'Deployment complete'"],
         "cwd": "e2e",
         "parallel": false
       }

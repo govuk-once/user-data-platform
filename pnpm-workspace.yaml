@@ -1,4 +1,7 @@
 packages:
-  - 'libs/*'
-  - 'cdk/*'
-  - 'src/*'
+  - libs/*
+  - cdk/*
+  - src/*
+
+onlyBuiltDependencies:
+  - nx
