@@ -8,12 +8,12 @@ import { createEnvValidator, extractCompositeKey } from '@libs/utils';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
 
-const serviceName = 'udpGetData'
-const environment = process.env
+const serviceName = 'udpGetData';
+const environment = process.env;
 
 const logger = getLogger({
   serviceName,
-  environment
+  environment,
 });
 
 const tracer = getTracer({
@@ -23,15 +23,19 @@ const tracer = getTracer({
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
-  logger
+  logger,
 });
 
 let service;
 
 function getService() {
   if (!service) {
-    const  { TABLE_NAME, KMS_KEY_ID } = process.env
-    const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID, tracer);
+    const { TABLE_NAME, KMS_KEY_ID } = process.env;
+    const client = new DynamoDbClient<DynamoDBEntity>(
+      TABLE_NAME,
+      KMS_KEY_ID,
+      tracer,
+    );
     service = client.getService();
   }
 
@@ -75,7 +79,7 @@ export const lambdaHandler = async (
       throw error;
     }
 
-    throw new createError.InternalServerError()
+    throw new createError.InternalServerError();
   }
 };
 
@@ -89,10 +93,11 @@ export const handler = middy()
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => (body && typeof body === 'object' ? JSON.stringify(body) : null),
+          serializer: ({ body }) =>
+            body && typeof body === 'object' ? JSON.stringify(body) : null,
         },
       ],
       defaultContentType: 'application/json',
     }),
   )
-  .handler(lambdaHandler)
+  .handler(lambdaHandler);

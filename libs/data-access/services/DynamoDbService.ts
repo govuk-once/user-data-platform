@@ -3,7 +3,6 @@ import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { DeleteError, GetError, SaveError } from '../errors/Errors';
 import { Logger, Tracer } from '@libs/utils';
 
-
 /**
  * Service class for DynamoDB entity operations with business logic.
  * Provides a higher-level API with validation, transformation, and orchestration.
@@ -11,10 +10,14 @@ import { Logger, Tracer } from '@libs/utils';
  * @template T - The entity type that extends DynamoDBEntity
  */
 export class DynamoDbService<T extends DynamoDBEntity> {
-  private readonly logger
+  private readonly logger;
 
-  constructor(private readonly repository: DynamoDBRepository<T>, logger?: Logger, tracer?: Tracer) {
-    this.logger = logger
+  constructor(
+    private readonly repository: DynamoDBRepository<T>,
+    logger?: Logger,
+    tracer?: Tracer,
+  ) {
+    this.logger = logger;
   }
 
   /**
