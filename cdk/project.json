@@ -13,6 +13,7 @@
   "targets": {
     "diff": {
       "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk diff",
         "cwd": "cdk"
@@ -20,6 +21,7 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk deploy --all -c env=dev --require-approval never",
         "cwd": "cdk"
