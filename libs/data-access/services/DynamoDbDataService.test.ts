@@ -181,7 +181,7 @@ describe('DynamoDb Data Service', () => {
         sk: mockResource,
       });
       expect(mockRepository.get).toHaveBeenCalledTimes(1);
-      expect(r).toEqual(result)
+      expect(r).toEqual(result);
     });
 
     it('should throw a bad request if the identity has no UdpId', async () => {

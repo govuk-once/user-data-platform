@@ -150,8 +150,8 @@ export interface IdentityRecordEntity {
 }
 
 export interface DataInput {
-  ttl?: number,
-  [key:string]: unknown
+  ttl?: number;
+  [key: string]: unknown;
 }
 
 export interface DynamoDBDataEntity {

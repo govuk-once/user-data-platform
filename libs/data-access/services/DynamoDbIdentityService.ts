@@ -34,7 +34,9 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
   public async getById(serviceId: string, throwNotFound = true) {
     if (!serviceId) {
-      throw createHttpError.BadRequest(`A valid identifier must be provided ${serviceId}`);
+      throw createHttpError.BadRequest(
+        `A valid identifier must be provided ${serviceId}`,
+      );
     }
 
     const result = await this.repository.skBeginswith({

@@ -12,12 +12,11 @@ export type { Repository } from './repositories/Repository';
 export { DynamoDBRepository } from './repositories/DynamoDBRepository';
 
 // Services
-export { DynamoDbDataService } from './services/DynamoDbDataService'
-export { DynamoDBIdentityService } from './services/DynamoDbIdentityService'
+export { DynamoDbDataService } from './services/DynamoDbDataService';
+export { DynamoDBIdentityService } from './services/DynamoDbIdentityService';
 
 // Factories
-export * from './factory/ServiceFactory'
-
+export * from './factory/ServiceFactory';
 
 // Errors
 export {
@@ -26,4 +25,3 @@ export {
   SaveError,
   GetError,
 } from './errors/Errors';
-

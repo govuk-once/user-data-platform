@@ -5,6 +5,8 @@ export const DataPathSchema = z.object({
   proxy: z.string('is required').min(1),
 });
 
-export const CraateDataRequestSchema = z.object({
-  ttl: z.number().optional(),
-}).passthrough();
+export const CraateDataRequestSchema = z
+  .object({
+    ttl: z.number().optional(),
+  })
+  .passthrough();
