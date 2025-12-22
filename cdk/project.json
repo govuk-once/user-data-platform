@@ -14,7 +14,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx tsx",
+        "command": "npx cdk synth --build",
         "cwd": "cdk"
       }
     },
