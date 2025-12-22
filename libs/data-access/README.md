@@ -8,7 +8,7 @@ TypeScript library for DynamoDB operations with validation, error handling, and 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import {
-  DynamoDbService,
+  DynamoDbDataService,
   DynamoDBRepository,
   DynamoDBEntity,
 } from '@libs/data-access';
@@ -22,14 +22,12 @@ const repository = new DynamoDBRepository<DynamoDBEntity>(
   docClient,
 );
 
-const service = new DynamoDbService(repository);
+const service = new DynamoDbDataService(repository);
 
 // Lambda handler
 export const handler = async (event: any) => {
   const userId = event.pathParameters.userId;
-
-const client = new DynamoDbClient<Entity>(process.env.TABLE_NAME);
-const service = client.getService();
+};
 
 export const handler = async (event: any) => {
   // Get entity
@@ -60,7 +58,7 @@ const repository = new DynamoDBRepository<DynamoDBEntity>(
 );
 ```
 
-## DynamoDbService API
+## DynamoDbDataService API
 
 ### `getByKey(pk: string, sk: string): Promise<T | null>`
 
@@ -73,7 +71,7 @@ Saves an entity with validation.
 ## Architecture
 
 ```
-DynamoDbClient → DynamoDbService → DynamoDBRepository → AWS SDK
+ServiceFactory → DynamoDb*Service → DynamoDBRepository → AWS SDK
 ```
 
 ## Error Handling

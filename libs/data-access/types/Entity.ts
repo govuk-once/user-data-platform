@@ -147,6 +147,18 @@ export interface IdentityRecordEntity {
   refreshToken?: string;
 }
 
+export interface DataInput {
+  ttl?: number;
+  [key: string]: unknown;
+}
+
+export interface DynamoDBDataEntity {
+  pk: string;
+  sk: string;
+  data?: Record<string, unknown>;
+  ttl?: number;
+}
+
 export interface IdentityInput {
   serviceId: string;
   serviceName: string;

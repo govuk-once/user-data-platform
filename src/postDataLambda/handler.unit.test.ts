@@ -1,25 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 
 const mockSave = vi.fn();
+const mockGetIdentity = vi.fn();
 
 // Mock the data-access library
 vi.mock('@libs/data-access', () => ({
-  DynamoDbClient: class {
-    getService() {
-      return {
-        save: mockSave,
-        getByKey: vi.fn(),
-      };
+  ServiceFactory: class {
+    getService(type: string) {
+      switch (type) {
+        case 'identity':
+          return {
+            getById: mockGetIdentity,
+          };
+        case 'data':
+          return {
+            save: mockSave,
+          };
+      }
     }
   },
-  DynamoDbService: class {
+  DynamoDbDataService: class {
     save = mockSave;
+  },
+  DynamoDBIdentityService: class {
+    getById = mockGetIdentity;
   },
   DynamoDBRepository: class {},
   DynamoDBEntity: {},
 }));
+
+const mockResolvedIdentity: IdentityRecordEntity = {
+  pk: 'IDNETITY_RECORD#',
+  sk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  serviceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  serviceName: 'app',
+  udpId: 'udp-user-id',
+};
 
 // Import after mocks
 const { handler: lambdaHandler } = await import('./handler');
@@ -56,14 +75,17 @@ describe('postDataLambda handler', () => {
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
-        body: JSON.stringify({
-          data: { status: 'active', count: 5 },
-        }) as any,
+        body: JSON.stringify({ status: 'active', count: 5 }) as any,
       };
 
+      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
       mockSave.mockResolvedValue(undefined);
 
       const response = (await lambdaHandler(event, mockContext)) as any;
@@ -72,11 +94,9 @@ describe('postDataLambda handler', () => {
       expect(response.body).toEqual(
         JSON.stringify({ message: 'Entity saved successfully' }),
       );
-      expect(mockSave).toHaveBeenCalledWith({
-        pk: 'topics',
-        sk: 'user-guid-123',
-        data: { status: 'active', count: 5 },
-        ttl: undefined,
+      expect(mockSave).toHaveBeenCalledWith(mockResolvedIdentity, 'topics', {
+        status: 'active',
+        count: 5,
       });
     });
 
@@ -88,15 +108,20 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
         body: JSON.stringify({
-          data: { status: 'active' },
+          status: 'active',
           ttl,
         }),
       };
+      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
 
       mockSave.mockResolvedValue(undefined);
 
@@ -106,10 +131,8 @@ describe('postDataLambda handler', () => {
       expect(response.body).toEqual(
         JSON.stringify({ message: 'Entity saved successfully' }),
       );
-      expect(mockSave).toHaveBeenCalledWith({
-        pk: 'topics',
-        sk: 'user-guid-123',
-        data: { status: 'active' },
+      expect(mockSave).toHaveBeenCalledWith(mockResolvedIdentity, 'topics', {
+        status: 'active',
         ttl,
       });
     });
@@ -121,13 +144,17 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
         body: JSON.stringify({}) as any,
       };
-
+      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
       mockSave.mockResolvedValue(undefined);
 
       const response = (await lambdaHandler(event, mockContext)) as any;
@@ -136,40 +163,8 @@ describe('postDataLambda handler', () => {
       expect(response.body).toEqual(
         JSON.stringify({ message: 'Entity saved successfully' }),
       );
-      expect(mockSave).toHaveBeenCalledWith({
-        pk: 'topics',
-        sk: 'user-guid-123',
+      expect(mockSave).toHaveBeenCalledWith(mockResolvedIdentity, 'topics', {
         data: undefined,
-        ttl: undefined,
-      });
-    });
-  });
-
-  describe('path parsing', () => {
-    it('should extract pk and sk from the last two path segments', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/api/v1/data/my-partition/my-sort',
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /api/v1/data/{pk}/{sk}',
-        body: JSON.stringify({
-          data: { test: 'value' },
-        }) as any,
-      };
-
-      mockSave.mockResolvedValue(undefined);
-
-      await lambdaHandler(event, mockContext);
-
-      expect(mockSave).toHaveBeenCalledWith({
-        pk: 'my-partition',
-        sk: 'my-sort',
-        data: { test: 'value' },
         ttl: undefined,
       });
     });
@@ -184,16 +179,21 @@ describe('postDataLambda handler', () => {
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '',
+        pathParameters: {},
         rawQueryString: '',
         version: '2.0',
         routeKey: '',
         body: JSON.stringify({ data: {} }) as any,
       };
 
+      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
+
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Path is required');
+      expect(result.body).toBe(
+        'Validation Failed userId: is required,proxy: is required',
+      );
 
       expect(mockSave).not.toHaveBeenCalled();
     });
@@ -205,7 +205,11 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
@@ -227,7 +231,11 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
@@ -249,7 +257,11 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/single-segment',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: undefined,
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: '',
@@ -259,9 +271,7 @@ describe('postDataLambda handler', () => {
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Invalid path format. Expected at least two path segments for pk and sk',
-      );
+      expect(result.body).toBe('Validation Failed proxy: is required');
 
       expect(mockSave).not.toHaveBeenCalled();
     });
@@ -275,7 +285,11 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
@@ -283,6 +297,8 @@ describe('postDataLambda handler', () => {
           data: { status: 'active' },
         }) as any,
       };
+
+      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
 
       mockSave.mockRejectedValue(new Error('DynamoDB error'));
 
@@ -300,7 +316,11 @@ describe('postDataLambda handler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/topics/user-guid-123',
+        rawPath: '/user-guid-123/topics',
+        pathParameters: {
+          userId: 'user-guid-123',
+          proxy: 'topics',
+        },
         rawQueryString: '',
         version: '2.0',
         routeKey: 'POST /topics/{pk}',
