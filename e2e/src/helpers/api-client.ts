@@ -57,10 +57,6 @@ export class ApiClient {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (!response.ok) {
-      console.log({ response });
-    }
-
     let data: T;
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
