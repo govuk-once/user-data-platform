@@ -1,7 +1,7 @@
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { DeleteError, GetError, SaveError } from '../errors/Errors';
-import { Logger } from '@libs/utils';
+import { Logger, Tracer } from '@libs/utils';
 
 
 /**
@@ -13,7 +13,7 @@ import { Logger } from '@libs/utils';
 export class DynamoDbService<T extends DynamoDBEntity> {
   private readonly logger
 
-  constructor(private readonly repository: DynamoDBRepository<T>, logger?: Logger) {
+  constructor(private readonly repository: DynamoDBRepository<T>, logger?: Logger, tracer?: Tracer) {
     this.logger = logger
   }
 

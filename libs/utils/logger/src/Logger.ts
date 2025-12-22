@@ -1,4 +1,5 @@
 import { Logger as PowerToolLogger } from '@aws-lambda-powertools/logger';
+export { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 
 export interface LoggerOptions {
   redact?: string[]; // list of fields to redact
@@ -12,6 +13,8 @@ export interface CommonLogFields {
   functionVersion?: string;
   requestId?: string;
 }
+
+let logger;
 
 export class Logger extends PowerToolLogger {
   private redactedFields: string[];
@@ -87,3 +90,5 @@ export class Logger extends PowerToolLogger {
     super.trace(message, this.wrapFields({ ...fields, ...this.commonFields }));
   }
 }
+
+export const getLogger = (options) => logger || new Logger(options)

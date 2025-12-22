@@ -6,6 +6,20 @@ import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
 import { createEnvValidator, extractCompositeKey } from '@libs/utils';
+import { injectLambdaContext, getLogger } from '@libs/utils';
+import { getTracer, captureLambdaHandler } from '@libs/utils';
+
+const serviceName = 'udpPostData' //TODO
+const environment = process.env // TODO
+
+const logger = getLogger({
+  serviceName,
+  environment
+});
+
+const tracer = getTracer({
+  serviceName,
+});
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -17,7 +31,7 @@ let service;
 function getService() {
   if (!service) {
     const { TABLE_NAME, KMS_KEY_ID } = getEnv();
-    const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID);
+    const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID, tracer);
     service = client.getService();
   }
   return service;
@@ -36,7 +50,9 @@ export const lambdaHandler = async (
     const compositeKey = extractCompositeKey(event.rawPath);
     pk = compositeKey.pk;
     sk = compositeKey.sk;
+    tracer.putAnnotation('extractCompositeKey', true);
   } catch (error) {
+      tracer.putAnnotation('extractCompositeKey', false);
     if (error instanceof Error) {
       throw new createError.BadRequest(error.message);
     }
@@ -59,12 +75,14 @@ export const lambdaHandler = async (
     };
 
     await service.save(entity);
+    tracer.putAnnotation('putEntitySuccess', true);
 
     return {
       statusCode: 201,
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
+      tracer.putAnnotation('putEntitySu ccess', true);
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -75,6 +93,8 @@ export const lambdaHandler = async (
 
 export const handler = middy()
   .use(envMiddleware)
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer))
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(

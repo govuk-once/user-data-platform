@@ -1,3 +1,4 @@
+import { Tracer } from '@aws-lambda-powertools/tracer';
 import {
   DecryptCommand,
   GenerateDataKeyCommand,
@@ -22,9 +23,9 @@ export class EncryptionService {
   private readonly kmsClient: KMSClient;
   private readonly kmsKeyId: string;
 
-  constructor(config: EncryptionServiceConfig) {
+  constructor(config: EncryptionServiceConfig, tracer?: Tracer) {
     this.kmsKeyId = config.kmsKeyId;
-    this.kmsClient = config.kmsClient ?? new KMSClient({});
+    this.kmsClient = config.kmsClient ?? (tracer ? tracer.captureAWSv3Client(new KMSClient({})) : new KMSClient({}));
   }
 
   async encryptFields<T extends Record<string, unknown>>(
