@@ -34,7 +34,6 @@
         "cwd": "cdk"
       }
     },
-
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
@@ -45,7 +44,7 @@
     "bootstrap": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx cdk bootstrap",
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk bootstrap",
         "cwd": "cdk"
       }
     }
