@@ -91,4 +91,4 @@ export class Logger extends PowerToolLogger {
   }
 }
 
-export const getLogger = (options) => logger || new Logger(options)
+export const getLogger = (options) => logger || new Logger(options);

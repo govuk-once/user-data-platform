@@ -13,23 +13,36 @@ import { Tracer } from '@aws-lambda-powertools/tracer';
 export class DynamoDbClient<T extends DynamoDBEntity> {
   private readonly service: DynamoDbService<T>;
   public readonly client: DynamoDBClient;
-  constructor(tableName: string | undefined, kmsKeyId?: string, tracer?: Tracer) {
+  constructor(
+    tableName: string | undefined,
+    kmsKeyId?: string,
+    tracer?: Tracer,
+  ) {
     if (!tableName) {
       throw new Error('TABLE_NAME environment variable is required');
     }
 
     // Initialize AWS SDK clients
-    const client = tracer ? tracer.captureAWSv3Client(new DynamoDBClient({})) : new DynamoDBClient();
+    const client = tracer
+      ? tracer.captureAWSv3Client(new DynamoDBClient({}))
+      : new DynamoDBClient();
     this.client = client;
     const docClient = DynamoDBDocumentClient.from(client);
 
     let encryption = undefined;
-    if(kmsKeyId) {
-      encryption = { service: new EncryptionService({kmsKeyId}, tracer), dataFields: ['data']}
+    if (kmsKeyId) {
+      encryption = {
+        service: new EncryptionService({ kmsKeyId }, tracer),
+        dataFields: ['data'],
+      };
     }
 
     // Initialize repository and service
-    const repository = new DynamoDBRepository<T>(tableName, docClient, encryption);
+    const repository = new DynamoDBRepository<T>(
+      tableName,
+      docClient,
+      encryption,
+    );
     this.service = new DynamoDbService(repository);
   }
 

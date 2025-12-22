@@ -9,12 +9,12 @@ import { createEnvValidator, extractCompositeKey } from '@libs/utils';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
 
-const serviceName = 'udpPostData' //TODO
-const environment = process.env // TODO
+const serviceName = 'udpPostData'; //TODO
+const environment = process.env; // TODO
 
 const logger = getLogger({
   serviceName,
-  environment
+  environment,
 });
 
 const tracer = getTracer({
@@ -31,7 +31,11 @@ let service;
 function getService() {
   if (!service) {
     const { TABLE_NAME, KMS_KEY_ID } = getEnv();
-    const client = new DynamoDbClient<DynamoDBEntity>(TABLE_NAME, KMS_KEY_ID, tracer);
+    const client = new DynamoDbClient<DynamoDBEntity>(
+      TABLE_NAME,
+      KMS_KEY_ID,
+      tracer,
+    );
     service = client.getService();
   }
   return service;
@@ -52,7 +56,7 @@ export const lambdaHandler = async (
     sk = compositeKey.sk;
     tracer.putAnnotation('extractCompositeKey', true);
   } catch (error) {
-      tracer.putAnnotation('extractCompositeKey', false);
+    tracer.putAnnotation('extractCompositeKey', false);
     if (error instanceof Error) {
       throw new createError.BadRequest(error.message);
     }
@@ -82,7 +86,7 @@ export const lambdaHandler = async (
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
-      tracer.putAnnotation('putEntitySu ccess', true);
+    tracer.putAnnotation('putEntitySuccess', true);
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -102,7 +106,7 @@ export const handler = middy()
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => body ? JSON.stringify(body) : null,
+          serializer: ({ body }) => (body ? JSON.stringify(body) : null),
         },
       ],
       defaultContentType: 'application/json',

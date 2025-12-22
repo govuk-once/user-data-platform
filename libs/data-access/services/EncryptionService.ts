@@ -25,7 +25,11 @@ export class EncryptionService {
 
   constructor(config: EncryptionServiceConfig, tracer?: Tracer) {
     this.kmsKeyId = config.kmsKeyId;
-    this.kmsClient = config.kmsClient ?? (tracer ? tracer.captureAWSv3Client(new KMSClient({})) : new KMSClient({}));
+    this.kmsClient =
+      config.kmsClient ??
+      (tracer
+        ? tracer.captureAWSv3Client(new KMSClient({}))
+        : new KMSClient({}));
   }
 
   async encryptFields<T extends Record<string, unknown>>(
@@ -70,7 +74,9 @@ export class EncryptionService {
       const encryptedValue = decryptedData[
         field as keyof typeof decryptedData
       ] as string;
-      const decryptedValue = encryptedValue ? this.decrypt(encryptedValue, plaintextKey) : undefined;
+      const decryptedValue = encryptedValue
+        ? this.decrypt(encryptedValue, plaintextKey)
+        : undefined;
 
       try {
         (decryptedData as Record<string, unknown>)[field] =
