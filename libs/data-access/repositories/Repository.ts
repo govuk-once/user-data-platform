@@ -12,7 +12,6 @@ export interface Repository<T extends Entity> {
    */
   get(keys: Partial<T>): Promise<T | null>;
 
-
   /**
    * Retrives an entry where the sk begins with.
    * @param keys - Partial entity containing the key properties needed to identify the entity
@@ -27,7 +26,6 @@ export interface Repository<T extends Entity> {
    * @returns A promise that resolves when the save operation is complete
    */
   save(entity: T): Promise<void>;
-  
 
   /**
    * Saves an entity to the repository.

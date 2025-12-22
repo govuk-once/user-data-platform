@@ -4,6 +4,7 @@ import { EncryptionConfig, IdentityRecordEntity } from '../types/Entity';
 import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { DynamoDbDataService } from '../services/DynamoDbDataService';
 
 export interface ServiceFactoryConfig {
   tableName: string;
@@ -26,6 +27,7 @@ export class ServiceFactory {
     });
   }
 
+  getService(name: 'data'): DynamoDbDataService;
   getService(name: 'identity'): DynamoDBIdentityService<IdentityRecordEntity>;
   public getService(name: string): unknown {
     if (!this.services.has(name)) {
@@ -38,6 +40,8 @@ export class ServiceFactory {
     switch (name) {
       case 'identity':
         return this.createIdentityService();
+      case 'data':
+        return this.createDataService();
       default:
         throw new Error(`Unknown Service: ${name}`);
     }
@@ -53,6 +57,17 @@ export class ServiceFactory {
       };
     }
     return undefined;
+  }
+
+  private createDataService() {
+    const encryption = this.getEncryptionConfig(['data']);
+    const repository = new DynamoDBRepository<IdentityRecordEntity>(
+      this.tableName,
+      this.docClient,
+      encryption,
+    );
+
+    return new DynamoDbDataService(repository);
   }
 
   private createIdentityService() {

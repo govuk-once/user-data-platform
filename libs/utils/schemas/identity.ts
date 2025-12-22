@@ -4,7 +4,7 @@ export const IdentityPathSchema = z.object({
   userId: z.string('is required').min(1),
 });
 
-export const CraateIdentityRequestSchema = z.object({
+export const CreateIdentityRequestSchema = z.object({
   appId: z.string('is required').min(1),
   serviceName: z.string('is required').min(1),
   accessToken: z.string().optional(),

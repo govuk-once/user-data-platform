@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 const PK_CONSTANT = 'IDENTITY_RECORD#';
 
 /**
- * Service class for DynamoDB entity operations with business logic.
+ * Service class for DynamoDB Identity entity operations with business logic.
  * Provides a higher-level API with validation, transformation, and orchestration.
  * Designed specifically for DynamoDB single-table design with composite keys.
  * @template T - The entity type that extends DynamoDBEntity
@@ -34,7 +34,9 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
   public async getById(serviceId: string, throwNotFound = true) {
     if (!serviceId) {
-      throw createHttpError.BadRequest(`A valid identifier must be provided`);
+      throw createHttpError.BadRequest(
+        `A valid identifier must be provided ${serviceId}`,
+      );
     }
 
     const result = await this.repository.skBeginswith({
