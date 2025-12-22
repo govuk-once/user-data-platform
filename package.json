@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@nx/esbuild": "22.1.0",
-    "@nx/eslint": "22.1.0",
+    "@nx/eslint": "22.3.3",
     "@nx/eslint-plugin": "22.1.0",
     "@nx/js": "22.1.0",
     "@nx/node": "22.1.0",
