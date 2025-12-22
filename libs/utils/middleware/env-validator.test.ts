@@ -336,7 +336,7 @@ describe('env validator middleware', () => {
   describe('createEnvValidator', () => {
     it('should provide type-safe access to required variables', async () => {
       process.env['DATABASE'] = 'postgress://localhost';
-      process.env['API_KEY'] = 'secret';
+      process.env['API_KEY'] = 'secret'; // pragma: allowlist secret
 
       const { middleware, getEnv } = createEnvValidator({
         required: ['DATABASE', 'API_KEY'] as const,

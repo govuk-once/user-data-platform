@@ -1,8 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { ServiceFactory } from '@libs/data-access';
-import { DynamoDBIdentityService } from 'libs/data-access/services/DynamoDbIdentityService';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import createHttpError from 'http-errors';
 

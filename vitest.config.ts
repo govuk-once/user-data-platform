@@ -15,8 +15,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@libs/data-access": path.resolve(__dirname, './libs/data-access/index.ts'),
-      "@libs/utils": path.resolve(__dirname, './libs/utils/index.ts')
-    }
-  }
+      '@libs/data-access': path.resolve(
+        __dirname,
+        './libs/data-access/index.ts',
+      ),
+      '@libs/utils': path.resolve(__dirname, './libs/utils/index.ts'),
+    },
+  },
 });

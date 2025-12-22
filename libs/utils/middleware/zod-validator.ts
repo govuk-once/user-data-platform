@@ -1,8 +1,7 @@
 import type { MiddlewareObj, Request } from '@middy/core';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createHttpError from 'http-errors';
-import path from 'path';
-import { z, ZodError, ZodIssue } from 'zod';
+import { z, ZodError } from 'zod';
 
 export interface ZodValidatorOptions<
   TBody = unknown,

@@ -9,7 +9,7 @@ import {
 import createHttpError from 'http-errors';
 
 describe('DynamoDb Data Service', () => {
-  let mockRepository: DynamoDBRepository<any>;
+  let mockRepository: DynamoDBRepository<DynamoDBDataEntity>;
   let service: DynamoDbDataService;
 
   const mockResource = 'topics';
@@ -27,7 +27,7 @@ describe('DynamoDb Data Service', () => {
       save: vi.fn(),
       delete: vi.fn(),
       skBeginswith: vi.fn(),
-    } as unknown as DynamoDBRepository<any>;
+    } as unknown as DynamoDBRepository<DynamoDBDataEntity>;
     service = new DynamoDbDataService(mockRepository);
   });
 
