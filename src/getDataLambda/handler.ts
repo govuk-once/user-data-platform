@@ -4,7 +4,7 @@ import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
-import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
+import { createEnvValidator, DataPathSchema, responseSanitiser, zodValidator } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -66,4 +66,5 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(responseSanitiser({}))
   .handler(lambdaHandler);

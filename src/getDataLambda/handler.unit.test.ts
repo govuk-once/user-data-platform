@@ -97,7 +97,7 @@ describe('getDataLambda handler', () => {
 
       expect(mockGetByKey).toHaveBeenCalledWith(mockResolvedIdentity, 'topics');
       expect(response).toEqual({
-        body: JSON.stringify(mockEntity),
+        body: JSON.stringify({ name: 'Test Topic' }),
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -200,10 +200,7 @@ describe('getDataLambda handler', () => {
       const result = await lambdaHandler(event, mockContext);
       expect(result.statusCode).toBe(401);
       expect(result.body).toBe('Unauthorized');
-      expect(mockGetByKey).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
+      expect(mockGetByKey).toHaveBeenCalledWith(mockResolvedIdentity, 'topics');
     });
 
     it('should handle missing required', async () => {
