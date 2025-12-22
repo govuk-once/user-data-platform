@@ -17,7 +17,7 @@ Feature: identity Api
         Then I should recieve a successful response
         Then the response status should be 201
 
-    Scenario: Successfully re link a user 
+    Scenario: Successfully re link a user
         When I send a post to '/user/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
         Then I should recieve a successful response
         Then the response status should be 201
@@ -29,7 +29,7 @@ Feature: identity Api
     Scenario: Returns a 400 if the appId isnt set
         When I send a post to '/user/321' with the body '{ "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then the response status should be 400
-    
+
     Scenario: Returns a 400 if the serviceName isnt set
         When I send a post to '/user/321' with the body '{ "appId":"123", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then the response status should be 400
@@ -62,6 +62,3 @@ Feature: identity Api
     Scenario: Return a 400 bad request if invalid url
         When i send a delete to '/user/'
         Then the response status should be 400
-
-
- 
