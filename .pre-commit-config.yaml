@@ -25,25 +25,24 @@ repos:
   - repo: local
     hooks:
       # Prettier formatting
-      - id: prettier
-        name: Prettier
-        entry: pnpm exec prettier --write --ignore-unknown
+      - id: format_check
+        name: Format Check
+        entry: pnpm format:write
         language: system
-        types_or: [javascript, jsx, ts, tsx, json, yaml, markdown]
-        exclude: ^(node_modules/|dist/|build/|coverage/|\.nx/|pnpm-lock\.yaml)
+        pass_filenames: false
+        stages:
+          - 'pre-commit'
 
-      # ESLint - use local config
-      - id: eslint
-        name: ESLint
-        entry: bash -c 'pnpm --filter=user-data-platform exec eslint --fix "$@"' --
+      - id: linting_check
+        name: Linting Check
+        entry: pnpm lint:affected
         language: system
-        types: [file]
-        files: \.(ts|tsx|js|jsx)$
-        exclude: ^(node_modules/|dist/|build/|coverage/|\.nx/)
-        pass_filenames: true
+        pass_filenames: false
+        stages:
+          - 'pre-commit'
 
       # TypeScript type checking
-      - id: typescript-check
+      - id: typescript_check
         name: TypeScript Check
         entry: pnpm exec tsc --noEmit
         language: system
