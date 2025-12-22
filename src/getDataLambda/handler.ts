@@ -4,7 +4,12 @@ import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
-import { createEnvValidator, DataPathSchema, responseSanitiser, zodValidator } from '@libs/utils';
+import {
+  createEnvValidator,
+  DataPathSchema,
+  responseSanitiser,
+  zodValidator,
+} from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -40,7 +45,7 @@ export const lambdaHandler = async (
 
     return {
       statusCode: 200,
-      body: entity
+      body: entity,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -52,7 +57,7 @@ export const lambdaHandler = async (
 
 export const handler = middy()
   .use(envMiddleware)
-  .use(zodValidator({pathParameters: DataPathSchema }))
+  .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

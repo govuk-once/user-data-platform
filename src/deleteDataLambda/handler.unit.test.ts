@@ -149,7 +149,7 @@ describe('deleteDataLambda handler', () => {
       );
     });
 
-     it('should return 404 if user is not found', async () => {
+    it('should return 404 if user is not found', async () => {
       mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
       mockDeleteByKey.mockRejectedValue(createHttpError.NotFound());
 
@@ -195,15 +195,15 @@ describe('deleteDataLambda handler', () => {
       );
     });
 
-      it('should handle missing required', async () => {
-        delete process.env['TABLE_NAME'];
-        const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+    it('should handle missing required', async () => {
+      delete process.env['TABLE_NAME'];
+      const event = createEvent('/topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
-        const result = await lambdaHandler(event, mockContext);
-        expect(result.statusCode).toBe(400);
-        expect(result.body).toBe(
-          'Missing required environment variables: TABLE_NAME',
-        );
-      });
+      const result = await lambdaHandler(event, mockContext);
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe(
+        'Missing required environment variables: TABLE_NAME',
+      );
+    });
   });
 });

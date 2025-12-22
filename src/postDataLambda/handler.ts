@@ -32,9 +32,8 @@ export const lambdaHandler = async (
   context: Context,
 ) => {
   try {
-
-    if(!event.body) {
-      throw createHttpError.BadRequest()
+    if (!event.body) {
+      throw createHttpError.BadRequest();
     }
 
     const identity = await getFactory()
@@ -60,7 +59,7 @@ export const lambdaHandler = async (
 
 export const handler = middy()
   .use(envMiddleware)
-  .use(zodValidator({pathParameters: DataPathSchema}))
+  .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(

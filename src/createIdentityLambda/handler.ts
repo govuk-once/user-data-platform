@@ -59,14 +59,19 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(jsonBodyParser())
-  .use(zodValidator({ pathParameters: IdentityPathSchema, body: CraateIdentityRequestSchema }))
+  .use(
+    zodValidator({
+      pathParameters: IdentityPathSchema,
+      body: CraateIdentityRequestSchema,
+    }),
+  )
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
         {
           regex: /^application\/json$/,
-          serializer: ({ body }) => body ? JSON.stringify(body) : null,
+          serializer: ({ body }) => (body ? JSON.stringify(body) : null),
         },
       ],
       defaultContentType: 'application/json',
