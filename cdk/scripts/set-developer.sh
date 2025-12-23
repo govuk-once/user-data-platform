@@ -42,5 +42,3 @@ DEVELOPER_ID=$(get_developer_id)
 
 
 echo "$DEVELOPER_ID"
-
-

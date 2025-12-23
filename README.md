@@ -7,9 +7,6 @@
 - Node.js (v18 or later)
 - pnpm
 - Python 3.7+ (for pre-commit hooks)
-- Terraform (for infrastructure)
-- tflint (for Terraform linting)
-- checkov (for Terraform security scanning)
 - detect-secrets (for secret detection)
 
 ### Installation
@@ -24,7 +21,7 @@ pnpm install
 
 ```bash
 # macOS
-brew install pre-commit terraform tflint checkov detect-secrets
+brew install pre-commit detect-secrets
 
 # Or using pip
 pip install pre-commit detect-secrets
@@ -56,10 +53,6 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 - Prettier formatting
 - ESLint linting
 - TypeScript type checking
-- Terraform formatting (`terraform fmt`)
-- Terraform validation
-- Terraform linting (`tflint`)
-- Terraform security scanning (`checkov`)
 
 **On git push:**
 
@@ -73,7 +66,6 @@ pre-commit run --all-files
 
 # Run specific hook
 pre-commit run eslint --all-files
-pre-commit run terraform_fmt --all-files
 pre-commit run detect-secrets --all-files
 ```
 
@@ -114,7 +106,7 @@ command: nx run @test/e2e:e2e will run the tests against currently deployed code
     | constants
     | lib
         constructs
-        stacks    
+        stacks
     | scripts
     cdk.json
 | libs
@@ -148,23 +140,18 @@ command: nx run @test/e2e:e2e will run the tests against currently deployed code
 
 ## Developer environments
 
-Each developer gets and isolated AWS infrastructure environment to prevent Terraform state conflicts ans resource collisions
+Each developer gets an isolated AWS infrastructure environment to prevent resource collisions
 
 ### How it works
 
-A unique developer ID is **auto-generated** from yout git email and user
+A unique developer ID is **auto-generated** from your git email and user
 
-- Format: `<first0name>-<6-char-hash>` (eg `tim-b3b4n5`)
+- Format: `<firstname>-<6-char-hash>` (eg `tim-b3b4n5`)
 - The hash ensures uniqueness even if two devs have the same name
-- All Terraform state files and AWS resources are prefixed with this ID
+- All AWS resources are prefixed with this ID
 
-### usage
-
-Before running any terraform commands, the `set-developer` targets run automatically (as a dependancy of the `init`), this generates:
-
-- `backend.tfvars` - Backend config with developer state key
-- `terraform.auto.tfvars` - Contains the `developer` variable (auto-loaded by terraform)
+### Usage
 
 ```sh
-npx nx run @test/e2d:deploy-and-test
+npx nx run @test/e2e:deploy-and-test
 ```

@@ -1,14 +1,12 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
-import { DynamoDBEntity } from '@libs/data-access';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  extractCompositeKey,
   DataPathSchema,
   responseSanitiser,
   zodValidator,
@@ -47,10 +45,7 @@ function getFactory() {
   return factory;
 }
 
-export const lambdaHandler = async (
-  event: APIGatewayProxyEventV2,
-  context: Context,
-) => {
+export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const identity = await getFactory()
       .getService('identity')
