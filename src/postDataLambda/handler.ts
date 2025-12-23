@@ -4,11 +4,15 @@ import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
-import { injectLambdaContext, getLogger } from '@libs/utils';
-import { getTracer, captureLambdaHandler } from '@libs/utils';
+import {
+  injectLambdaContext,
+  getLogger,
+  getTracer,
+  captureLambdaHandler,
+} from '@libs/utils';
 
-const serviceName = 'udpPostData'; //TODO
-const environment = process.env; // TODO
+const serviceName = 'udpPostData';
+const environment = process.env;
 
 const logger = getLogger({
   serviceName,
