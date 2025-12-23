@@ -3,7 +3,6 @@ import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
 import { createEnvValidator, extractCompositeKey } from '@libs/utils';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
@@ -19,6 +18,12 @@ const logger = getLogger({
 const tracer = getTracer({
   serviceName,
 });
+import { ServiceFactory } from '@libs/data-access';
+import {
+  DataPathSchema,
+  responseSanitiser,
+  zodValidator,
+} from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -26,54 +31,38 @@ const { middleware: envMiddleware, getEnv } = createEnvValidator({
   logger,
 });
 
-let service;
+let factory;
 
-function getService() {
-  if (!service) {
-    const { TABLE_NAME, KMS_KEY_ID } = process.env;
-    const client = new DynamoDbClient<DynamoDBEntity>(
-      TABLE_NAME,
-      KMS_KEY_ID,
+function getFactory() {
+  if (!factory) {
+    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    factory = new ServiceFactory({
+      tableName: TABLE_NAME,
+      kmsKeyId: KMS_KEY_ID,
       tracer,
-    );
-    service = client.getService();
+    });
   }
 
-  return service;
+  return factory;
 }
 
 export const lambdaHandler = async (
   event: APIGatewayProxyEventV2,
   context: Context,
 ) => {
-  let pk: string;
-  let sk: string;
-
-  const service = await getService();
-
   try {
-    const compositeKey = extractCompositeKey(event.rawPath);
-    pk = compositeKey.pk;
-    sk = compositeKey.sk;
-    tracer.putAnnotation('extractCompositeKey', true);
-  } catch (error) {
-    tracer.putAnnotation('extractCompositeKey', false);
-    if (error instanceof Error) {
-      throw new createError.BadRequest(error.message);
-    }
-    throw error;
-  }
+    const identity = await getFactory()
+      .getService('identity')
+      .getById(event.pathParameters.userId);
 
-  try {
-    const entity = await service.getByKey(pk, sk);
-    tracer.putAnnotation('getEntitySuccess', true);
+    const entity = await getFactory()
+      .getService('data')
+      .getByKey(identity, event.pathParameters.proxy);
 
-    if (!entity) {
-      tracer.putAnnotation('getEntitySuccess', false);
-      throw new createError.NotFound();
-    }
-
-    return entity;
+    return {
+      statusCode: 200,
+      body: entity,
+    };
   } catch (error) {
     if (createError.isHttpError(error)) {
       throw error;
@@ -87,6 +76,7 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer))
+  .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
@@ -94,10 +84,11 @@ export const handler = middy()
         {
           regex: /^application\/json$/,
           serializer: ({ body }) =>
-            body && typeof body === 'object' ? JSON.stringify(body) : null,
+            body && typeof body === 'object' ? JSON.stringify(body) : '',
         },
       ],
       defaultContentType: 'application/json',
     }),
   )
+  .use(responseSanitiser({}))
   .handler(lambdaHandler);

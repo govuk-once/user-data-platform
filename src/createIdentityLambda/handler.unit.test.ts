@@ -172,7 +172,6 @@ describe('createItentityHandler', () => {
 
       const result = await handler(event, mockContext);
 
-
       expect(mockSave).toHaveBeenCalled();
 
       expect(result?.statusCode).toBe(201);
