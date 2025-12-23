@@ -19,8 +19,15 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-        exclude: pnpm-lock.yaml
+        args:
+          [
+            '--baseline',
+            '.secrets.baseline',
+            '--exclude-files',
+            'pnpm-lock.yaml',
+            '--exclude-files',
+            'migrations.json',
+          ]
 
   - repo: local
     hooks:

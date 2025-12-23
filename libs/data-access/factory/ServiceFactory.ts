@@ -5,10 +5,12 @@ import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDbDataService } from '../services/DynamoDbDataService';
+import { Tracer } from '@aws-lambda-powertools/tracer';
 
 export interface ServiceFactoryConfig {
   tableName: string;
   kmsKeyId?: string;
+  tracer?: Tracer;
 }
 
 export class ServiceFactory {
@@ -21,7 +23,9 @@ export class ServiceFactory {
     this.tableName = config.tableName;
     this.kmsKeyId = config.kmsKeyId;
 
-    const client = new DynamoDBClient({});
+    const client = config.tracer
+      ? config.tracer.captureAWSv3Client(new DynamoDBClient({}))
+      : new DynamoDBClient({});
     this.docClient = DynamoDBDocumentClient.from(client, {
       marshallOptions: { removeUndefinedValues: true },
     });

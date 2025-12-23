@@ -3,7 +3,7 @@ import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
-import { createEnvValidator, extractCompositeKey } from '@libs/utils';
+import { createEnvValidator } from '@libs/utils';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
 
@@ -19,11 +19,7 @@ const tracer = getTracer({
   serviceName,
 });
 import { ServiceFactory } from '@libs/data-access';
-import {
-  DataPathSchema,
-  responseSanitiser,
-  zodValidator,
-} from '@libs/utils';
+import { DataPathSchema, responseSanitiser, zodValidator } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
