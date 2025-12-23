@@ -163,11 +163,11 @@ export class MainStack extends Stack {
       sourcePath: 'postDataLambda',
       kmsKey: kms.key,
       dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:PutItem'],
+      dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.POST,
-      routePath: '/user/{userid}/{proxy+}',
+      routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/write'],
     });
 
@@ -178,11 +178,11 @@ export class MainStack extends Stack {
       sourcePath: 'getDataLambda',
       kmsKey: kms.key,
       dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:GetItem'],
+      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.GET,
-      routePath: '/user/{userid}/{proxy+}',
+      routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/read'],
     });
 
@@ -193,11 +193,15 @@ export class MainStack extends Stack {
       sourcePath: 'deleteDataLambda',
       kmsKey: kms.key,
       dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:DeleteItem', 'dynamodb:GetItem'],
+      dynamoDbActions: [
+        'dynamodb:DeleteItem',
+        'dynamodb:GetItem',
+        'dynamodb:Query',
+      ],
       api: apiGateway.api,
       authorizer: jwtAuthorizer,
       httpMethod: apigatewayv2.HttpMethod.DELETE,
-      routePath: '/user/{userid}/{proxy+}',
+      routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/delete'],
     });
 

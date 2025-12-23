@@ -4,8 +4,15 @@ import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { DynamoDbClient, DynamoDBEntity } from '@libs/data-access';
-import { createEnvValidator, extractCompositeKey } from '@libs/utils';
+import { DynamoDBEntity } from '@libs/data-access';
+import {
+  createEnvValidator,
+  DataPathSchema,
+  zodValidator,
+  extractCompositeKey,
+} from '@libs/utils';
+import { ServiceFactory } from '@libs/data-access';
+import createHttpError from 'http-errors';
 import { injectLambdaContext, getLogger } from '@libs/utils';
 import { getTracer, captureLambdaHandler } from '@libs/utils';
 
@@ -26,67 +33,44 @@ const { middleware: envMiddleware, getEnv } = createEnvValidator({
   optional: { KMS_KEY_ID: undefined },
 });
 
-let service;
+let factory;
 
-function getService() {
-  if (!service) {
+function getFactory() {
+  if (!factory) {
     const { TABLE_NAME, KMS_KEY_ID } = getEnv();
-    const client = new DynamoDbClient<DynamoDBEntity>(
-      TABLE_NAME,
-      KMS_KEY_ID,
+    factory = new ServiceFactory({
+      tableName: TABLE_NAME,
+      kmsKeyId: KMS_KEY_ID,
       tracer,
-    );
-    service = client.getService();
+    });
   }
-  return service;
+
+  return factory;
 }
 
 export const lambdaHandler = async (
   event: APIGatewayProxyEventV2,
   context: Context,
 ) => {
-  let pk: string;
-  let sk: string;
-
-  const service = await getService();
-
   try {
-    const compositeKey = extractCompositeKey(event.rawPath);
-    pk = compositeKey.pk;
-    sk = compositeKey.sk;
-    tracer.putAnnotation('extractCompositeKey', true);
-  } catch (error) {
-    tracer.putAnnotation('extractCompositeKey', false);
-    if (error instanceof Error) {
-      throw new createError.BadRequest(error.message);
+    if (!event.body) {
+      throw createHttpError.BadRequest();
     }
-    throw error;
-  }
 
-  // After jsonBodyParser middleware, body will be parsed object
-  const parsedData = event.body as any;
+    const identity = await getFactory()
+      .getService('identity')
+      .getById(event.pathParameters.userId);
 
-  if (!parsedData) {
-    throw new createError.BadRequest();
-  }
-
-  try {
-    const entity: DynamoDBEntity = {
-      pk,
-      sk,
-      data: parsedData.data,
-      ttl: parsedData.ttl,
-    };
-
-    await service.save(entity);
+    await getFactory()
+      .getService('data')
+      .save(identity, event.pathParameters.proxy, event.body);
     tracer.putAnnotation('putEntitySuccess', true);
-
     return {
       statusCode: 201,
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
-    tracer.putAnnotation('putEntitySuccess', true);
+    tracer.putAnnotation('putEntitySuccess', false);
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -99,6 +83,7 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer))
+  .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(
