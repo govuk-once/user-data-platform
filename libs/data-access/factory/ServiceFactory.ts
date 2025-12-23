@@ -18,7 +18,7 @@ export class ServiceFactory {
   private kmsKeyId: string;
   private docClient: DynamoDBDocumentClient;
   private services: Map<string, unknown> = new Map();
-  private tracer?: Tracer;
+
   constructor(config: ServiceFactoryConfig) {
     this.tableName = config.tableName;
     this.kmsKeyId = config.kmsKeyId;
