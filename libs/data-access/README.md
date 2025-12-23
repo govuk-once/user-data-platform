@@ -27,8 +27,7 @@ const service = new DynamoDbDataService(repository);
 // Lambda handler
 export const handler = async (event: any) => {
   const userId = event.pathParameters.userId;
-
-}
+};
 
 export const handler = async (event: any) => {
   // Get entity

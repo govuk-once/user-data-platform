@@ -34,15 +34,15 @@ export class Logger extends PowerToolLogger {
   private redactObject<T>(input: T): T {
     if (!input || typeof input !== 'object') return input;
 
-    const clone: any = Array.isArray(input) ? [...input] : { ...input };
+    const clone = (Array.isArray(input) ? [...input] : { ...input }) as T;
 
     for (const key in clone) {
       if (!Object.prototype.hasOwnProperty.call(clone, key)) continue;
 
-      if (this.redactedFields.includes(key)) {
-        clone[key] = '***REDACTED***';
-      } else if (typeof clone[key] === 'object') {
-        clone[key] = this.redactObject(clone[key]);
+      if (this.redactedFields.includes(key as string)) {
+        (clone as Record<string, unknown>)[key] = '***REDACTED***';
+      } else if (typeof clone[key] === 'object' && clone[key] !== null) {
+        (clone as Record<string, unknown>)[key] = this.redactObject(clone[key]);
       }
     }
 

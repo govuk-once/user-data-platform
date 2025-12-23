@@ -4,9 +4,7 @@ import { EncryptionService } from '../services/EncryptionService';
  * Base entity interface that all entities must extend.
  * Provides the foundation for different entity types.
  */
-export interface Entity {
-  // Marker interface for type safety
-}
+export type Entity = object;
 
 /**
  * DynamoDB-compatible value types.
