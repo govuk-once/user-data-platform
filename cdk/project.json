@@ -37,7 +37,7 @@
     "bootstrap": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk bootstrap",
+        "command": "npx cdk bootstrap",
         "cwd": "cdk"
       }
     }
