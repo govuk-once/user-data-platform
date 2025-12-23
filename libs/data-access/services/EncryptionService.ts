@@ -13,6 +13,7 @@ const AUTH_TAG_LENGTH = 16;
 export interface EncryptionServiceConfig {
   kmsKeyId: string;
   kmsClient?: KMSClient;
+  tracer?: Tracer;
 }
 
 export interface EncryptedData {
@@ -23,12 +24,12 @@ export class EncryptionService {
   private readonly kmsClient: KMSClient;
   private readonly kmsKeyId: string;
 
-  constructor(config: EncryptionServiceConfig, tracer?: Tracer) {
+  constructor(config: EncryptionServiceConfig) {
     this.kmsKeyId = config.kmsKeyId;
     this.kmsClient =
       config.kmsClient ??
-      (tracer
-        ? tracer.captureAWSv3Client(new KMSClient({}))
+      (config.tracer
+        ? config.tracer.captureAWSv3Client(new KMSClient({}))
         : new KMSClient({}));
   }
 
