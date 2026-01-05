@@ -55,17 +55,16 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     const identity = await getFactory()
       .getService('identity')
       .getById(event.pathParameters.userId);
-
     await getFactory()
       .getService('data')
       .save(identity, event.pathParameters.proxy, event.body);
-
+    tracer.putAnnotation('putEntitySuccess', true);
     return {
       statusCode: 201,
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
-    tracer.putAnnotation('putEntitySuccess', true);
+    tracer.putAnnotation('putEntitySuccess', false);
     if (createError.isHttpError(error)) {
       throw error;
     }
