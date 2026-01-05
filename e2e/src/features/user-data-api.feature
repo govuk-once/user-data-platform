@@ -7,15 +7,20 @@ Feature: User Data API
     Background:
         Given I am authenticated as "flex"
 
+    Scenario: Create user for tests
+        When I send a post to '/user/123' with the body '{"appId":"123", "serviceName": "app"}'
+        Then I should recieve a successful response
+        Then the response status should be 201
+
     Scenario: Successfully add data
-        When I send a post to '/user/123/topics' with the body '{"data":{"test":"data"}}'
+        When I send a post to '/user/123/topics' with the body '{"test":"data"}'
         Then I should recieve a successful response
         Then The response will contain message 'Entity saved successfully'
 
     Scenario: Successfully Retrive data
         When i send a get to '/user/123/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data":{"test":"data"}, "pk":"123","sk":"topics"}'
+        Then The response body contain body '{"data":{"test":"data"}}'
 
     Scenario: Successfully delete data
         When i send a delete to '/user/123/topics'

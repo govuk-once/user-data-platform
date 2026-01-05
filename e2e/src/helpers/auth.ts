@@ -28,8 +28,6 @@ export async function getAccessToken(clientName?: string): Promise<string> {
     `${clientConfig.clientId}:${clientConfig.clientSecret}`,
   ).toString('base64');
 
-  console.log({ credentials });
-
   const response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
