@@ -4,6 +4,24 @@ import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
+import {
+  injectLambdaContext,
+  getLogger,
+  getTracer,
+  captureLambdaHandler,
+} from '@libs/utils';
+
+const serviceName = 'udpPostData';
+const environment = process.env;
+
+const logger = getLogger({
+  serviceName,
+  environment,
+});
+
+const tracer = getTracer({
+  serviceName,
+});
 import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
@@ -21,6 +39,7 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
+      tracer,
     });
   }
 
@@ -46,6 +65,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
+    tracer.putAnnotation('putEntitySuccess', true);
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -56,6 +76,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer))
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())

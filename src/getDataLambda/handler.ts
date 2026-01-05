@@ -3,17 +3,34 @@ import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
-import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
   DataPathSchema,
   responseSanitiser,
   zodValidator,
+  getLogger,
+  getTracer,
+  captureLambdaHandler,
+  injectLambdaContext,
 } from '@libs/utils';
+
+const serviceName = 'udpGetData';
+const environment = process.env;
+
+const logger = getLogger({
+  serviceName,
+  environment,
+});
+
+const tracer = getTracer({
+  serviceName,
+});
+import { ServiceFactory } from '@libs/data-access';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
+  logger,
 });
 
 let factory;
@@ -24,6 +41,7 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
+      tracer,
     });
   }
 
@@ -48,12 +66,15 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     if (createError.isHttpError(error)) {
       throw error;
     }
+
     throw new createError.InternalServerError();
   }
 };
 
 export const handler = middy()
   .use(envMiddleware)
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer))
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(httpErrorHandler())
   .use(

@@ -27,7 +27,6 @@
         "cwd": "cdk"
       }
     },
-
     "destroy": {
       "executor": "nx:run-commands",
       "options": {

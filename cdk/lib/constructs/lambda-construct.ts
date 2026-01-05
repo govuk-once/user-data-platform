@@ -103,6 +103,7 @@ export class LambdaApiConstruct extends Construct {
       environment: envVars,
       environmentEncryption: kmsKey,
       logGroup: this.logGroup,
+      tracing: lambda.Tracing.ACTIVE,
     });
 
     if (dynamoDBtable) {
