@@ -20,13 +20,11 @@ const awsEnv = account
     }
   : undefined;
 
-
-
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
-  description: `Shared VPC Stack for ${environment} environment`
-})
+  description: `Shared VPC Stack for ${environment} environment`,
+});
 
 const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   developerId,
@@ -43,8 +41,7 @@ const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   ...repoMetaData,
 });
 
-
-mainStack.addDependency(vpcStack)
+mainStack.addDependency(vpcStack);
 
 const monitoringStack = new MonitoringStack(app, `${stackPrefix}-monitoring`, {
   developerId,
