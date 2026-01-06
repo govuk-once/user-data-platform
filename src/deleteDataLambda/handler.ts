@@ -36,6 +36,7 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
+      tracer,
     });
   }
 
