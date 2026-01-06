@@ -20,13 +20,13 @@ const { middleware: envMiddleware, getEnv } = createEnvValidator({
   optional: { KMS_KEY_ID: undefined },
 });
 
-const serviceName = 'udpCreateIdentity';
-const environment = process.env;
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpReadIdentity' } =
+  process.env;
 
 const tracer = getTracer({ serviceName });
 const logger = getLogger({
   serviceName,
-  environment,
+  environment: stack,
 });
 
 let factory: ServiceFactory;

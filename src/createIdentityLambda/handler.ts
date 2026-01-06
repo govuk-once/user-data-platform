@@ -22,13 +22,13 @@ const { middleware: envMiddleware, getEnv } = createEnvValidator({
   optional: { KMS_KEY_ID: undefined },
 });
 
-const serviceName = 'udpCreateIdentity';
-const environment = process.env;
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpCreateIdentity' } =
+  process.env;
 
 const tracer = getTracer({ serviceName });
 const logger = getLogger({
   serviceName,
-  environment,
+  environment: stack,
 });
 
 let factory: ServiceFactory;
@@ -46,12 +46,14 @@ function getFactory() {
   return factory;
 }
 
-type CreatItemBody = z.infer<typeof CreateIdentityRequestSchema>;
+type CreateItemBody = z.infer<typeof CreateIdentityRequestSchema>;
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
+  tracer.putAnnotation('stack', stack);
+
   try {
     const input = {
-      ...(event.body as unknown as CreatItemBody),
+      ...(event.body as unknown as CreateItemBody),
       serviceId: event.pathParameters.userId,
     } as unknown as IdentityInput;
 
@@ -73,7 +75,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
-  .use(captureLambdaHandler(tracer))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use(jsonBodyParser())
   .use(
     zodValidator({

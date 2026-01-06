@@ -23,6 +23,7 @@ export interface MainStackProps extends StackProps {
   teamName: string;
   repositoryUrl: string;
   version: string;
+  stackPrefix: string;
 }
 
 export class MainStack extends Stack {
@@ -45,6 +46,7 @@ export class MainStack extends Stack {
           accessTokenValidityMinutes: 60,
         },
       },
+      stackPrefix,
     } = props;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
@@ -124,6 +126,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.POST,
       routePath: '/user/{userId}',
       authorizationScopes: ['udp/write'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'createIdentity',
+      },
     });
 
     const readIdentity = new LambdaApiConstruct(this, 'readIdentity', {
@@ -139,6 +145,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.GET,
       routePath: '/user/{userId}',
       authorizationScopes: ['udp/read'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'readIdentity',
+      },
     });
 
     const deleteIdentity = new LambdaApiConstruct(this, 'deleteIdentity', {
@@ -154,6 +164,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.DELETE,
       routePath: '/user/{userId}',
       authorizationScopes: ['udp/read'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'deleteIdentity',
+      },
     });
 
     const postData = new LambdaApiConstruct(this, 'postData', {
@@ -169,6 +183,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.POST,
       routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/write'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'postData',
+      },
     });
 
     const getData = new LambdaApiConstruct(this, 'getData', {
@@ -184,6 +202,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.GET,
       routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/read'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'getData',
+      },
     });
 
     const deleteData = new LambdaApiConstruct(this, 'deleteData', {
@@ -203,6 +225,10 @@ export class MainStack extends Stack {
       httpMethod: apigatewayv2.HttpMethod.DELETE,
       routePath: '/user/{userId}/{proxy+}',
       authorizationScopes: ['udp/delete'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'deleteData',
+      },
     });
 
     this.lambdas = [

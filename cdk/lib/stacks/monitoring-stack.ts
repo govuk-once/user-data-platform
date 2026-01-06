@@ -5,6 +5,7 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as xray from 'aws-cdk-lib/aws-xray';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -13,11 +14,13 @@ export interface MonitorStackProps extends StackProps {
   readonly api: apigatewayv2.IHttpApi;
   readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
+  readonly stackPrefix: string;
 }
 
 export class MonitoringStack extends Stack {
   public readonly alarmTopic: sns.Topic;
   public readonly dashboard: cloudwatch.Dashboard;
+  public readonly xrayTraceGroup?: xray.CfnGroup;
 
   constructor(scope: Construct, id: string, props: MonitorStackProps) {
     super(scope, id);
@@ -29,6 +32,7 @@ export class MonitoringStack extends Stack {
       api,
       lambdas,
       notificationEmails = [],
+      stackPrefix,
     } = props;
 
     const resourcePrefix = developerId
@@ -38,6 +42,15 @@ export class MonitoringStack extends Stack {
     this.alarmTopic = new sns.Topic(this, 'AlarmTopic', {
       topicName: `${resourcePrefix}-alarms`,
       displayName: `${resourcePrefix} Infrastructure Alarms`,
+    });
+
+    this.xrayTraceGroup = new xray.CfnGroup(this, developerId || environment, {
+      groupName: stackPrefix,
+      filterExpression: `annotation.stack('${stackPrefix}')`,
+      insightsConfiguration: {
+        insightsEnabled: true,
+        notificationsEnabled: true,
+      },
     });
 
     for (const email of notificationEmails) {

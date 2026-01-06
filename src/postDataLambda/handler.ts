@@ -10,21 +10,17 @@ import {
   getTracer,
   captureLambdaHandler,
 } from '@libs/utils';
-
-const serviceName = 'udpPostData';
-const environment = process.env;
-
-const logger = getLogger({
-  serviceName,
-  environment,
-});
-
-const tracer = getTracer({
-  serviceName,
-});
 import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
+
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
+
+const tracer = getTracer({ serviceName });
+const logger = getLogger({
+  serviceName,
+  environment: stack,
+});
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -47,6 +43,8 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
+  tracer.putAnnotation('stack', stack);
+
   try {
     if (!event.body) {
       throw createHttpError.BadRequest();
@@ -76,7 +74,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
-  .use(captureLambdaHandler(tracer))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())

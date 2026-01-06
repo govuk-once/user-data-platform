@@ -15,12 +15,12 @@ import {
 } from '@libs/utils';
 
 const serviceName = 'udpDeleteData';
-const environment = process.env;
+const { STACK: stack } = process.env;
 
 const tracer = getTracer({ serviceName });
 const logger = getLogger({
   serviceName,
-  environment,
+  environment: stack,
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
@@ -44,6 +44,7 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
+  tracer.putAnnotation('stack', stack);
   try {
     const identity = await getFactory()
       .getService('identity')
@@ -69,7 +70,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
-  .use(captureLambdaHandler(tracer))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(httpErrorHandler())
   .use(
