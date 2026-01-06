@@ -46,7 +46,7 @@ export class MonitoringStack extends Stack {
 
     this.xrayTraceGroup = new xray.CfnGroup(this, developerId || environment, {
       groupName: stackPrefix,
-      filterExpression: `annotation.stack('${stackPrefix}')`,
+      filterExpression: `annotation[stack] = "${stackPrefix}"`,
       insightsConfiguration: {
         insightsEnabled: true,
         notificationsEnabled: true,
