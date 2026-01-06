@@ -4,7 +4,24 @@ import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
-import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
+import {
+  createEnvValidator,
+  DataPathSchema,
+  zodValidator,
+  getLogger,
+  injectLambdaContext,
+  getTracer,
+  captureLambdaHandler,
+} from '@libs/utils';
+
+const serviceName = 'udpDeleteData';
+const environment = process.env;
+
+const tracer = getTracer({ serviceName });
+const logger = getLogger({
+  serviceName,
+  environment,
+});
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -50,6 +67,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer))
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(httpErrorHandler())
   .use(
