@@ -43,8 +43,6 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  tracer.putAnnotation('stack', stack);
-
   try {
     if (!event.body) {
       throw createHttpError.BadRequest();
@@ -75,6 +73,11 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(zodValidator({ pathParameters: DataPathSchema }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())

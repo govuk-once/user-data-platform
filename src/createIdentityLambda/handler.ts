@@ -49,8 +49,6 @@ function getFactory() {
 type CreateItemBody = z.infer<typeof CreateIdentityRequestSchema>;
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  tracer.putAnnotation('stack', stack);
-
   try {
     const input = {
       ...(event.body as unknown as CreateItemBody),
@@ -76,6 +74,11 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(jsonBodyParser())
   .use(
     zodValidator({
