@@ -61,7 +61,7 @@ export const DeleteIdentityResponseSchema = z.object({
 export const IdentityResponseSchema = z.object({
   statusCode: z.number().openapi({
     description: 'The status code of the response',
-    example: 201,
+    example: 200,
   }),
   body: z.object({
     appId: z.string('is required').min(1).openapi({
