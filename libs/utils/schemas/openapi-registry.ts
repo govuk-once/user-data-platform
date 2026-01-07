@@ -95,5 +95,5 @@ export function generateOpenApiDocument() {
     ],
   });
 
-  return response as unknown as OpenAPIObject
+  return response as unknown as OpenAPIObject;
 }

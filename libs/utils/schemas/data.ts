@@ -5,11 +5,11 @@ extendZodWithOpenApi(z);
 export const DataPathSchema = z.object({
   userId: z.string('is required').min(1).openapi({
     description: 'The One login',
-    example: '123'
+    example: '123',
   }),
   proxy: z.string('is required').min(1).openapi({
     description: 'The resource path',
-    example: 'topics'
+    example: 'topics',
   }),
 });
 
@@ -50,14 +50,13 @@ export const DataResponseSchema = z.object({
   }),
 });
 
-
 export const DeleteDataResponseSchema = z.object({
   statusCode: z.number().openapi({
     description: 'The status code of the response',
-    example: 200
+    example: 200,
   }),
   body: z.string('is required').min(1).openapi({
     description: 'message',
-    example: 'Entity Successfully deleted'
-  })
-})
+    example: 'Entity Successfully deleted',
+  }),
+});
