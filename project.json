@@ -3,6 +3,21 @@
   "$schema": "./node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "targets": {
+    "generate:openapi": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm generate:openapi",
+        "cwd": "cdk"
+      }
+    },
+    "serve:openapi": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm serve:openapi",
+        "cwd": "cdk"
+      }
+    },
+
     "set-developer": {
       "executor": "nx:run-commands",
       "options": {

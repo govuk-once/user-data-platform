@@ -1,0 +1,692 @@
+# OpenApi Specification
+    # Generated automatically from zod schemas
+    # DO NOT EDIT THIS MANUALLY
+    #
+    # to regenerate run pnpm generate:openapi
+openapi: 3.0.3
+info:
+  title: User Data platform API
+  version: 1.0.0
+  description: Private Api for the User data Platform
+tags:
+  - name: identity
+    description: Identity Operations
+  - name: data
+    description: Data Operations
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Oauth JWT token from cognito, obtain by client credentials grant
+  schemas: {}
+  parameters: {}
+paths:
+  /user/{userId}:
+    post:
+      summary: Create Identity Record
+      description: Create Identity Record
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                appId:
+                  type: string
+                  minLength: 1
+                  description: The AppId from the app
+                  example: '123'
+                serviceName:
+                  type: string
+                  minLength: 1
+                  description: The service name of the identity record
+                  example: flex
+                accessToken:
+                  type: string
+                  description: The access token for the service from one login
+                  example: flex
+                refreshToken:
+                  type: string
+                  description: The refresh token for the service from one login
+                  example: flex
+                idToken:
+                  type: string
+                  description: The idToken for the service from one login
+                  example: flex
+                ttl:
+                  type: number
+                  description: The Time to live to handle auto expiry/deletion of data
+                  example: flex
+              required:
+                - appId
+                - serviceName
+      responses:
+        '201':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 201
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: Identity Successfully created
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unprocessable Entity
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+    get:
+      summary: Read Identity Record
+      description: Read Identity Record
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+      responses:
+        '200':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 200
+                  body:
+                    type: object
+                    properties:
+                      appId:
+                        type: string
+                        minLength: 1
+                        description: The AppId from the app
+                        example: '123'
+                      serviceName:
+                        type: string
+                        minLength: 1
+                        description: The service name of the identity record
+                        example: flex
+                      accessToken:
+                        type: string
+                        description: The access token for the service from one login
+                        example: flex
+                      refreshToken:
+                        type: string
+                        description: The refresh token for the service from one login
+                        example: flex
+                      idToken:
+                        type: string
+                        description: The idToken for the service from one login
+                        example: flex
+                    required:
+                      - appId
+                      - serviceName
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+    delete:
+      summary: Delete Identity Record
+      description: Delete Identity Record
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+      responses:
+        '200':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 200
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: Successfully deleted Identity
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+  /user/{userId}/{proxy+}:
+    post:
+      summary: Create Resource path data Record
+      description: Create Resource path data Record
+      tags:
+        - data
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The resource path
+            example: topics
+          required: true
+          description: The resource path
+          name: proxy
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl:
+                  type: number
+                  description: The Time to live for the automatic deletion/expiry of data
+                  example: 100
+              additionalProperties:
+                nullable: true
+      responses:
+        '201':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 201
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: Entity saved successfully
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unprocessable Entity
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+    get:
+      summary: Read resource path data Record
+      description: Read resource path data Record
+      tags:
+        - data
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The resource path
+            example: topics
+          required: true
+          description: The resource path
+          name: proxy
+          in: path
+      responses:
+        '200':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 200
+                  body:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties: {}
+                        description: The data that was saved
+                        example:
+                          additionalProp1: string
+                          additionalProp2: string
+                          additionalProp3: string
+                    required:
+                      - data
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+    delete:
+      summary: Delete resource path Record
+      description: Delete resource path Record
+      tags:
+        - data
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: userId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The resource path
+            example: topics
+          required: true
+          description: The resource path
+          name: proxy
+          in: path
+      responses:
+        '200':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 200
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: Entity Successfully deleted
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body

@@ -10,6 +10,7 @@ import {
   createEnvValidator,
   IdentityPathSchema,
   zodValidator,
+  routes,
 } from '@libs/utils';
 import { z } from 'zod';
 
@@ -62,7 +63,7 @@ export const handler = middy()
   .use(
     zodValidator({
       pathParameters: IdentityPathSchema,
-      body: CreateIdentityRequestSchema,
+      body: routes.createIdentity.body,
     }),
   )
   .use(httpErrorHandler())

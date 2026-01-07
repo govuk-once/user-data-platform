@@ -14,7 +14,9 @@
     "lint:all": "npx nx run-many --target=lint",
     "lint:affected": "npx nx affected --target=lint --outputStyle static",
     "format:write": "npx prettier --write .",
-    "format:check": "npx prettier --check ."
+    "format:check": "npx prettier --check .",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
+    "serve:openapi": "npx serve docs"
   },
   "devDependencies": {
     "@nx/esbuild": "22.3.3",
@@ -48,6 +50,7 @@
     "vitest": "4.0.9"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.4.0",
     "@aws-lambda-powertools/logger": "^2.29.0",
     "@aws-lambda-powertools/tracer": "^2.30.0",
     "@aws-sdk/client-dynamodb": "^3.940.0",
@@ -65,8 +68,10 @@
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "http-errors": "^2.0.1",
+    "statuses": "^2.0.2",
     "tsx": "^4.21.0",
     "uuid": "^13.0.0",
+    "yaml": "^2.8.2",
     "zod": "^4.2.1"
   },
   "workspaces": [
