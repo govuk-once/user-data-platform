@@ -9,6 +9,7 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
+  routes,
 } from '@libs/utils';
 
 const serviceName = 'udpPostData';
@@ -22,7 +23,7 @@ const logger = getLogger({
 const tracer = getTracer({
   serviceName,
 });
-import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
+import { createEnvValidator, zodValidator } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
 
@@ -78,7 +79,7 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer))
-  .use(zodValidator({ pathParameters: DataPathSchema }))
+  .use(zodValidator({ pathParameters: routes.createData.params }))
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(

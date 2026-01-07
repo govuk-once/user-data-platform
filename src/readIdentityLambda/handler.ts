@@ -6,8 +6,8 @@ import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
-  IdentityPathSchema,
   responseSanitiser,
+  routes,
   zodValidator,
 } from '@libs/utils';
 
@@ -51,7 +51,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
-  .use(zodValidator({ pathParameters: IdentityPathSchema }))
+  .use(zodValidator({ pathParameters: routes.readIdentity.params }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
