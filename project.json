@@ -10,10 +10,10 @@
         "cwd": "cdk"
       }
     },
-    "serve:openapi": {
+    "openapi": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm serve:openapi",
+        "command": "pnpm generate:openapi && pnpm serve:openapi",
         "cwd": "cdk"
       }
     },
