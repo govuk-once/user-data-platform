@@ -42,7 +42,3 @@ fi
 
 echo -e "${GREEN}[pre-commit]${NC} OpenAPI docs are up to date."
 exit 0
-
-
-
-
