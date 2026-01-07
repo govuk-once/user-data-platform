@@ -7,6 +7,7 @@
     "url": "https://github.com/govuk-once/user-data-platform.git"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath git-hooks",
     "test:all": "npx nx run-many --target=test",
     "test:affected": "npx nx affected --target=test",
     "build:all": "npx nx run-many --target=build",
