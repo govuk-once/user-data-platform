@@ -10,6 +10,7 @@ import {
 import type { RouteConfig } from '../types';
 import { routes } from '../routes';
 import { OpenAPIObject } from '@asteasolutions/zod-to-openapi/dist/types';
+import { RouteParameter } from '@asteasolutions/zod-to-openapi/dist/openapi-registry';
 
 export const registry = new OpenAPIRegistry();
 
@@ -22,12 +23,9 @@ registry.registerComponent('securitySchemes', 'bearerAuth', {
 });
 
 function registerRoute(route: RouteConfig) {
-  //   const successStatus = route.method === 'POST' ? 201 : 200;
-  //   const successDescription =
+  const params = route.params as unknown as RouteParameter;
 
-  const params = route.params as unknown;
-
-  const query = route.query as unknown;
+  const query = route.query as unknown as RouteParameter;
 
   const errorCodes = getDefaultErrorCodes({
     hasBody: !!route.body,
