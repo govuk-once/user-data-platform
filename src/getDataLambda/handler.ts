@@ -5,13 +5,13 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import {
   createEnvValidator,
-  DataPathSchema,
   responseSanitiser,
   zodValidator,
   getLogger,
   getTracer,
   captureLambdaHandler,
   injectLambdaContext,
+  routes,
 } from '@libs/utils';
 
 const serviceName = 'udpGetData';
@@ -75,7 +75,7 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer))
-  .use(zodValidator({ pathParameters: DataPathSchema }))
+  .use(zodValidator({ pathParameters: routes.readData.params }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

@@ -14,6 +14,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { WafConstruct } from '../constructs/waf-construct';
+import { routes } from '@libs/utils';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -107,112 +108,29 @@ export class MainStack extends Stack {
       },
     );
 
-    const createIdentity = new LambdaApiConstruct(this, 'createIdentity', {
-      developerId,
-      environment,
-      functionName: 'createIdentityLambda',
-      sourcePath: 'createIdentityLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: [
-        'dynamodb:PutItem',
-        'dynamodb:GetItem',
-        'dynamodb:Query',
-      ],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.POST,
-      routePath: '/user/{userId}',
-      authorizationScopes: ['udp/write'],
-    });
+    let lambdasList = [];
+    for (const route of Object.values(routes)) {
+      const lambda = new LambdaApiConstruct(this, route.name, {
+        developerId,
+        environment,
+        functionName: `${route.name}Lambda`,
+        sourcePath: `${route.name}Lambda`,
+        kmsKey: kms.key,
+        dynamoDBtable: db.table,
+        dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
+        api: apiGateway.api,
+        authorizer: jwtAuthorizer,
+        httpMethod: route.method as apigatewayv2.HttpMethod,
+        routePath: route.path,
+        authorizationScopes: route.authorizationScopes
+          ? route.authorizationScopes
+          : [],
+      });
 
-    const readIdentity = new LambdaApiConstruct(this, 'readIdentity', {
-      developerId,
-      environment,
-      functionName: 'readIdentityLambda',
-      sourcePath: 'readIdentityLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.GET,
-      routePath: '/user/{userId}',
-      authorizationScopes: ['udp/read'],
-    });
+      lambdasList.push(lambda.function);
+    }
 
-    const deleteIdentity = new LambdaApiConstruct(this, 'deleteIdentity', {
-      developerId,
-      environment,
-      functionName: 'deleteIdentityLambda',
-      sourcePath: 'deleteIdentityLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:DeleteItem', 'dynamodb:Query'],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.DELETE,
-      routePath: '/user/{userId}',
-      authorizationScopes: ['udp/read'],
-    });
-
-    const postData = new LambdaApiConstruct(this, 'postData', {
-      developerId,
-      environment,
-      functionName: 'postDataLambda',
-      sourcePath: 'postDataLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.POST,
-      routePath: '/user/{userId}/{proxy+}',
-      authorizationScopes: ['udp/write'],
-    });
-
-    const getData = new LambdaApiConstruct(this, 'getData', {
-      developerId,
-      environment,
-      functionName: 'getDataLambda',
-      sourcePath: 'getDataLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.GET,
-      routePath: '/user/{userId}/{proxy+}',
-      authorizationScopes: ['udp/read'],
-    });
-
-    const deleteData = new LambdaApiConstruct(this, 'deleteData', {
-      developerId,
-      environment,
-      functionName: 'deleteDataLambda',
-      sourcePath: 'deleteDataLambda',
-      kmsKey: kms.key,
-      dynamoDBtable: db.table,
-      dynamoDbActions: [
-        'dynamodb:DeleteItem',
-        'dynamodb:GetItem',
-        'dynamodb:Query',
-      ],
-      api: apiGateway.api,
-      authorizer: jwtAuthorizer,
-      httpMethod: apigatewayv2.HttpMethod.DELETE,
-      routePath: '/user/{userId}/{proxy+}',
-      authorizationScopes: ['udp/delete'],
-    });
-
-    this.lambdas = [
-      createIdentity.function,
-      readIdentity.function,
-      deleteIdentity.function,
-      postData.function,
-      getData.function,
-      deleteData.function,
-    ];
+    this.lambdas = lambdasList;
 
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,

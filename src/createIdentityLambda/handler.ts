@@ -8,8 +8,8 @@ import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
   CreateIdentityRequestSchema,
   createEnvValidator,
-  IdentityPathSchema,
   zodValidator,
+  routes,
 } from '@libs/utils';
 import { z } from 'zod';
 
@@ -61,8 +61,8 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(
     zodValidator({
-      pathParameters: IdentityPathSchema,
-      body: CreateIdentityRequestSchema,
+      pathParameters: routes.createIdentity.params,
+      body: routes.createIdentity.body,
     }),
   )
   .use(httpErrorHandler())
