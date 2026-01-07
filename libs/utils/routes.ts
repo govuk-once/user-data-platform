@@ -1,4 +1,3 @@
-import { SuccessResponseSchema } from './schemas';
 import {
   CreateDataRequestSchema,
   CreateDataResponseSchema,

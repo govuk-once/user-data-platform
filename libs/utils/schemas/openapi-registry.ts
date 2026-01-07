@@ -25,9 +25,9 @@ function registerRoute(route: RouteConfig) {
   //   const successStatus = route.method === 'POST' ? 201 : 200;
   //   const successDescription =
 
-  const params = route.params as any;
+  const params = route.params as unknown;
 
-  const query = route.query as any;
+  const query = route.query as unknown;
 
   const errorCodes = getDefaultErrorCodes({
     hasBody: !!route.body,

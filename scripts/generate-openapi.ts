@@ -27,10 +27,10 @@ async function main(): Promise<number> {
     });
 
     const header = `# OpenApi Specification
-    # Generated automatically from zod schemas
-    # DO NOT EDIT THIS MANUALLY
-    #
-    # to regenerate run pnpm generate:openapi
+# Generated automatically from zod schemas
+# DO NOT EDIT THIS MANUALLY
+#
+# to regenerate run pnpm generate:openapi
 `;
 
     const fullContent = header + yamlContent;

@@ -2,7 +2,9 @@
 #
 # Pre commit hook to auto run and update the openapi spec docs
 #
-# To enable this hook, rename this file to "pre-commit".
+# 1. Generates the OpenAPI from zod schemas
+# 2. stages the generated files
+# 3. Blocks commit if generaion fails
 
 set -e
 
@@ -38,7 +40,6 @@ else
     echo -e "${YELLOW}[pre-commit]${NC} Adding new OpenAPI files to commit"
     git add "$OPENAPI_FILE"
 fi
-
 
 echo -e "${GREEN}[pre-commit]${NC} OpenAPI docs are up to date."
 exit 0

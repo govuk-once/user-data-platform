@@ -48,10 +48,7 @@ export function getErrorResponse(
   };
 }
 
-export function getErrorResponses(
-  codes: number[],
-  schema: z.ZodType = ErrorResponseSchema,
-): Record<
+export function getErrorResponses(codes: number[]): Record<
   number,
   {
     description: string;

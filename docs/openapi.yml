@@ -1,8 +1,8 @@
 # OpenApi Specification
-    # Generated automatically from zod schemas
-    # DO NOT EDIT THIS MANUALLY
-    #
-    # to regenerate run pnpm generate:openapi
+# Generated automatically from zod schemas
+# DO NOT EDIT THIS MANUALLY
+#
+# to regenerate run pnpm generate:openapi
 openapi: 3.0.3
 info:
   title: User Data platform API
