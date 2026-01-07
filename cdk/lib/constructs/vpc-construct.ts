@@ -13,16 +13,18 @@ export interface VpcConstructprops {
 export class VpcConstuct extends Construct {
   public readonly vpc: ec2.Vpc;
   public readonly vpcEndpointSecurityGroup: ec2.SecurityGroup;
-  public readonly lambdaSecurityGroup: ec3.SecurityGroup;
+  public readonly lambdaSecurityGroup: ec2.SecurityGroup;
   public readonly dynamoDbEnpoint: ec2.GatewayVpcEndpoint;
   public readonly s3Endpoint: ec2.GatewayVpcEndpoint;
   public readonly kmsEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly cognitoEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly cloudwatchEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly excecuteApiEndpoint: ec2.InterfaceVpcEndpoint;
 
   constructor(scope: Construct, id: string, props: VpcConstructprops) {
     super(scope, id);
 
-    const { environment, vpcCidr = '10.0.0.0.0/16', maxAzs = 2 } = props;
+    const { environment, vpcCidr = '10.0.0.0/16', maxAzs = 2 } = props;
 
     this.vpc = new ec2.Vpc(this, 'vpc', {
       vpcName: `udp-api-vpc-${environment}`,
@@ -101,7 +103,7 @@ export class VpcConstuct extends Construct {
       },
     );
 
-    this.vpc.addInterfaceEndpoint('CognitoIdpEndpoint', {
+    this.cognitoEndpoint = this.vpc.addInterfaceEndpoint('CognitoIdpEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.COGNITO_IDP,
       securityGroups: [this.vpcEndpointSecurityGroup],
       privateDnsEnabled: true,
@@ -109,6 +111,18 @@ export class VpcConstuct extends Construct {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
     });
+
+    this.cloudwatchEndpoint = this.vpc.addInterfaceEndpoint(
+      'CloudwatchEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
 
     const flowLogGroup = new logs.LogGroup(this, 'FlowLogGroup', {
       logGroupName: `/aws/vpc/flow-logs-${environment}`,
