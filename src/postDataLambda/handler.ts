@@ -82,8 +82,7 @@ export const handler = middy()
   })
   .use(
     zodValidator({
-      pathParameters: routes.createData.params,
-      body: routes.createData.body,
+      pathParameters: routes.createData.params
     }),
   )
   .use(jsonBodyParser())
