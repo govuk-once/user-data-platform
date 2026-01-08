@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install semgrep pre-commit
+          python3 -m pip install semgrep pre-commit checkov
           npm install -g pnpm
           pnpm install --frozen-lockfile
 
@@ -45,3 +45,6 @@ jobs:
 
       - name: Run semgrep checks
         run: semgrep scan $(cat .semgrep-args.txt) --error
+
+      - name: Checkov Security Scan
+        run: checkov -d cdk --framework cloudformation --skip-check=CKV_AWS_158,CKV_AWS_95,CKV_AWS_117,CKV_AWS_116,CKV_AWS_115,CKV_AWS_26
