@@ -9,8 +9,10 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
+  routes,
+  zodValidator,
+  createEnvValidator,
 } from '@libs/utils';
-import { createEnvValidator, DataPathSchema, zodValidator } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
 
@@ -78,7 +80,12 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: DataPathSchema }))
+  .use(
+    zodValidator({
+      pathParameters: routes.createData.params,
+      body: routes.createData.body,
+    }),
+  )
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(

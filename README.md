@@ -155,3 +155,60 @@ A unique developer ID is **auto-generated** from your git email and user
 ```sh
 npx nx run @test/e2e:deploy-and-test
 ```
+
+### API Endpoints
+
+Api routes have been define in `libs/utils/routes.ts` this enables us to handle the automatic openapi documentation generation by keeping a central source of truth.
+
+#### Adding New Endpoints
+
+##### Define the Schemas
+
+add your request and response schemas in `libs/utils/schemas/*.ts`
+and ensure you add the OpenApi definitions to the schmma
+
+```typescript
+export const MyParamsSChema = z.object({
+    userId: z.string().openapi({
+        description: 'User id'
+        example: '123'
+    })
+})
+```
+
+##### register the route in `libs/utils/routes.ts`
+
+```typescript
+export routes = {
+    newRoute: {
+        name: 'newRoute',
+        path: '/new/{routId}',
+        method: 'POST',
+        summary: 'Summary for docs',
+        description: 'Description for docs',
+        tags: ['tag-for-docs-grouping'],
+        params: ParamsSchema,
+        body: BodySchema,
+        response: ResponseSchema,
+        successStatus: 201,
+        dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query'], // set apropriate actions required
+        authorizationScopes: ['udp/write'], // set scopes required in auth
+    }
+}
+```
+
+#### use the schemas in your lambda
+
+using the middy zodValidator apply youy schemas to the lambda
+
+```typescript
+  .use(zodValidator({pathParameters: route.newRoute.params, body: route.newRoute.body }))
+```
+
+#### OpenAPI Docs
+
+There is a pre-commit hook which will generate the openapi docs on pre-commit
+
+if you would like to run and see them locally you can generate and serve them with
+
+``nx run @udp:openapi`

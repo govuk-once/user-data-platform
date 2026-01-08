@@ -6,8 +6,8 @@ import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
-  IdentityPathSchema,
   responseSanitiser,
+  routes,
   zodValidator,
   getTracer,
   captureLambdaHandler,
@@ -72,7 +72,7 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: IdentityPathSchema }))
+  .use(zodValidator({ pathParameters: routes.readIdentity.params }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

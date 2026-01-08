@@ -5,13 +5,13 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import {
   createEnvValidator,
-  DataPathSchema,
   responseSanitiser,
   zodValidator,
   getLogger,
   getTracer,
   captureLambdaHandler,
   injectLambdaContext,
+  routes,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -76,7 +76,7 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: DataPathSchema }))
+  .use(zodValidator({ pathParameters: routes.readData.params }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

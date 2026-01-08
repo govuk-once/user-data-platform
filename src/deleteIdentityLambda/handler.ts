@@ -6,12 +6,12 @@ import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
-  IdentityPathSchema,
   zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
+  routes,
 } from '@libs/utils';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
@@ -68,7 +68,7 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  .use(zodValidator({ pathParameters: IdentityPathSchema }))
+  .use(zodValidator({ pathParameters: routes.deleteIdentity.params }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
