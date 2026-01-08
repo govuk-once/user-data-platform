@@ -22,6 +22,7 @@ const awsEnv = account
 const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   developerId,
   environment,
+  stackPrefix,
   env: awsEnv,
   description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
   m2mClients: {
@@ -36,6 +37,7 @@ const mainStack = new MainStack(app, `${stackPrefix}-main`, {
 const monitoringStack = new MonitoringStack(app, `${stackPrefix}-monitoring`, {
   developerId,
   environment,
+  stackPrefix,
   env: awsEnv,
   description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
   table: mainStack.table,

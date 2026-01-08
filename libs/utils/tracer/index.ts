@@ -6,5 +6,5 @@ export { Tracer } from '@aws-lambda-powertools/tracer';
 
 let tracer;
 
-export const getTracer = (options?: TracerOptions) =>
+export const getTracer = (options?: TracerOptions): Tracer =>
   tracer || new Tracer(options);

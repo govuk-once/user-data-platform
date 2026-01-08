@@ -10,22 +10,19 @@ import {
   getTracer,
   captureLambdaHandler,
   routes,
+  zodValidator,
+  createEnvValidator,
 } from '@libs/utils';
-
-const serviceName = 'udpPostData';
-const environment = process.env;
-
-const logger = getLogger({
-  serviceName,
-  environment,
-});
-
-const tracer = getTracer({
-  serviceName,
-});
-import { createEnvValidator, zodValidator } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
+
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
+
+const tracer = getTracer({ serviceName });
+const logger = getLogger({
+  serviceName,
+  environment: stack,
+});
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
@@ -56,17 +53,16 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     const identity = await getFactory()
       .getService('identity')
       .getById(event.pathParameters.userId);
-
     await getFactory()
       .getService('data')
       .save(identity, event.pathParameters.proxy, event.body);
-
+    tracer.putAnnotation('putEntitySuccess', true);
     return {
       statusCode: 201,
       body: { message: 'Entity saved successfully' },
     };
   } catch (error) {
-    tracer.putAnnotation('putEntitySuccess', true);
+    tracer.putAnnotation('putEntitySuccess', false);
     if (createError.isHttpError(error)) {
       throw error;
     }
@@ -78,8 +74,17 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
-  .use(captureLambdaHandler(tracer))
-  .use(zodValidator({ pathParameters: routes.createData.params }))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
+  .use(
+    zodValidator({
+      pathParameters: routes.createData.params,
+    }),
+  )
   .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(

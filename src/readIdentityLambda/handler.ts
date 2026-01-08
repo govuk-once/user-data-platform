@@ -9,11 +9,24 @@ import {
   responseSanitiser,
   routes,
   zodValidator,
+  getTracer,
+  captureLambdaHandler,
+  getLogger,
+  injectLambdaContext,
 } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
+});
+
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpReadIdentity' } =
+  process.env;
+
+const tracer = getTracer({ serviceName });
+const logger = getLogger({
+  serviceName,
+  environment: stack,
 });
 
 let factory: ServiceFactory;
@@ -24,6 +37,7 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
+      tracer,
     });
   }
 
@@ -51,6 +65,13 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
 export const handler = middy()
   .use(envMiddleware)
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(zodValidator({ pathParameters: routes.readIdentity.params }))
   .use(httpErrorHandler())
   .use(

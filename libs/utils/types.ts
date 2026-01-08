@@ -10,6 +10,7 @@ export interface RouteConfig<
 > {
   name: string;
   dynamoDbActions?: string[];
+  environmentVariables?: Record<string, string>;
   authorizationScopes?: string[];
   successStatus: number;
   method: HttpMethod;

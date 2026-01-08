@@ -24,6 +24,7 @@ export interface MainStackProps extends StackProps {
   teamName: string;
   repositoryUrl: string;
   version: string;
+  stackPrefix: string;
 }
 
 export class MainStack extends Stack {
@@ -46,6 +47,7 @@ export class MainStack extends Stack {
           accessTokenValidityMinutes: 60,
         },
       },
+      stackPrefix,
     } = props;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
@@ -113,6 +115,16 @@ export class MainStack extends Stack {
       const lambda = new LambdaApiConstruct(this, route.name, {
         developerId,
         environment,
+        environmentVariables: routes.environmentVariables
+          ? {
+              ...routes.environmentVariables,
+              STACK: stackPrefix,
+              SERVICE_NAME: route.name,
+            }
+          : {
+              STACK: stackPrefix,
+              SERVICE_NAME: route.name,
+            },
         functionName: `${route.name}Lambda`,
         sourcePath: `${route.name}Lambda`,
         kmsKey: kms.key,
