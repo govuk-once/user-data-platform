@@ -32,7 +32,7 @@ repos:
   - repo: local
     hooks:
       # Prettier formatting
-      - id: format_check
+      - id: format-check
         name: Format Check
         entry: pnpm format:write
         language: system
@@ -40,7 +40,7 @@ repos:
         stages:
           - 'pre-commit'
 
-      - id: linting_check
+      - id: linting-check
         name: Linting Check
         entry: pnpm lint:affected
         language: system
@@ -49,13 +49,22 @@ repos:
           - 'pre-commit'
 
       # TypeScript type checking
-      - id: typescript_check
+      - id: typescript-check
         name: TypeScript Check
         entry: pnpm exec tsc --noEmit
         language: system
         types: [ts, tsx]
         pass_filenames: false
         exclude: ^(node_modules/|dist/|build/|coverage/|\.nx/)
+
+      # Checkov security scanning
+      - id: checkov-scan
+        name: Checkov Scan
+        entry: checkov -d cdk --framework cloudformation
+        language: system
+        pass_filenames: false
+        args:
+          - --skip-check=CKV_AWS_158,CKV_AWS_95,CKV_AWS_117,CKV_AWS_116,CKV_AWS_115,CKV_AWS_26
 
       # Run all unit tests
       - id: test-all

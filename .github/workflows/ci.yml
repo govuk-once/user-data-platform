@@ -22,12 +22,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install semgrep pre-commit
+          python3 -m pip install semgrep pre-commit checkov
           npm install -g pnpm
           pnpm install --frozen-lockfile
 
       - name: Run Hygiene & Security Checks
-        run: SKIP=format_check,linting_check,semgrep pre-commit run --all-files --show-diff-on-failure
+        run: SKIP=format-check,linting-check,checkov-scan,semgrep pre-commit run --all-files --show-diff-on-failure
 
       - name: NX - set SHAs
         uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4.4.0
@@ -45,3 +45,6 @@ jobs:
 
       - name: Run semgrep checks
         run: semgrep scan $(cat .semgrep-args.txt) --error
+
+      - name: Checkov Security Scan
+        run: checkov -d cdk --framework cloudformation --skip-check=CKV_AWS_158,CKV_AWS_95,CKV_AWS_117,CKV_AWS_116,CKV_AWS_115,CKV_AWS_26
