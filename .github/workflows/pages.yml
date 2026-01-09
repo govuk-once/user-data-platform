@@ -25,8 +25,8 @@ jobs:
       - name: Setup pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifacts
-        uses: actions/upload-pages-artifacts@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs
 
