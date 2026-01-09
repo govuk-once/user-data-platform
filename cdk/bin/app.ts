@@ -1,6 +1,7 @@
 import { App } from 'aws-cdk-lib';
 import { MainStack, MonitoringStack } from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
+import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 
 const app = new App();
 
@@ -19,6 +20,12 @@ const awsEnv = account
     }
   : undefined;
 
+const vpcStack = new VpcStack(app, `${environment}-vpc`, {
+  environment,
+  env: awsEnv,
+  description: `Shared VPC Stack for ${environment} environment`,
+});
+
 const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   developerId,
   environment,
@@ -33,6 +40,8 @@ const mainStack = new MainStack(app, `${stackPrefix}-main`, {
   },
   ...repoMetaData,
 });
+
+mainStack.addDependency(vpcStack);
 
 const monitoringStack = new MonitoringStack(app, `${stackPrefix}-monitoring`, {
   developerId,
