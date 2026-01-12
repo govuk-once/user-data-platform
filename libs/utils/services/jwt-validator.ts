@@ -102,7 +102,7 @@ export function extractBearerToken(
   authorizationHeader: string | undefined,
 ): string {
   if (!authorizationHeader) {
-    throw new Error('Missin Authorization header');
+    throw new Error('Missing Authorization header');
   }
 
   const parts = authorizationHeader.split(' ');
