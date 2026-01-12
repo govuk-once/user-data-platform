@@ -5,3 +5,4 @@ export { getTracer, captureLambdaHandler, Tracer } from './tracer';
 export * from './routes';
 export * from './middleware';
 export * from './schemas';
+export * from './services';

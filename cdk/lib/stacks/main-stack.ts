@@ -8,13 +8,14 @@ import {
 import { KmsConstruct } from '../constructs/kms-construct';
 import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
 import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
-import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
+import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -25,11 +26,15 @@ export interface MainStackProps extends StackProps {
   repositoryUrl: string;
   version: string;
   stackPrefix: string;
+  vpcEndpointId?: string;
+  crossAccountPrincipals?: string[];
+  vpc?: ec2.IVpc;
+  lambdaSecurityGroup?: ec2.ISecurityGroup;
 }
 
 export class MainStack extends Stack {
   public readonly table: dynamodb.Table;
-  public readonly api: apigatewayv2.HttpApi;
+  public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
@@ -48,6 +53,10 @@ export class MainStack extends Stack {
         },
       },
       stackPrefix,
+      vpcEndpointId,
+      crossAccountPrincipals = [],
+      vpc,
+      lambdaSecurityGroup,
     } = props;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
@@ -86,57 +95,50 @@ export class MainStack extends Stack {
     const apiGateway = new ApiGatewayConstruct(this, 'Api', {
       developerId,
       environment,
-      jwtIssuer: cognito.issuerUrl,
-      jwtAudience: Array.from(cognito.m2mClients.values()).map(
-        (c) => c.userPoolClientId,
-      ),
+      apiName: 'api',
+      vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
+      crossAccountPrincipals,
     });
 
     this.api = apiGateway.api;
 
-    // new WafConstruct(this, 'waf', {
-    //   developerId,
-    //   environment,
-    //   apiGatewayStageArn: apiGateway.stageArn,
-    // });
+    new WafConstruct(this, 'waf', {
+      developerId,
+      environment,
+      namePrefix: 'api',
+      apiGatewayStageArn: apiGateway.stageArn,
+      rateLimiting: { enabled: true, limit: 2000 },
+      sqlInjectionRule: { enabled: true, action: 'block' },
+      commonRuleSet: { enabled: true, action: 'block' },
+    });
 
-    const jwtAuthorizer = new HttpJwtAuthorizer(
-      'JwtAuthorizer',
-      cognito.issuerUrl,
-      {
-        jwtAudience: Array.from(cognito.m2mClients.values()).map(
-          (c) => c.userPoolClientId,
-        ),
-      },
-    );
+    const authorizer = new LambdaAuthorizerConstuct(this, 'Authorizer', {
+      developerId,
+      environment,
+      cognitoIssuer: cognito.issuerUrl,
+      resourceServerIdentifier: 'udp',
+      vpc,
+      securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+    });
 
     let lambdasList = [];
     for (const route of Object.values(routes)) {
       const lambda = new LambdaApiConstruct(this, route.name, {
         developerId,
         environment,
-        environmentVariables: routes.environmentVariables
-          ? {
-              ...routes.environmentVariables,
-              STACK: stackPrefix,
-              SERVICE_NAME: route.name,
-            }
-          : {
-              STACK: stackPrefix,
-              SERVICE_NAME: route.name,
-            },
         functionName: `${route.name}Lambda`,
         sourcePath: `${route.name}Lambda`,
         kmsKey: kms.key,
         dynamoDBtable: db.table,
         dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
         api: apiGateway.api,
-        authorizer: jwtAuthorizer,
-        httpMethod: route.method as apigatewayv2.HttpMethod,
+        authorizer: authorizer.authorizer,
+        httpMethod: route.method,
         routePath: route.path,
-        authorizationScopes: route.authorizationScopes
-          ? route.authorizationScopes
-          : [],
+        environmentVariables: {
+          STACK: stackPrefix,
+          SERVICE_NAME: route.name,
+        },
       });
 
       lambdasList.push(lambda.function);
@@ -145,7 +147,7 @@ export class MainStack extends Stack {
     this.lambdas = lambdasList;
 
     new CfnOutput(this, 'ApiEndpoint', {
-      value: this.api.apiEndpoint,
+      value: this.api.url,
       description: 'Api Endpoint url',
       exportName: `${id}-ApiEndpoint`,
     });

@@ -1,33 +1,24 @@
 import { Construct } from 'constructs';
-import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { CfnOutput, Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
-export interface CoreConfig {
-  readonly allowOrigins?: string[];
-  readonly allowMethods?: apigatewayv2.CorsHttpMethod[];
-  readonly allowHeaders?: string[];
-  readonly exposesHeaders?: string[];
-  readonly maxAge?: Duration;
-  readonly allowCredentials: boolean;
-}
+import { CfnOutput, Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly apiName?: string;
-  readonly jwtIssuer?: string;
-  readonly jwtAudience?: string[];
-  readonly corsConfig?: CoreConfig;
+  readonly vpcEndpointIds: string[];
+  readonly crossAccountPrincipals?: string[];
   readonly throttlingBurstLimit?: number;
   readonly throttlingRateLimit?: number;
   readonly enableAccessLogs?: boolean;
 }
 
 export class ApiGatewayConstruct extends Construct {
-  public readonly api: apigatewayv2.HttpApi;
-  public readonly authorizer: apigatewayv2.HttpAuthorizer | undefined;
-  public readonly stage: apigatewayv2.HttpStage;
+  public readonly api: apigateway.RestApi;
   public readonly logGroup?: logs.LogGroup;
 
   constructor(scope: Construct, id: string, props: ApiGatewayConstructProps) {
@@ -37,9 +28,8 @@ export class ApiGatewayConstruct extends Construct {
       developerId,
       environment,
       apiName = 'api',
-      jwtIssuer,
-      jwtAudience,
-      corsConfig,
+      vpcEndpointIds,
+      crossAccountPrincipals,
       throttlingBurstLimit = 100,
       throttlingRateLimit = 50,
       enableAccessLogs = true,
@@ -49,6 +39,69 @@ export class ApiGatewayConstruct extends Construct {
       ? `${developerId}-${apiName}-${environment}`
       : `${apiName}-${environment}`;
 
+    const policyStatements: iam.PolicyStatement[] = [
+      // Deny all access not from VPC endpoints
+      new iam.PolicyStatement({
+        effect: iam.Effect.DENY,
+        principals: [new iam.AnyPrincipal()],
+        actions: ['execute-api:Invoke'],
+        resources: ['execute-api/*'],
+        conditions: {
+          StringNotEquals: {
+            'aws:sourceVpce': vpcEndpointIds,
+          },
+        },
+      }),
+      // allow access from VPC endponts
+      new iam.PolicyStatement({
+        effect: iam.Effect.DENY,
+        principals: [new iam.AnyPrincipal()],
+        actions: ['execute-api:Invoke'],
+        resources: ['execute-api/*'],
+      }),
+    ];
+
+    if (crossAccountPrincipals && crossAccountPrincipals?.length > 0) {
+      policyStatements.push(
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          principals: crossAccountPrincipals?.map(
+            (accountId) => new iam.AccountPrincipal(accountId),
+          ),
+          actions: ['execute-api:Invoke'],
+          resources: ['execute-api/*'],
+        }),
+      );
+    }
+
+    const resourcePolicy = new iam.PolicyDocument({
+      statements: policyStatements,
+    });
+
+    const vpcEndpoints = vpcEndpointIds.map((endpointId, index) =>
+      ec2.InterfaceVpcEndpoint.fromInterfaceVpcEndpointAttributes(
+        this,
+        `VpcEndpoint${index}`,
+        {
+          vpcEndpointId: endpointId,
+          port: 443,
+        },
+      ),
+    );
+
+    const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
+      assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'service-role/AmazonApiGatewayPushToCloudwatchLogs',
+        ),
+      ],
+    });
+
+    const account = new apigateway.CfnAccount(this, 'ApiGatewayAccount', {
+      cloudWatchRoleArn: cloudwatchLogRole.roleArn,
+    });
+
     if (enableAccessLogs) {
       this.logGroup = new logs.LogGroup(this, 'AccessLogs', {
         logGroupName: `/aws/apigateway/${fullApiName}`,
@@ -57,36 +110,50 @@ export class ApiGatewayConstruct extends Construct {
       });
     }
 
-    this.api = new apigatewayv2.HttpApi(this, 'HttpApi', {
-      apiName: fullApiName,
+    this.api = new apigateway.RestApi(this, 'HttpApi', {
+      restApiName: fullApiName,
       description: `Http api for ${fullApiName}`,
-      createDefaultStage: false,
-    });
-
-    if (jwtIssuer && jwtAudience && jwtAudience.length > 0) {
-      this.authorizer = new apigatewayv2.HttpAuthorizer(this, 'JwtAuthorizer', {
-        httpApi: this.api,
-        authorizerName: `${fullApiName}-jwt-authorizer`,
-        type: apigatewayv2.HttpAuthorizerType.JWT,
-        identitySource: ['$request.header.Authorization'],
-        jwtIssuer,
-        jwtAudience,
-      });
-    }
-
-    this.stage = new apigatewayv2.HttpStage(this, 'Stage', {
-      httpApi: this.api,
-      stageName: environment,
-      autoDeploy: true,
-      throttle: {
-        burstLimit: throttlingBurstLimit,
-        rateLimit: throttlingRateLimit,
+      endpointConfiguration: {
+        types: [apigateway.EndpointType.PRIVATE],
+        vpcEndpoints,
       },
+      policy: resourcePolicy,
+      deployOptions: {
+        stageName: environment,
+        throttlingBurstLimit,
+        throttlingRateLimit,
+        accessLogDestination: this.logGroup
+          ? new apigateway.LogGroupLogDestination(this.logGroup)
+          : undefined,
+        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
+          caller: true,
+          httpMethod: true,
+          ip: true,
+          protocol: true,
+          requestTime: true,
+          resourcePath: true,
+          responseLength: true,
+          status: true,
+          user: true,
+        }),
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        dataTraceEnabled: false,
+        metricsEnabled: true,
+      },
+
+      disableExecuteApiEndpoint: false,
     });
+
+    this.api.node.addDependency(account);
 
     new CfnOutput(this, 'ApiEndpoint', {
-      value: this.api.apiEndpoint,
+      value: this.api.url,
       description: 'API Gateway endpoint URL',
+    });
+
+    new CfnOutput(this, 'ApiId', {
+      value: this.api.restApiId,
+      description: 'RestAPi ID',
     });
   }
 
@@ -97,10 +164,10 @@ export class ApiGatewayConstruct extends Construct {
       stack.partition,
       ':apigateway:',
       stack.region,
-      '::/apis/',
-      this.api.apiId,
+      '::/restapis/',
+      this.api.restApiId,
       '/stages/',
-      this.stage.stageName,
+      this.api.deploymentStage.stageName,
     ]);
   }
 
