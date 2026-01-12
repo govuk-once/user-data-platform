@@ -92,6 +92,7 @@ export class ApiGatewayConstruct extends Construct {
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [
+        /* pragma: allowlist-secret */
         iam.ManagedPolicy.fromAwsManagedPolicyName(
           'service-role/AmazonApiGatewayPushToCloudwatchLogs',
         ),
