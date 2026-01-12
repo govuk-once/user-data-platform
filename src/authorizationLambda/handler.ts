@@ -59,7 +59,7 @@ export const handler = async (
     'Allow',
     generateWildcardArn(event.methodArn),
     {
-      clientid: claims.client_id || '',
+      clientId: claims.client_id || '',
       scopes: scopes.join(','),
       resource,
       action,
