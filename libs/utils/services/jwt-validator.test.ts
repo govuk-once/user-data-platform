@@ -1,4 +1,4 @@
-import { decribe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   extractBearerToken,
   parseScopes,
@@ -6,7 +6,6 @@ import {
   extractResourcesFrompath,
   isAuthorized,
 } from './jwt-validator';
-import { describe } from 'node:test';
 
 describe('jwt validaotr', () => {
   describe('extractBearerToken', () => {
