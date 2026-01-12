@@ -93,7 +93,7 @@ export class ApiGatewayConstruct extends Construct {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'service-role/AmazonApiGatewayPushToCloudwatchLogs', /* pragma: allowlist-secret */
+          'service-role/AmazonApiGatewayPushToCloudwatchLogs' /* pragma: allowlist-secret */,
         ),
       ],
     });
