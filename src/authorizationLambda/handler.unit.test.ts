@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { APIGatewayTokenAuthorizerEvent, Statement } from 'aws-lambda';
 
 vi.hoisted(() => {
-  ((process.env['COGNITO_ISSUER'] =
-    'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_test'),
-    (process.env['RESEOURCE_SERVER_ID'] = 'api'));
+  process.env['COGNITO_ISSUER'] =
+    'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_test';
+
+  process.env['RESEOURCE_SERVER_ID'] = 'api';
 });
 
 const getStatment = (statement: Statement) =>
@@ -21,7 +22,8 @@ const mockParseMethodArn = vi.hoisted(() => vi.fn());
 vi.mock('@libs/utils', async (importOriginal) => {
   const actual = await importOriginal();
   return {
-    ...(actual as unknown as any),
+    /* eslint-disable  @typescript-eslint/no-explicit-any */
+    ...(actual as any),
     JwtValidator: class JwtValidator {
       validate = mockValidate;
     },
