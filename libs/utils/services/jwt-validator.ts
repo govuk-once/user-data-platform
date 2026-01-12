@@ -3,7 +3,6 @@ import {
   PolicyDocument,
   Statement,
 } from 'aws-lambda';
-import { verify } from 'crypto';
 import jwt, { JwtPayload, VerifyOptions } from 'jsonwebtoken';
 import jwksClient, { SigningKey } from 'jwks-rsa';
 
