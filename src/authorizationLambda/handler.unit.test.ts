@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
+import type { APIGatewayTokenAuthorizerEvent, Statement } from 'aws-lambda';
 
 vi.hoisted(() => {
   ((process.env['COGNITO_ISSUER'] =
     'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_test'),
     (process.env['RESEOURCE_SERVER_ID'] = 'api'));
 });
+
+const getStatment = (statement: Statement) =>
+  statement as Statement & { Effect: string; Resource: string; Action: string };
 
 const mockValidate = vi.hoisted(() => vi.fn());
 const mockExtractBearerToken = vi.hoisted(() => vi.fn());
@@ -85,7 +88,7 @@ describe('authorizer handler', () => {
       const event = createMockEvent();
       const result = await handler(event);
 
-      expect(result.policyDocument.Statement[0].Resource).toBe(
+      expect(getStatment(result.policyDocument.Statement[0]).Resource).toBe(
         'arn:aws:execute-api:eu-west-1:123456789:api-id/dev/*',
       );
     });
@@ -123,7 +126,9 @@ describe('authorizer handler', () => {
 
       expect(result.principalId).toBe('test-client');
       expect(result.policyDocument.Statement[0].Effect).toBe('Deny');
-      expect(result.policyDocument.Statement[0].Resource).toBe(event.methodArn);
+      expect(getStatment(result.policyDocument.Statement[0]).Resource).toBe(
+        event.methodArn,
+      );
       expect(result.context).toBeUndefined();
     });
   });
