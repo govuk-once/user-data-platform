@@ -64,7 +64,7 @@ repos:
         language: system
         pass_filenames: false
         args:
-          - --skip-check=CKV_AWS_158,CKV_AWS_95,CKV_AWS_117,CKV_AWS_116,CKV_AWS_115,CKV_AWS_26
+          - --skip-check=CKV_AWS_116
 
       # Run all unit tests
       - id: test-all

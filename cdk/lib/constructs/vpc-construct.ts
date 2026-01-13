@@ -3,11 +3,13 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
 import { Environment } from 'aws-cdk-lib/aws-appconfig';
+import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface VpcConstructprops {
   readonly environment: string;
   readonly vpcCidr?: string;
   readonly maxAzs?: number;
+  readonly kmsKey?: kms.IKey;
 }
 
 export class VpcConstuct extends Construct {
@@ -24,7 +26,7 @@ export class VpcConstuct extends Construct {
   constructor(scope: Construct, id: string, props: VpcConstructprops) {
     super(scope, id);
 
-    const { environment, vpcCidr = '10.0.0.0/16', maxAzs = 2 } = props;
+    const { environment, vpcCidr = '10.0.0.0/16', maxAzs = 2, kmsKey } = props;
 
     this.vpc = new ec2.Vpc(this, 'vpc', {
       vpcName: `udp-api-vpc-${environment}`,
@@ -128,6 +130,7 @@ export class VpcConstuct extends Construct {
       logGroupName: `/aws/vpc/flow-logs-${environment}`,
       retention: logs.RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
+      encryptionKey: kmsKey,
     });
 
     this.vpc.addFlowLog('FlowLog', {

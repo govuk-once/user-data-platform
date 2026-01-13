@@ -4,7 +4,8 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
-import { CfnOutput, Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { CfnOutput, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
@@ -15,6 +16,9 @@ export interface ApiGatewayConstructProps {
   readonly throttlingBurstLimit?: number;
   readonly throttlingRateLimit?: number;
   readonly enableAccessLogs?: boolean;
+  readonly kmsKey?: kms.IKey;
+  readonly cachingEnabled?: boolean;
+  readonly cacheClusterSize?: string;
 }
 
 const role =
@@ -36,6 +40,9 @@ export class ApiGatewayConstruct extends Construct {
       throttlingBurstLimit = 100,
       throttlingRateLimit = 50,
       enableAccessLogs = true,
+      kmsKey,
+      cachingEnabled = false,
+      cacheClusterSize = '0.5',
     } = props;
 
     const fullApiName = developerId
@@ -106,6 +113,7 @@ export class ApiGatewayConstruct extends Construct {
         logGroupName: `/aws/apigateway/${fullApiName}`,
         retention: logs.RetentionDays.ONE_MONTH,
         removalPolicy: RemovalPolicy.DESTROY,
+        encryptionKey: kmsKey,
       });
     }
 
@@ -138,6 +146,10 @@ export class ApiGatewayConstruct extends Construct {
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         dataTraceEnabled: false,
         metricsEnabled: true,
+        tracingEnabled: true,
+        cachingEnabled,
+        cacheClusterEnabled: cachingEnabled,
+        cacheClusterSize: cachingEnabled ? cacheClusterSize : undefined,
       },
 
       disableExecuteApiEndpoint: false,

@@ -14,6 +14,7 @@ import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface LambdaAuthorizerConstuctProps {
   readonly developerId?: string;
@@ -25,6 +26,8 @@ export interface LambdaAuthorizerConstuctProps {
   readonly vpc?: IVpc;
   readonly vpcSubnets?: SubnetSelection;
   readonly securityGroups?: ISecurityGroup[];
+  readonly kmsKey?: kms.IKey;
+  readonly reservedConcurrentExecutions?: number;
 }
 
 export class LambdaAuthorizerConstuct extends Construct {
@@ -49,6 +52,8 @@ export class LambdaAuthorizerConstuct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
+      kmsKey,
+      reservedConcurrentExecutions = 100,
     } = props;
 
     const fullFunctionName = developerId
@@ -59,6 +64,7 @@ export class LambdaAuthorizerConstuct extends Construct {
       logGroupName: `/aws/lambda/${fullFunctionName}`,
       retention: logRetentionDays,
       removalPolicy: RemovalPolicy.DESTROY,
+      encryptionKey: kmsKey,
     });
 
     const envVars: Record<string, string> = {
@@ -88,6 +94,8 @@ export class LambdaAuthorizerConstuct extends Construct {
         ? (vpcSubnets ?? { subnetType: SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
+      environmentEncryption: kmsKey,
+      reservedConcurrentExecutions,
     });
 
     this.authorizer = new TokenAuthorizer(this, 'TokenAuthorizer', {

@@ -75,6 +75,7 @@ if (!skipMainStack) {
       api: mainStack.api,
       lambdas: mainStack.lambdas,
       notificationEmails: [],
+      kmsKey: mainStack.kmsKey,
     },
   );
 

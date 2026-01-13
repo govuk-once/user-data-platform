@@ -30,6 +30,7 @@ export interface LambdaApiConstructProps {
   readonly vpc?: ec2.IVpc;
   readonly vpcSubnets?: ec2.SubnetSelection;
   readonly securityGroups?: ec2.ISecurityGroup[];
+  readonly reservedConcurrentExecutions?: number;
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -60,6 +61,7 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
+      reservedConcurrentExecutions = 100,
     } = props;
 
     const fullFunctionName = developerId
@@ -113,6 +115,7 @@ export class LambdaApiConstruct extends Construct {
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
+      reservedConcurrentExecutions,
     });
 
     if (dynamoDBtable) {
