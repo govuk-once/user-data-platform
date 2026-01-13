@@ -20,41 +20,64 @@ const awsEnv = account
     }
   : undefined;
 
+const crossAccountPrincipals: string[] = (() => {
+  const ctx = app.node.tryGetContext('crossAccountPrincipals');
+  if (!ctx) return [];
+  if (Array.isArray(ctx)) return ctx;
+  try {
+    return JSON.parse(ctx);
+  } catch {
+    return [];
+  }
+})();
+
+const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
+
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
-const mainStack = new MainStack(app, `${stackPrefix}-main`, {
-  developerId,
-  environment,
-  stackPrefix,
-  env: awsEnv,
-  description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
-  m2mClients: {
-    flex: {
-      scopes: ['udp/read', 'udp/write', 'udp/delete'],
-      accessTokenValidityMinutes: 60,
+if (!skipMainStack) {
+  const mainStack = new MainStack(app, `${stackPrefix}-main`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroup: vpcStack.lambdaSecurityGroup,
+    vpcEndpointId: vpcStack.executeApiEndpointId,
+    crossAccountPrincipals,
+
+    m2mClients: {
+      flex: {
+        scopes: ['udp/read', 'udp/write', 'udp/delete'],
+        accessTokenValidityMinutes: 60,
+      },
     },
-  },
-  ...repoMetaData,
-});
+    ...repoMetaData,
+  });
 
-mainStack.addDependency(vpcStack);
+  mainStack.addDependency(vpcStack);
 
-const monitoringStack = new MonitoringStack(app, `${stackPrefix}-monitoring`, {
-  developerId,
-  environment,
-  stackPrefix,
-  env: awsEnv,
-  description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
-  table: mainStack.table,
-  api: mainStack.api,
-  lambdas: mainStack.lambdas,
-  notificationEmails: [],
-});
+  const monitoringStack = new MonitoringStack(
+    app,
+    `${stackPrefix}-monitoring`,
+    {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
+      table: mainStack.table,
+      api: mainStack.api,
+      lambdas: mainStack.lambdas,
+      notificationEmails: [],
+    },
+  );
 
-monitoringStack.addDependency(mainStack);
-
+  monitoringStack.addDependency(mainStack);
+}
 app.synth();

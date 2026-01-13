@@ -3,7 +3,7 @@ import { Stack, StackProps, Duration } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
 
@@ -11,7 +11,7 @@ export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly table: dynamodb.ITable;
-  readonly api: apigatewayv2.IHttpApi;
+  readonly api: apigateway.RestApi;
   readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
@@ -172,7 +172,7 @@ export class MonitoringStack extends Stack {
   }
 
   private createApiGatewayAlarms(
-    api: apigatewayv2.IHttpApi,
+    api: apigateway.RestApi,
     stage: string,
     resourcePrefix: string,
   ): void {
@@ -181,7 +181,7 @@ export class MonitoringStack extends Stack {
         namespace: 'AWS/ApiGateway',
         metricName,
         dimensionsMap: {
-          ApiId: api.apiId,
+          ApiName: api.restApiName,
           Stage: stage,
         },
         period: Duration.minutes(1),
@@ -191,7 +191,7 @@ export class MonitoringStack extends Stack {
     new cloudwatch.Alarm(this, 'ApiGateway5xxErrors', {
       alarmName: `${resourcePrefix}-api-5xx-errors`,
       alarmDescription: 'API Gateway 5xx error rate is high',
-      metric: apiMetric('5xx'),
+      metric: apiMetric('5xxError'),
       threshold: 10,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
@@ -202,7 +202,7 @@ export class MonitoringStack extends Stack {
     new cloudwatch.Alarm(this, 'ApiGateway4xxErrors', {
       alarmName: `${resourcePrefix}-api-4xx-errors`,
       alarmDescription: 'API Gateway 4xx error rate is high',
-      metric: apiMetric('5xx'),
+      metric: apiMetric('4xxError'),
       threshold: 50,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
@@ -222,16 +222,13 @@ export class MonitoringStack extends Stack {
     });
   }
 
-  private addApiGatewayWidgets(
-    api: apigatewayv2.IHttpApi,
-    stage: string,
-  ): void {
+  private addApiGatewayWidgets(api: apigateway.RestApi, stage: string): void {
     const apiMetric = (metricName: string, statistic = 'Sum') =>
       new cloudwatch.Metric({
         namespace: 'AWS/ApiGateway',
         metricName,
         dimensionsMap: {
-          ApiId: api.apiId,
+          ApiName: api.restApiName,
           Stage: stage,
         },
         period: Duration.minutes(1),
@@ -241,7 +238,11 @@ export class MonitoringStack extends Stack {
     this.dashboard.addWidgets(
       new cloudwatch.GraphWidget({
         title: 'Api Gateway - Requests & Errors',
-        left: [apiMetric('Count'), apiMetric('4xx'), apiMetric('5xx')],
+        left: [
+          apiMetric('Count'),
+          apiMetric('4xxError'),
+          apiMetric('5xxError'),
+        ],
         width: 12,
       }),
       new cloudwatch.GraphWidget({

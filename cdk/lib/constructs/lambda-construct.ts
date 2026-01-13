@@ -4,11 +4,10 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import * as path from 'path';
-import { log } from 'console';
 
 export interface LambdaApiConstructProps {
   readonly developerId?: string;
@@ -23,12 +22,14 @@ export interface LambdaApiConstructProps {
   readonly kmsKey?: kms.IKey;
   readonly dynamoDBtable?: dynamodb.Table;
   readonly dynamoDbActions?: string[];
-  readonly api?: apigatewayv2.HttpApi;
-  readonly authorizer?: apigatewayv2.IHttpRouteAuthorizer;
-  readonly httpMethod: apigatewayv2.HttpMethod;
+  readonly api?: apigateway.RestApi;
+  readonly authorizer?: apigateway.IAuthorizer;
+  readonly httpMethod: string;
   readonly routePath: string;
-  readonly authorizationScopes?: string[];
   readonly logRetentionDays?: logs.RetentionDays;
+  readonly vpc?: ec2.IVpc;
+  readonly vpcSubnets?: ec2.SubnetSelection;
+  readonly securityGroups?: ec2.ISecurityGroup[];
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -54,9 +55,11 @@ export class LambdaApiConstruct extends Construct {
       api,
       authorizer,
       httpMethod,
-      authorizationScopes,
       logRetentionDays = logs.RetentionDays.ONE_MONTH,
       routePath,
+      vpc,
+      vpcSubnets,
+      securityGroups,
     } = props;
 
     const fullFunctionName = developerId
@@ -104,6 +107,12 @@ export class LambdaApiConstruct extends Construct {
       environmentEncryption: kmsKey,
       logGroup: this.logGroup,
       tracing: lambda.Tracing.ACTIVE,
+
+      vpc,
+      vpcSubnets: vpc
+        ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
+        : undefined,
+      securityGroups: vpc ? securityGroups : undefined,
     });
 
     if (dynamoDBtable) {
@@ -124,17 +133,27 @@ export class LambdaApiConstruct extends Construct {
     }
 
     if (api) {
-      const integration = new HttpLambdaIntegration(
-        `${id}Integration`,
-        this.function,
-      );
+      const integration = new apigateway.LambdaIntegration(this.function, {
+        proxy: true,
+      });
 
-      api.addRoutes({
-        path: routePath,
-        methods: [httpMethod],
-        integration,
+      const pathParts = routePath.split('/').filter((p) => p.length > 0);
+      let resource: apigateway.IResource = api.root;
+
+      for (const part of pathParts) {
+        const existingResource = resource.getResource(part);
+        if (existingResource) {
+          resource = existingResource;
+        } else {
+          resource = resource.addResource(part);
+        }
+      }
+
+      resource.addMethod(httpMethod, integration, {
         authorizer,
-        authorizationScopes: authorizer ? authorizationScopes : undefined,
+        authorizationType: authorizer
+          ? apigateway.AuthorizationType.CUSTOM
+          : apigateway.AuthorizationType.NONE,
       });
     }
   }

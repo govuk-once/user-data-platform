@@ -48,7 +48,7 @@ export class WafConstruct extends Construct {
       ? `${developerId}-${namePrefix}`
       : namePrefix;
 
-    const webAclName = `${resourcePrefix}-${environment}`;
+    const webAclName = `${resourcePrefix}-waf-${environment}`;
 
     const rules: wafv2.CfnWebACL.RuleProperty[] = [];
     let priority = 1;
