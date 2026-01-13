@@ -22,6 +22,7 @@ export interface WafConstructProps {
   readonly rateLimiting?: RateLimitingConfig;
   readonly sqlInjectionRule?: ManagedRuleConfig;
   readonly commonRuleSet?: ManagedRuleConfig;
+  readonly knownBadInputRuleSet?: ManagedRuleConfig;
   readonly enableLogging?: boolean;
   readonly logRetentionDays?: number;
   readonly kmsKey?: kms.IKey;
@@ -42,6 +43,7 @@ export class WafConstruct extends Construct {
       rateLimiting = { enabled: true, limit: 2000 },
       sqlInjectionRule = { enabled: true, action: 'block' },
       commonRuleSet = { enabled: true, action: 'block' },
+      knownBadInputRuleSet = { enabled: true, action: 'block' },
       enableLogging = true,
       logRetentionDays = 30,
       kmsKey,
@@ -110,6 +112,28 @@ export class WafConstruct extends Construct {
         visibilityConfig: {
           cloudWatchMetricsEnabled: true,
           metricName: `${resourcePrefix}-common`,
+          sampledRequestsEnabled: true,
+        },
+      });
+    }
+
+    if (knownBadInputRuleSet.enabled) {
+      rules.push({
+        name: 'AWSManagedRulesKnownBadInputsRuleSet',
+        priority: priority++,
+        overrideAction:
+          knownBadInputRuleSet.action === 'block'
+            ? { none: {} }
+            : { count: {} },
+        statement: {
+          managedRuleGroupStatement: {
+            vendorName: 'AWS',
+            name: 'AWSManagedRulesKnownBadInputsRuleSet',
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          metricName: `${resourcePrefix}-known-bad-inputs`,
           sampledRequestsEnabled: true,
         },
       });

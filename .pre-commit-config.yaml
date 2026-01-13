@@ -60,7 +60,7 @@ repos:
       # Checkov security scanning
       - id: checkov-scan
         name: Checkov Scan
-        entry: checkov -d cdk --framework cloudformation
+        entry: checkov -d cdk --config-file cdk/.checkov.yaml
         language: system
         pass_filenames: false
         args:

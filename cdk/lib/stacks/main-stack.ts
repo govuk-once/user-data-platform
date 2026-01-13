@@ -102,6 +102,7 @@ export class MainStack extends Stack {
       vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
       crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
+      cachingEnabled: true,
     });
 
     this.api = apiGateway.api;
@@ -145,6 +146,8 @@ export class MainStack extends Stack {
           STACK: stackPrefix,
           SERVICE_NAME: route.name,
         },
+        vpc,
+        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
       });
 
       lambdasList.push(lambda.function);
