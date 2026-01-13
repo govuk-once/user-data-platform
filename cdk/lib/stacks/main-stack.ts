@@ -101,6 +101,7 @@ export class MainStack extends Stack {
       apiName: 'api',
       vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
       crossAccountPrincipals,
+      kmsKey: kmsConstruct.key,
     });
 
     this.api = apiGateway.api;
@@ -113,6 +114,7 @@ export class MainStack extends Stack {
       rateLimiting: { enabled: true, limit: 2000 },
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
+      kmsKey: kmsConstruct.key,
     });
 
     const authorizer = new LambdaAuthorizerConstuct(this, 'Authorizer', {
@@ -122,6 +124,7 @@ export class MainStack extends Stack {
       resourceServerIdentifier: 'udp',
       vpc,
       securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+      kmsKey: kmsConstruct.key,
     });
 
     let lambdasList = [];

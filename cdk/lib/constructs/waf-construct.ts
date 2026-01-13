@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
 export interface RateLimitingConfig {
@@ -23,6 +24,7 @@ export interface WafConstructProps {
   readonly commonRuleSet?: ManagedRuleConfig;
   readonly enableLogging?: boolean;
   readonly logRetentionDays?: number;
+  readonly kmsKey?: kms.IKey;
 }
 
 export class WafConstruct extends Construct {
@@ -42,6 +44,7 @@ export class WafConstruct extends Construct {
       commonRuleSet = { enabled: true, action: 'block' },
       enableLogging = true,
       logRetentionDays = 30,
+      kmsKey,
     } = props;
 
     const resourcePrefix = developerId
@@ -135,6 +138,7 @@ export class WafConstruct extends Construct {
         logGroupName: `aws-waf-logs-${resourcePrefix}-${environment}`,
         retention: logRetentionDays,
         removalPolicy: RemovalPolicy.DESTROY,
+        encryptionKey: kmsKey,
       });
 
       new wafv2.CfnLoggingConfiguration(this, 'logingConfig', {
