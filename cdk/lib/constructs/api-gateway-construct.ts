@@ -17,6 +17,9 @@ export interface ApiGatewayConstructProps {
   readonly enableAccessLogs?: boolean;
 }
 
+const role =
+  'service-role/AmazonApiGatewayPushToCloudwatchLogs'; /* pragma: allowlist-secret */
+
 export class ApiGatewayConstruct extends Construct {
   public readonly api: apigateway.RestApi;
   public readonly logGroup?: logs.LogGroup;
@@ -91,11 +94,7 @@ export class ApiGatewayConstruct extends Construct {
 
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'service-role/AmazonApiGatewayPushToCloudwatchLogs' /* pragma: allowlist-secret */,
-        ),
-      ],
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName(role)],
     });
 
     const account = new apigateway.CfnAccount(this, 'ApiGatewayAccount', {
