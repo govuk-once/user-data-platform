@@ -73,6 +73,12 @@ export class MainStack extends Stack {
     });
     this.kmsKey = kmsConstruct.key;
 
+    const dbKms = new KmsConstruct(this, 'dbKms', {
+      developerId,
+      environment,
+      namePrefix: 'db-kms-encryption',
+    });
+
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
       environment,
@@ -136,6 +142,7 @@ export class MainStack extends Stack {
         functionName: `${route.name}Lambda`,
         sourcePath: `${route.name}Lambda`,
         kmsKey: kmsConstruct.key,
+        dbKmsKey: dbKms.key,
         dynamoDBtable: db.table,
         dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
         api: apiGateway.api,
