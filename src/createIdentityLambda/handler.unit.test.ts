@@ -48,7 +48,7 @@ describe('createItentityHandler', () => {
   });
 
   describe('Bad Request 400', () => {
-    it('Should throw a bad request if the userId is not set in the path params', async () => {
+    it('Should throw a bad request if the identifier is not set in the path params', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           data: { status: 'active' },
         }) as any,
@@ -67,7 +67,7 @@ describe('createItentityHandler', () => {
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed userId: is required');
+      expect(result.body).toBe('Validation Failed identifier: is required');
     });
 
     it('Should throw a bad request if the appId is not set in the body', async () => {
@@ -79,11 +79,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           serviceName: 'test',
         }) as any,
@@ -104,11 +104,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           appId: 'test',
         }) as any,
@@ -129,11 +129,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           unknoen: 'test',
         }),
@@ -149,7 +149,7 @@ describe('createItentityHandler', () => {
   });
 
   describe('Create', () => {
-    it('Should return a 201 if creation is successful when the userId is equal to the appId', async () => {
+    it('Should return a 201 if creation is successful when the identifier is equal to the appId', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -158,11 +158,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           appId: 'test-user-id',
           serviceName: 'test',
@@ -178,7 +178,7 @@ describe('createItentityHandler', () => {
       expect(result?.statusCode).toBe(201);
     });
 
-    it('Should return a 201 if creation is successful when the userId is not the same as appId', async () => {
+    it('Should return a 201 if creation is successful when the identifier is not the same as appId', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -187,11 +187,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           appId: 'test-app-id',
           serviceName: 'test',
@@ -216,11 +216,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           appId: 'test-app-id',
           serviceName: 'test',
@@ -243,11 +243,11 @@ describe('createItentityHandler', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         body: JSON.stringify({
           appId: 'test-app-id',
           serviceName: 'test',

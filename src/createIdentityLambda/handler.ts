@@ -52,7 +52,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const input = {
       ...(event.body as unknown as CreateItemBody),
-      serviceId: event.pathParameters.userId,
+      serviceId: event.pathParameters.identifier,
     } as unknown as IdentityInput;
 
     await getFactory().getService('identity').create(input);

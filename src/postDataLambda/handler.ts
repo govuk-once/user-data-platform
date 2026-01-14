@@ -52,7 +52,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.userId);
+      .getById(event.pathParameters.identifier);
     await getFactory()
       .getService('data')
       .save(identity, event.pathParameters.proxy, event.body);

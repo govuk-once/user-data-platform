@@ -46,7 +46,7 @@ describe('readIdentityLambda', () => {
   });
 
   describe('Bad Request 400', () => {
-    it('Should throw a bad request if the userId is not set in the path params', async () => {
+    it('Should throw a bad request if the identifier is not set in the path params', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -56,16 +56,16 @@ describe('readIdentityLambda', () => {
         rawPath: '/user/',
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
         pathParameters: {
-          userId: undefined,
+          identifier: undefined,
         },
       };
 
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed userId: is required');
+      expect(result.body).toBe('Validation Failed identifier: is required');
     });
   });
 
@@ -77,13 +77,13 @@ describe('readIdentityLambda', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: '/identity/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
       };
 
       const record = {
@@ -123,11 +123,11 @@ describe('readIdentityLambda', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
       };
 
       mockGet.mockRejectedValue(createHttpError.NotFound());
@@ -146,11 +146,11 @@ describe('readIdentityLambda', () => {
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
-          userId: 'test-user-id',
+          identifier: 'test-user-id',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /user/{userId}',
+        routeKey: 'POST /identity/{identifier}',
       };
 
       mockGet.mockRejectedValue(Error('Unknown'));
