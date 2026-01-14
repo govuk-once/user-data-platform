@@ -48,7 +48,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.userId);
+      .getById(event.pathParameters.identifier);
 
     return {
       statusCode: 200,

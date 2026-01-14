@@ -3,7 +3,7 @@ import { z } from 'zod';
 extendZodWithOpenApi(z);
 
 export const DataPathSchema = z.object({
-  userId: z.string('is required').min(1).openapi({
+  identifier: z.string('is required').min(1).openapi({
     description: 'The One login',
     example: '123',
   }),

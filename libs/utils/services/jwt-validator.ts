@@ -157,7 +157,10 @@ export function methodToAction(method: string): string {
 export function extractResourcesFrompath(path: string): string {
   const segments = path.replace(/^\//, '').split('/');
 
-  if (segments.length >= 3 && segments[0] === 'user') {
+  if (
+    (segments.length >= 3 && segments[0] === 'identity') ||
+    segments[0] === 'user'
+  ) {
     return segments[2];
   }
 

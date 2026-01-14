@@ -76,7 +76,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/topics/user-guid-123',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -110,7 +110,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -146,7 +146,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -192,7 +192,7 @@ describe('postDataLambda handler', () => {
 
       expect(result.statusCode).toBe(400);
       expect(result.body).toBe(
-        'Validation Failed userId: is required,proxy: is required',
+        'Validation Failed identifier: is required,proxy: is required',
       );
 
       expect(mockSave).not.toHaveBeenCalled();
@@ -207,7 +207,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -233,7 +233,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -259,7 +259,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: undefined,
         },
         rawQueryString: '',
@@ -287,7 +287,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',
@@ -318,7 +318,7 @@ describe('postDataLambda handler', () => {
         isBase64Encoded: false,
         rawPath: '/user-guid-123/topics',
         pathParameters: {
-          userId: 'user-guid-123',
+          identifier: 'user-guid-123',
           proxy: 'topics',
         },
         rawQueryString: '',

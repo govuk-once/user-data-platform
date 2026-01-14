@@ -49,7 +49,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     await getFactory()
       .getService('identity')
-      .deleteById(event.pathParameters.userId);
+      .deleteById(event.pathParameters.identifier);
 
     return {
       statusCode: 200,

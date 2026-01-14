@@ -87,9 +87,9 @@ describe('jwt validaotr', () => {
   });
 
   describe('extractResourceFromPath', () => {
-    it('should extract resource from /user/{userId}/{resource} path', () => {
-      expect(extractResourcesFrompath('/user/123/orders')).toBe('orders');
-      expect(extractResourcesFrompath('/user/abc-456/payments')).toBe(
+    it('should extract resource from /identity/{identifier}/{resource} path', () => {
+      expect(extractResourcesFrompath('/identity/123/orders')).toBe('orders');
+      expect(extractResourcesFrompath('/identity/abc-456/payments')).toBe(
         'payments',
       );
     });

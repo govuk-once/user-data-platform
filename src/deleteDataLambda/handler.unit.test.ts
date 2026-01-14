@@ -74,7 +74,7 @@ describe('deleteDataLambda handler', () => {
     requestContext: {} as any,
     isBase64Encoded: false,
     rawPath: '',
-    pathParameters: pathParams ?? { userId: 'test-user', proxy: 'topics' },
+    pathParameters: pathParams ?? { identifier: 'test-user', proxy: 'topics' },
     rawQueryString: '',
     version: '2.0',
     routeKey: '$default',
@@ -102,7 +102,7 @@ describe('deleteDataLambda handler', () => {
 
   describe('validation errors', () => {
     it('should return 400 when rawPath is missing', async () => {
-      const event = createEvent({ userId: 'test-user-id' });
+      const event = createEvent({ identifier: 'test-user-id' });
 
       const result = await lambdaHandler(event, mockContext);
 
@@ -117,7 +117,7 @@ describe('deleteDataLambda handler', () => {
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed userId: is required');
+      expect(result.body).toBe('Validation Failed identifier: is required');
       expect(mockDeleteByKey).not.toHaveBeenCalled();
     });
 
@@ -128,7 +128,7 @@ describe('deleteDataLambda handler', () => {
 
       expect(result.statusCode).toBe(400);
       expect(result.body).toBe(
-        'Validation Failed userId: is required,proxy: is required',
+        'Validation Failed identifier: is required,proxy: is required',
       );
       expect(mockDeleteByKey).not.toHaveBeenCalled();
     });

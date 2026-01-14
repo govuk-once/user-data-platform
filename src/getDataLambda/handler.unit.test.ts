@@ -89,7 +89,7 @@ describe('getDataLambda handler', () => {
       mockGetByKey.mockResolvedValue(mockEntity);
 
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
       const response = await lambdaHandler(event, mockContext);
@@ -111,13 +111,13 @@ describe('getDataLambda handler', () => {
 
       expect(result.statusCode).toBe(400);
       expect(result.body).toBe(
-        'Validation Failed userId: is required,proxy: is required',
+        'Validation Failed identifier: is required,proxy: is required',
       );
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
 
     it('should return 400 when path has less than 2 segments', async () => {
-      const event = createEvent({ userId: 'test', proxy: undefined });
+      const event = createEvent({ identifier: 'test', proxy: undefined });
 
       const result = await lambdaHandler(event, mockContext);
 
@@ -127,20 +127,20 @@ describe('getDataLambda handler', () => {
     });
 
     it('should return 400 when path segments are empty', async () => {
-      const event = createEvent({ userId: undefined, proxy: undefined });
+      const event = createEvent({ identifier: undefined, proxy: undefined });
 
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
       expect(result.body).toBe(
-        'Validation Failed userId: is required,proxy: is required',
+        'Validation Failed identifier: is required,proxy: is required',
       );
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
 
     it('should return 404 when entity is not found', async () => {
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
 
@@ -156,7 +156,7 @@ describe('getDataLambda handler', () => {
 
     it('should return 404 when identity is not found', async () => {
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
 
@@ -178,7 +178,7 @@ describe('getDataLambda handler', () => {
       mockGetByKey.mockRejectedValue(unexpectedError);
 
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
       const result = await lambdaHandler(event, mockContext);
@@ -193,7 +193,7 @@ describe('getDataLambda handler', () => {
       mockGetByKey.mockRejectedValue(httpError);
 
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
       const result = await lambdaHandler(event, mockContext);
@@ -205,7 +205,7 @@ describe('getDataLambda handler', () => {
     it('should handle missing required', async () => {
       delete process.env['TABLE_NAME'];
       const event = createEvent({
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        identifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         proxy: 'topics',
       });
       const result = await lambdaHandler(event, mockContext);
