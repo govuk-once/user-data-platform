@@ -8,57 +8,57 @@ Feature: identity Api
         Given I am authenticated as "flex"
 
     Scenario: Successfully create initial app User
-        When I send a post to '/user/123' with the body '{"appId":"123", "serviceName": "app"}'
+        When I send a post to '/identity/123' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
     Scenario: Successfully link initial app User to another service
-        When I send a post to '/user/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        When I send a post to '/identity/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
     Scenario: Successfully re link a user
-        When I send a post to '/user/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
+        When I send a post to '/identity/321' with the body '{"appId":"123", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
     Scenario: Returns a 404 if the appId isnt found when linking
-        When I send a post to '/user/321' with the body '{"appId":"doesnt-exist", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        When I send a post to '/identity/321' with the body '{"appId":"doesnt-exist", "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then the response status should be 404
 
     Scenario: Returns a 400 if the appId isnt set
-        When I send a post to '/user/321' with the body '{ "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        When I send a post to '/identity/321' with the body '{ "serviceName": "service2", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then the response status should be 400
 
     Scenario: Returns a 400 if the serviceName isnt set
-        When I send a post to '/user/321' with the body '{ "appId":"123", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
+        When I send a post to '/identity/321' with the body '{ "appId":"123", "accessToken":"test", "idToken":"test", "refreshToken":"test"}'
         Then the response status should be 400
 
     Scenario: Successfully Retrive identity Record
-        When i send a get to '/user/123'
+        When i send a get to '/identity/123'
         Then I should recieve a successful response
 
     Scenario: Successfully Retrive linked identity Record
-        When i send a get to '/user/321'
+        When i send a get to '/identity/321'
         Then I should recieve a successful response
         Then The response body contain body '{"serviceId":"321", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
 
     Scenario: Returns a 404 if not found
-        When i send a get to '/user/unknown'
+        When i send a get to '/identity/unknown'
         Then the response status should be 404
 
     Scenario: Reutrns a 400 if url is invalid
-        When i send a get to '/user/'
+        When i send a get to '/identity/'
         Then the response status should be 400
 
     Scenario: Successfully unlink an identity Record
-        When i send a delete to '/user/321'
+        When i send a delete to '/identity/321'
         Then I should recieve a successful response
 
     Scenario: Return a 404 if not found
-        When i send a delete to '/user/321'
+        When i send a delete to '/identity/321'
         Then the response status should be 404
 
     Scenario: Return a 400 bad request if invalid url
-        When i send a delete to '/user/'
+        When i send a delete to '/identity/'
         Then the response status should be 400
