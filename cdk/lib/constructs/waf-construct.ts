@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
 export interface RateLimitingConfig {
@@ -21,8 +22,10 @@ export interface WafConstructProps {
   readonly rateLimiting?: RateLimitingConfig;
   readonly sqlInjectionRule?: ManagedRuleConfig;
   readonly commonRuleSet?: ManagedRuleConfig;
+  readonly knownBadInputRuleSet?: ManagedRuleConfig;
   readonly enableLogging?: boolean;
   readonly logRetentionDays?: number;
+  readonly kmsKey?: kms.IKey;
 }
 
 export class WafConstruct extends Construct {
@@ -40,8 +43,10 @@ export class WafConstruct extends Construct {
       rateLimiting = { enabled: true, limit: 2000 },
       sqlInjectionRule = { enabled: true, action: 'block' },
       commonRuleSet = { enabled: true, action: 'block' },
+      knownBadInputRuleSet = { enabled: true, action: 'block' },
       enableLogging = true,
       logRetentionDays = 30,
+      kmsKey,
     } = props;
 
     const resourcePrefix = developerId
@@ -112,6 +117,28 @@ export class WafConstruct extends Construct {
       });
     }
 
+    if (knownBadInputRuleSet.enabled) {
+      rules.push({
+        name: 'AWSManagedRulesKnownBadInputsRuleSet',
+        priority: priority++,
+        overrideAction:
+          knownBadInputRuleSet.action === 'block'
+            ? { none: {} }
+            : { count: {} },
+        statement: {
+          managedRuleGroupStatement: {
+            vendorName: 'AWS',
+            name: 'AWSManagedRulesKnownBadInputsRuleSet',
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          metricName: `${resourcePrefix}-known-bad-inputs`,
+          sampledRequestsEnabled: true,
+        },
+      });
+    }
+
     this.webAcl = new wafv2.CfnWebACL(this, 'WebAcl', {
       name: webAclName,
       description: `WAF Web ACL for ${resourcePrefix} APi Gateway`,
@@ -135,6 +162,7 @@ export class WafConstruct extends Construct {
         logGroupName: `aws-waf-logs-${resourcePrefix}-${environment}`,
         retention: logRetentionDays,
         removalPolicy: RemovalPolicy.DESTROY,
+        encryptionKey: kmsKey,
       });
 
       new wafv2.CfnLoggingConfiguration(this, 'logingConfig', {

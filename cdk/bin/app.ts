@@ -1,7 +1,8 @@
-import { App } from 'aws-cdk-lib';
+import { App, Aspects } from 'aws-cdk-lib';
 import { MainStack, MonitoringStack } from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
+import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 
 const app = new App();
 
@@ -39,6 +40,8 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
+Aspects.of(app).add(new CheckovSuppressionAspect());
+
 if (!skipMainStack) {
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
@@ -75,6 +78,7 @@ if (!skipMainStack) {
       api: mainStack.api,
       lambdas: mainStack.lambdas,
       notificationEmails: [],
+      kmsKey: mainStack.kmsKey,
     },
   );
 

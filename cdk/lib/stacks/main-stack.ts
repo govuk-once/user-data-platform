@@ -13,6 +13,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
@@ -36,6 +37,7 @@ export class MainStack extends Stack {
   public readonly table: dynamodb.Table;
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
+  public readonly kmsKey: kms.IKey;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -64,17 +66,24 @@ export class MainStack extends Stack {
     cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
 
-    const kms = new KmsConstruct(this, 'Kms', {
+    const kmsConstruct = new KmsConstruct(this, 'Kms', {
       developerId,
       environment,
       namePrefix: 'encryption',
+    });
+    this.kmsKey = kmsConstruct.key;
+
+    const dbKms = new KmsConstruct(this, 'dbKms', {
+      developerId,
+      environment,
+      namePrefix: 'db-kms-encryption',
     });
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
       environment,
       tableName: 'user-data-store',
-      kmsKey: kms.key,
+      kmsKey: kmsConstruct.key,
       localSecondaryIndexes: [
         {
           indexName: 'lsi-index',
@@ -98,6 +107,8 @@ export class MainStack extends Stack {
       apiName: 'api',
       vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
       crossAccountPrincipals,
+      kmsKey: kmsConstruct.key,
+      cachingEnabled: true,
     });
 
     this.api = apiGateway.api;
@@ -110,6 +121,7 @@ export class MainStack extends Stack {
       rateLimiting: { enabled: true, limit: 2000 },
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
+      kmsKey: kmsConstruct.key,
     });
 
     const authorizer = new LambdaAuthorizerConstuct(this, 'Authorizer', {
@@ -119,6 +131,7 @@ export class MainStack extends Stack {
       resourceServerIdentifier: 'udp',
       vpc,
       securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+      kmsKey: kmsConstruct.key,
     });
 
     let lambdasList = [];
@@ -128,7 +141,8 @@ export class MainStack extends Stack {
         environment,
         functionName: `${route.name}Lambda`,
         sourcePath: `${route.name}Lambda`,
-        kmsKey: kms.key,
+        kmsKey: kmsConstruct.key,
+        dbKmsKey: dbKms.key,
         dynamoDBtable: db.table,
         dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
         api: apiGateway.api,
@@ -139,6 +153,8 @@ export class MainStack extends Stack {
           STACK: stackPrefix,
           SERVICE_NAME: route.name,
         },
+        vpc,
+        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
       });
 
       lambdasList.push(lambda.function);

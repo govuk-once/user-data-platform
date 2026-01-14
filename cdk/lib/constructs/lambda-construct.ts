@@ -20,6 +20,7 @@ export interface LambdaApiConstructProps {
   readonly sourcePath: string;
   readonly environmentVariables?: Record<string, string>;
   readonly kmsKey?: kms.IKey;
+  readonly dbKmsKey?: kms.IKey;
   readonly dynamoDBtable?: dynamodb.Table;
   readonly dynamoDbActions?: string[];
   readonly api?: apigateway.RestApi;
@@ -30,6 +31,7 @@ export interface LambdaApiConstructProps {
   readonly vpc?: ec2.IVpc;
   readonly vpcSubnets?: ec2.SubnetSelection;
   readonly securityGroups?: ec2.ISecurityGroup[];
+  readonly reservedConcurrentExecutions?: number;
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -50,6 +52,7 @@ export class LambdaApiConstruct extends Construct {
       sourcePath,
       environmentVariables = {},
       kmsKey,
+      dbKmsKey,
       dynamoDBtable,
       dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
       api,
@@ -60,6 +63,7 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
+      reservedConcurrentExecutions = 100,
     } = props;
 
     const fullFunctionName = developerId
@@ -82,8 +86,8 @@ export class LambdaApiConstruct extends Construct {
       envVars['TABLE_NAME'] = dynamoDBtable.tableName;
     }
 
-    if (kmsKey) {
-      envVars['KMS_KEY_ID'] = kmsKey.keyId;
+    if (dbKmsKey) {
+      envVars['KMS_KEY_ID'] = dbKmsKey.keyId;
     }
 
     // Sanitize sourcePath to prevent path traversal by using only the basename
@@ -113,6 +117,7 @@ export class LambdaApiConstruct extends Construct {
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
+      reservedConcurrentExecutions,
     });
 
     if (dynamoDBtable) {
@@ -127,9 +132,9 @@ export class LambdaApiConstruct extends Construct {
       );
     }
 
-    if (kmsKey) {
-      kmsKey.grantDecrypt(this.function);
-      kmsKey.grantEncrypt(this.function);
+    if (dbKmsKey) {
+      dbKmsKey.grantDecrypt(this.function);
+      dbKmsKey.grantEncrypt(this.function);
     }
 
     if (api) {

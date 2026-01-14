@@ -72,6 +72,26 @@ export class KmsConstruct extends Construct {
       }),
     );
 
+    this.key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'AllowCloudwatchAlarms',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal('cloudwatch.amazonaws.com')],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        resources: ['*'],
+      }),
+    );
+
+    this.key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'AllowSNSService',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal('sns.amazonaws.com')],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        resources: ['*'],
+      }),
+    );
+
     this.alias = this.key.node.findChild('Alias') as kms.Alias;
   }
 }

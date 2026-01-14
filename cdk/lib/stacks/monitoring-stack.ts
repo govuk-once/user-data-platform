@@ -6,6 +6,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
+import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -15,6 +16,7 @@ export interface MonitorStackProps extends StackProps {
   readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
+  readonly kmsKey: kms.IKey;
 }
 
 export class MonitoringStack extends Stack {
@@ -33,6 +35,7 @@ export class MonitoringStack extends Stack {
       lambdas,
       notificationEmails = [],
       stackPrefix,
+      kmsKey,
     } = props;
 
     const resourcePrefix = developerId
@@ -42,6 +45,7 @@ export class MonitoringStack extends Stack {
     this.alarmTopic = new sns.Topic(this, 'AlarmTopic', {
       topicName: `${resourcePrefix}-alarms`,
       displayName: `${resourcePrefix} Infrastructure Alarms`,
+      masterKey: kmsKey,
     });
 
     this.xrayTraceGroup = new xray.CfnGroup(this, developerId || environment, {

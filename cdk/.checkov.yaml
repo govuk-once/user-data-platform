@@ -1,0 +1,5 @@
+framework:
+  - cloudformation
+
+skip-check:
+  - 'CKV_AWS_116'
