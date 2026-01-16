@@ -107,7 +107,7 @@ jobs:
           cp -r "$STORE_PATH"/* .pnpm-store/
 
           echo "UPLOADING source to s3 for e2e"
-          zip -rq source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
+          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
           aws s3 cp source.zip "s3://${{ needs.deploy.outputs.source-bucket }}/${{ needs.deploy.outputs.source-path }}"
 
       - name: Trigger Codebuild and wait for completion
