@@ -2,7 +2,6 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
-import { Environment } from 'aws-cdk-lib/aws-appconfig';
 import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface VpcConstructprops {
@@ -22,6 +21,11 @@ export class VpcConstuct extends Construct {
   public readonly cognitoEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly cloudwatchEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly excecuteApiEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly codebuildSecurityGroup: ec2.SecurityGroup;
+  public readonly codeBuildEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly ecrApiEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly ecrDkrEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly secretsManagerEndpoint: ec2.InterfaceVpcEndpoint;
 
   constructor(scope: Construct, id: string, props: VpcConstructprops) {
     super(scope, id);
@@ -76,6 +80,13 @@ export class VpcConstuct extends Construct {
       'Allow Https to VPC Endpoints',
     );
 
+    this.codebuildSecurityGroup = new ec2.SecurityGroup(this, 'CodeBuildSG', {
+      vpc: this.vpc,
+      securityGroupName: `codebuild-sg-${environment}`,
+      description: 'Security group for CodeBuild projects outbound to VPC only',
+      allowAllOutbound: true,
+    });
+
     this.dynamoDbEnpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
       service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
     });
@@ -118,6 +129,48 @@ export class VpcConstuct extends Construct {
       'CloudwatchEndpoint',
       {
         service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
+
+    this.codeBuildEndpoint = this.vpc.addInterfaceEndpoint(
+      'CodeBuildEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.CODEBUILD,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
+
+    this.ecrApiEndpoint = this.vpc.addInterfaceEndpoint('EcrApiEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.ecrDkrEndpoint = this.vpc.addInterfaceEndpoint('EcrDkrEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.secretsManagerEndpoint = this.vpc.addInterfaceEndpoint(
+      'SecretManagerEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
         securityGroups: [this.vpcEndpointSecurityGroup],
         privateDnsEnabled: true,
         subnets: {

@@ -17,6 +17,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
+import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -38,6 +39,8 @@ export class MainStack extends Stack {
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
+  public readonly cognitoClient: UserPoolClient;
+  public readonly cognitoDomain: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -100,6 +103,13 @@ export class MainStack extends Stack {
       environment,
       m2mClients,
     });
+
+    const client = cognito.m2mClients.get('flex');
+    if (!client) {
+      throw new Error('Flex m2m client not found required for e2e tests');
+    }
+    this.cognitoClient = client;
+    this.cognitoDomain = `${cognito.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
 
     const apiGateway = new ApiGatewayConstruct(this, 'Api', {
       developerId,

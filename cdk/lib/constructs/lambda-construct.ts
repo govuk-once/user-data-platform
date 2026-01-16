@@ -63,7 +63,7 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
-      reservedConcurrentExecutions = 100,
+      reservedConcurrentExecutions = 10,
     } = props;
 
     const fullFunctionName = developerId

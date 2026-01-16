@@ -46,7 +46,6 @@
     "ts-node": "10.9.2",
     "tslib": "^2.3.0",
     "typescript": "5.9.3",
-    "typescript@latest": "link:@nx/js/typescript@latest",
     "vite-tsconfig-paths": "5.1.4",
     "vitest": "4.0.9"
   },

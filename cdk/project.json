@@ -28,6 +28,15 @@
         "cwd": "cdk"
       }
     },
+
+    "deploy:dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk deploy --all -c env=dev --require-approval never",
+        "cwd": "cdk"
+      }
+    },
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
