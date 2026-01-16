@@ -20,12 +20,6 @@
     "serve:openapi": "npx serve docs"
   },
   "devDependencies": {
-    "@nx/esbuild": "22.3.3",
-    "@nx/eslint": "22.3.3",
-    "@nx/eslint-plugin": "22.3.3",
-    "@nx/js": "22.3.3",
-    "@nx/node": "22.3.3",
-    "@nx/vite": "22.3.3",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
@@ -50,6 +44,12 @@
     "vitest": "4.0.9"
   },
   "dependencies": {
+    "@nx/esbuild": "22.3.3",
+    "@nx/eslint": "22.3.3",
+    "@nx/eslint-plugin": "22.3.3",
+    "@nx/js": "22.3.3",
+    "@nx/node": "22.3.3",
+    "@nx/vite": "22.3.3",
     "@asteasolutions/zod-to-openapi": "^8.4.0",
     "@aws-lambda-powertools/logger": "^2.29.0",
     "@aws-lambda-powertools/tracer": "^2.30.0",
@@ -71,6 +71,7 @@
     "jsonc-parser": "^3.3.1",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^3.2.0",
+    "nx": "22.3.3",
     "statuses": "^2.0.2",
     "tsx": "^4.21.0",
     "uuid": "^13.0.0",
