@@ -100,7 +100,8 @@ jobs:
 
       - name: Upload source to S3
         run: |
-          STORE_PATH=${pnpm store path}
+          echo "UPLOADING source to s3 get store path"
+          STORE_PATH=$(pnpm store path)
           pnpm store prune
 
           mkdir -p .pnpm-store  
