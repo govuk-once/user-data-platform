@@ -8,6 +8,8 @@ phases:
       - echo "Dependancies pre bundled ..."
       - node --version
       - ls --la node_modules/.bin/ | head -5
+      - corepack enable && corepack prepare pnpm@9 --activate
+      - pnpm --version
 
   pre_build:
     commands:
