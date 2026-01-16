@@ -105,7 +105,7 @@ jobs:
           pnpm store prune
 
           mkdir -p .pnpm-store  
-          cp -r "$STORE_PATH"/* .pnpm-store/
+          cp -r "${STORE_PATH}"/* .pnpm-store/
 
           echo "UPLOADING source to s3 for e2e"
           zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
