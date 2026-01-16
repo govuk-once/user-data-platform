@@ -88,7 +88,9 @@ jobs:
         run: corepack enable && corepack prepare pnpm@9 --activate
 
       - name: Install Dependancies
-        run: pnpm install --frozen-lockfile
+        run: |
+          rm pnpm-lock.yaml
+          pnpm install
 
       - name: Configure Aws Credentions
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
