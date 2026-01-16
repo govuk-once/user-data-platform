@@ -4,6 +4,7 @@ import {
   BuildSpec,
   Cache,
   ComputeType,
+  IBuildImage,
   LinuxBuildImage,
   LocalCacheMode,
   Project,
@@ -30,6 +31,7 @@ export interface CodeBuildE2eConstructProps {
   readonly awsRegion: string;
   readonly buildTimeout?: Duration;
   readonly sourceBucket: string;
+  readonly buildImage: IBuildImage
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -52,6 +54,7 @@ export class CodeBuildE2eConstruct extends Construct {
       awsRegion,
       buildTimeout = Duration.minutes(30),
       sourceBucket,
+      buildImage
     } = props;
 
     const stack = Stack.of(this);
@@ -198,7 +201,7 @@ export class CodeBuildE2eConstruct extends Construct {
       description: `Runs Cucumber e3e tests in vpc for ${resourcePrefix}`,
       source,
       environment: {
-        buildImage: LinuxBuildImage.STANDARD_7_0,
+        buildImage,
         computeType: ComputeType.SMALL,
         privileged: false,
         environmentVariables: {

@@ -16,6 +16,9 @@ import {
   Bucket,
   BucketEncryption,
 } from 'aws-cdk-lib/aws-s3';
+import * as path from 'path';
+import { DockerImageAsset } from 'aws-cdk-lib/aws-ecr-assets';
+import { LinuxBuildImage } from 'aws-cdk-lib/aws-codebuild';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;
@@ -72,6 +75,11 @@ export class E2eStack extends Stack {
       secretStringValue: cognitoCient.userPoolClientSecret,
     });
 
+    const e2eImage = new DockerImageAsset(this, 'E2ERunnerImage', {
+      directory: path.join(__dirname, '../../..'),
+      file: 'Dockerfile.e2e',
+    });
+
     this.codebuildProject = new CodeBuildE2eConstruct(this, 'CodeBuild', {
       developerId,
       environment,
@@ -84,6 +92,10 @@ export class E2eStack extends Stack {
       cognitoClientSecret: this.cognitoSecret,
       awsRegion: this.region,
       sourceBucket: this.sourceBucket.bucketName,
+      buildImage: LinuxBuildImage.fromEcrRepository(
+        e2eImage.repository,
+        e2eImage.imageTag,
+      ),
     });
 
     new CfnOutput(this, 'CodeBuildProjectName', {

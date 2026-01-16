@@ -79,18 +79,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependancies
-        run: |
-          corepack enable
-          corepack prepare pnpm@9 --activate
-          echo "node-linker=hoised" >> .npmrc
-          pnpm install --frozen-lockfile
-
       - name: Configure Aws Credentions
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
