@@ -8,8 +8,6 @@ phases:
       - echo "Dependancies pre bundled ..."
       - node --version
       - ls --la node_modules/.bin/ | head -5
-      - pnpm config set store-dir $(pwd)/.pnpm-store
-      - pnpm install --offlien --frozen-lockfile
 
   pre_build:
     commands:
