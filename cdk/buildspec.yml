@@ -5,9 +5,9 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-      - echo "Installing dependancies ..."
-      - cp -r $CODEBUILD_SRC_DIR/* /workspace/
-      - echo "Source coppied to /workspace"
+      - echo "Dependancies pre bundled ..."
+      - node --version
+      - ls --la node_modules/.bin/ | head -5
 
   pre_build:
     commands:

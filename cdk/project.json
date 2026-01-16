@@ -44,6 +44,14 @@
         "cwd": "cdk"
       }
     },
+
+    "destroy:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx cdk destroy --all -c env=dev --force",
+        "cwd": "cdk"
+      }
+    },
     "bootstrap": {
       "executor": "nx:run-commands",
       "options": {
