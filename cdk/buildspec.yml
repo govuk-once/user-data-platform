@@ -11,7 +11,6 @@ phases:
 
   pre_build:
     commands:
-      - cd /workspace
       - echo "Setting up E2E environment ..",
       - mkdir - e2e/reports
       - |
@@ -28,14 +27,12 @@ phases:
 
   build:
     commands:
-      - cd /workspace
       - echo "Running Cucumber E2E tests..."
       - ./node_modules/.bin/nx run e2e:e2e
       - echo "E2E tests completed with exit code ${E2E_EXIT_CODE:-0}"
 
   post_build:
     commands:
-      - cd /workspace
       - echo "E2E test run completed"
       - cp -r e2e/reports $CODEBUILD_SRC_DIR/e2e/ 2>dev/null || true
 
