@@ -25,6 +25,7 @@ export interface E2EStackProps extends StackProps {
   readonly kmsKey: IKey;
   readonly apiEndpoint: string;
   readonly cognitoDomain: string;
+  readonly cognitoEndpoint: string;
   readonly cognitoCient: UserPoolClient;
 }
 
@@ -45,6 +46,7 @@ export class E2eStack extends Stack {
       cognitoCient,
       cognitoDomain,
       apiEndpoint,
+      cognitoEndpoint
     } = props;
 
     const resourcePrefix = developerId
@@ -79,6 +81,7 @@ export class E2eStack extends Stack {
       securityGroups: [codeBuildSecurityGroup],
       kmsKey,
       apiEndpoint,
+      cognitoEndpoint,
       cognitoDomain,
       cognitoClientId: cognitoCient.userPoolClientId,
       cognitoClientSecret: this.cognitoSecret,

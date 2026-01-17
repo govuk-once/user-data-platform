@@ -96,6 +96,7 @@ if (!skipMainStack) {
     apiEndpoint: mainStack.api.url,
     cognitoDomain: mainStack.cognitoDomain,
     cognitoCient: mainStack.cognitoClient,
+    cognitoEndpoint: mainStack.cognitoEndpoint
   });
 
   e2eStack.addDependency(mainStack);

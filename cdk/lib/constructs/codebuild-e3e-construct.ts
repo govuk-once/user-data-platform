@@ -31,6 +31,7 @@ export interface CodeBuildE2eConstructProps {
   readonly awsRegion: string;
   readonly buildTimeout?: Duration;
   readonly sourceBucket: string;
+  readonly cognitoEndpoint?:string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -53,6 +54,7 @@ export class CodeBuildE2eConstruct extends Construct {
       awsRegion,
       buildTimeout = Duration.minutes(30),
       sourceBucket,
+      cognitoEndpoint
     } = props;
 
     const stack = Stack.of(this);
@@ -206,6 +208,7 @@ export class CodeBuildE2eConstruct extends Construct {
           API_BASE_URL: { value: apiEndpoint },
           COGNITO_DOMAIN: { value: cognitoDomain },
           COGNITO_CLIENT_FLEX_ID: { value: cognitoClientId },
+          COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint },
           COGNITO_CLIENT_FLEX_SECRET: {
             type: BuildEnvironmentVariableType.SECRETS_MANAGER,
             value: cognitoClientSecret.secretArn,

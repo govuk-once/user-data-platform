@@ -41,6 +41,7 @@ export class MainStack extends Stack {
   public readonly kmsKey: kms.IKey;
   public readonly cognitoClient: UserPoolClient;
   public readonly cognitoDomain: string;
+  public readonly cognitoEndpoint: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -110,6 +111,7 @@ export class MainStack extends Stack {
     }
     this.cognitoClient = client;
     this.cognitoDomain = `${cognito.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
+    this.cognitoEndpoint = cognito.tokenEndpoint;
 
     const apiGateway = new ApiGatewayConstruct(this, 'Api', {
       developerId,
