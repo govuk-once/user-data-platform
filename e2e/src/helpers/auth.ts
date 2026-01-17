@@ -41,6 +41,8 @@ export async function getAccessToken(clientName?: string): Promise<string> {
     }),
   });
 
+  console.log({ response });
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(

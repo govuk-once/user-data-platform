@@ -7,10 +7,6 @@ phases:
     commands:
       - echo "Dependancies pre bundled ..."
       - node --version
-      - echo "checking symlinks..."
-      - ls -la node_modules/.bin/ | head -5
-      - ls -la node_modules/@nx/ || echo "no @nx symlink"
-      - ls -la node_modules/.pnpm/ | head -5
 
   pre_build:
     commands:
