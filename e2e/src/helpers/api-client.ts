@@ -51,12 +51,17 @@ export class ApiClient {
 
     const url = `${this.baseUrl}${path}`;
 
+    console.log({ url });
+
     const response = await fetch(url, {
       method,
       headers: requestHeadeers,
       body: body ? JSON.stringify(body) : undefined,
     });
 
+    if (!response.ok) {
+      console.log({ response });
+    }
     let data: T;
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
