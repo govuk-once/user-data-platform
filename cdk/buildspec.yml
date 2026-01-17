@@ -31,7 +31,7 @@ phases:
   build:
     commands:
       - echo "Running Cucumber E2E tests..."
-      - node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs
+      - node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config e2e/cucumber.cjs
       - echo "E2E tests completed with exit code ${E2E_EXIT_CODE:-0}"
 
   post_build:
