@@ -32,6 +32,63 @@ jobs:
       - name: NX - set SHAs
         uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4.4.0
 
+      - name: Validate Conventional Commits
+        run: |
+          echo "Validating commit messages..."
+
+          # Get all commits in the PR
+          git fetch origin main
+          COMMITS=$(git log --pretty=format:"%s" origin/main..HEAD)
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found in PR"
+            exit 1
+          fi
+
+          echo "Commits to validate:"
+          echo "$COMMITS"
+          echo ""
+
+          # Check if at least one commit follows conventional commits
+          VALID_PATTERN="^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?(!)?:"
+
+          VALID_COUNT=0
+          INVALID_COMMITS=""
+
+          while IFS= read -r commit; do
+            if echo "$commit" | grep -qE "$VALID_PATTERN"; then
+              VALID_COUNT=$((VALID_COUNT + 1))
+              echo "✓ Valid: $commit"
+            else
+              INVALID_COMMITS="${INVALID_COMMITS}\n  - $commit"
+              echo "✗ Invalid: $commit"
+            fi
+          done <<< "$COMMITS"
+
+          echo ""
+          echo "Summary: $VALID_COUNT valid commit(s) found"
+
+          if [ $VALID_COUNT -eq 0 ]; then
+            echo ""
+            echo "❌ ERROR: No commits follow conventional commit format"
+            echo ""
+            echo "Invalid commits:$INVALID_COMMITS"
+            echo ""
+            echo "Conventional commit format: <type>(<scope>): <description>"
+            echo ""
+            echo "Types: feat, fix, docs, style, refactor, perf, test, chore, build, ci, revert"
+            echo ""
+            echo "Examples:"
+            echo "  feat: add new feature"
+            echo "  fix: resolve bug in authentication"
+            echo "  feat(api): add new endpoint"
+            echo "  feat!: breaking change"
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ Commit message validation passed"
+
       - name: Lint & format checks
         run: |
           pnpm lint:affected

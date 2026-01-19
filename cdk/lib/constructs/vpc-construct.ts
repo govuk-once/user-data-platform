@@ -112,7 +112,7 @@ export class VpcConstuct extends Construct {
     this.lambdaSecurityGroup.addEgressRule(
       this.vpcEndpointSecurityGroup,
       ec2.Port.tcp(443),
-      'Allow Https to VPC interface endpoints',
+      'Allow HTTPS to VPC interface endpoints',
     );
 
     this.lambdaSecurityGroup.addEgressRule(
