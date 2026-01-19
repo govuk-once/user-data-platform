@@ -23,7 +23,7 @@ components:
   schemas: {}
   parameters: {}
 paths:
-  /identity/{identitfier}:
+  /identity/{identifier}:
     post:
       summary: Create Identity Record
       description: Create Identity Record
@@ -161,96 +161,6 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-    delete:
-      summary: Delete Identity Record
-      description: Delete Identity Record
-      tags:
-        - identity
-      security:
-        - bearerAuth: []
-      parameters:
-        - schema:
-            type: string
-            minLength: 1
-            description: The One login
-            example: '123'
-          required: true
-          description: The One login
-          name: identifier
-          in: path
-      responses:
-        '200':
-          description: Sucesss
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    description: The status code of the response
-                    example: 200
-                  body:
-                    type: string
-                    minLength: 1
-                    description: message
-                    example: Successfully deleted Identity
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Unauthorized
-                required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Not Found
-                required:
-                  - body
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Internal Server Error
-                required:
-                  - body
-  /identity/{identifier}:
     get:
       summary: Read Identity Record
       description: Read Identity Record
@@ -363,7 +273,96 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-  /identity/{identitfier}/{proxy+}:
+    delete:
+      summary: Delete Identity Record
+      description: Delete Identity Record
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The One login
+            example: '123'
+          required: true
+          description: The One login
+          name: identifier
+          in: path
+      responses:
+        '200':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 200
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: Successfully deleted Identity
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Not Found
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
+  /identity/{identifier}/{proxy+}:
     post:
       summary: Create Resource path data Record
       description: Create Resource path data Record

@@ -1,0 +1,51 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Dependancies pre bundled ..."
+      - node --version
+
+  pre_build:
+    commands:
+      - echo "Setting up E2E environment ..",
+      - mkdir - e2e/reports
+      - |
+        cat > e2e/.env << EOF
+        API_BASE_URL=${API_BASE_URL}
+        TOKEN_ENDPOINT=${COGNITO_TOKEN_ENDPOINT}
+        COGNITO_DOMAIN=${COGNITO_DOMAIN}
+        COGNITO_CLIENT_FLEX_ID=${COGNITO_CLIENT_FLEX_ID}
+        COGNITO_CLIENT_FLEX_SECRET=${COGNITO_CLIENT_FLEX_SECRET}
+        COGNITO_CLIENT_FLEX_SCOPES=${COGNITO_CLIENT_FLEX_SCOPES}
+        COGNITO_DEFAULT_CLIENT=${COGNITO_DEFAULT_CLIENT}
+        AWS_REGION=${AWS_REGION}
+        EOF
+      - echo "Environment configured for e2e tests"
+
+  build:
+    commands:
+      - echo "Running Cucumber E2E tests..."
+      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run e2e:pr
+      - echo "E2E tests completed with exit code ${E2E_EXIT_CODE:-0}"
+
+  post_build:
+    commands:
+      - echo "E2E test run completed"
+      - cp -r e2e/reports $CODEBUILD_SRC_DIR/e2e/ 2>dev/null || true
+
+reports:
+  cucumber-reports:
+    files:
+      - 'e2e/reports/cucumber-report.json'
+    base-directory: /workspace
+    file-format: CUSUMBERJSON
+
+artifacts:
+  files:
+    - e2e/reports/**/*
+  name: e2e-test-reports
+  base-directory: /workspace
+  discard-paths: no

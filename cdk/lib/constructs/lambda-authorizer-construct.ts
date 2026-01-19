@@ -53,7 +53,7 @@ export class LambdaAuthorizerConstuct extends Construct {
       vpcSubnets,
       securityGroups,
       kmsKey,
-      reservedConcurrentExecutions = 100,
+      reservedConcurrentExecutions = 10,
     } = props;
 
     const fullFunctionName = developerId
@@ -91,7 +91,7 @@ export class LambdaAuthorizerConstuct extends Construct {
       logGroup: this.logGroup,
       vpc,
       vpcSubnets: vpc
-        ? (vpcSubnets ?? { subnetType: SubnetType.PRIVATE_ISOLATED })
+        ? (vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
       environmentEncryption: kmsKey,

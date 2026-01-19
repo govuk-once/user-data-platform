@@ -37,6 +37,7 @@ export class JwtValidator {
       cacheMaxAge: 600000,
       rateLimit: true,
       jwksRequestsPerMinute: 10,
+      timeout: 2000,
     });
   }
 
@@ -83,11 +84,11 @@ export class JwtValidator {
         kid,
         (err: Error | null, key?: SigningKey) => {
           if (err) {
-            reject(new Error('failed to get sigining key'));
+            reject(new Error(`failed to get sigining key: ${err.message}`));
             return;
           }
           if (!key) {
-            reject(new Error('failed to get sigining key'));
+            reject(new Error('signing key not found'));
             return;
           }
           const pubicKey = key.getPublicKey();
@@ -173,10 +174,10 @@ export function isAuthorized(
   resource: string,
   action: string,
 ): boolean {
-  const requiredScope = `${resourServerIdentifier}/${resource}:${action}`;
-  const wildcardResourceScope = `${resourServerIdentifier}/*:${action}`;
-  const wildcardActionScope = `${resourServerIdentifier}/${resource}:*`;
-  const fullWildcardScope = `${resourServerIdentifier}/*:*`;
+  const requiredScope = `${resourServerIdentifier}/${action}`;
+  const wildcardResourceScope = `${resourServerIdentifier}/*`;
+  const wildcardActionScope = `${resourServerIdentifier}/${action}`;
+  const fullWildcardScope = `${resourServerIdentifier}/*`;
 
   return (
     scopes.includes(requiredScope) ||

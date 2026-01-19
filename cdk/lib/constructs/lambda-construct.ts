@@ -63,7 +63,7 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
-      reservedConcurrentExecutions = 100,
+      reservedConcurrentExecutions = 10,
     } = props;
 
     const fullFunctionName = developerId
@@ -135,6 +135,11 @@ export class LambdaApiConstruct extends Construct {
     if (dbKmsKey) {
       dbKmsKey.grantDecrypt(this.function);
       dbKmsKey.grantEncrypt(this.function);
+    }
+
+    if (kmsKey) {
+      kmsKey.grantDecrypt(this.function);
+      kmsKey.grantEncrypt(this.function);
     }
 
     if (api) {

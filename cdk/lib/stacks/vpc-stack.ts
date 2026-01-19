@@ -15,6 +15,7 @@ export class VpcStack extends Stack {
   public readonly vpcEndpointSecurityGroup: ec2.SecurityGroup;
   public readonly lambdaSecurityGroup: ec2.SecurityGroup;
   public readonly executeApiEndpointId: string;
+  public readonly codeBuildSecurityGroup: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: VpcStackProps) {
     super(scope, id, props);
@@ -37,6 +38,7 @@ export class VpcStack extends Stack {
     this.vpcEndpointSecurityGroup = vpcConstruct.vpcEndpointSecurityGroup;
     this.lambdaSecurityGroup = vpcConstruct.lambdaSecurityGroup;
     this.executeApiEndpointId = vpcConstruct.excecuteApiEndpoint.vpcEndpointId;
+    this.codeBuildSecurityGroup = vpcConstruct.codebuildSecurityGroup;
 
     new CfnOutput(this, 'CpvIdOutput', {
       value: this.vpc.vpcId,

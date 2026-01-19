@@ -147,7 +147,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
       const response = await this.client.send(command);
 
-      if (!response.Items && response.Items.length < 1) {
+      if (!response.Items || response.Items.length < 1) {
         this.logger?.debug('Item not found', { pk, sk });
         return null;
       }
