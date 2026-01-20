@@ -92,6 +92,27 @@ export class KmsConstruct extends Construct {
       }),
     );
 
+    this.key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'AllowCloudwatchLogs',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal(`logs.${region}.amazonaws.com`)],
+        actions: [
+          'kms:Encrypt*',
+          'kms:Decrypt*',
+          'kms:ReEncrypt*',
+          'kms:GenerateDataKey*',
+          'kms:Describe*',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'kms.callerAccount': account,
+          },
+        },
+      }),
+    );
+
     this.alias = this.key.node.findChild('Alias') as kms.Alias;
   }
 }

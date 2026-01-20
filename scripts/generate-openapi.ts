@@ -11,8 +11,6 @@ const OUTPUT_PATH = path.resolve(__dirname, '../docs/openapi.yml');
 const DOCS_DIR = path.dirname(OUTPUT_PATH);
 
 async function main(): Promise<number> {
-  console.log('Generating OpenApi Spec');
-
   try {
     if (!fs.existsSync(DOCS_DIR)) {
       fs.mkdirSync(DOCS_DIR, { recursive: true });

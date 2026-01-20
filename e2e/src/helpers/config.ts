@@ -21,10 +21,6 @@ export interface E2EConfig {
     clients: Record<string, CognitoClientConfig>;
     defaultClient: string;
   };
-  dynamodb: {
-    tableName: string;
-    region: string;
-  };
 }
 
 function getRequiredEnv(key: string): string {
@@ -56,7 +52,7 @@ function loadCognitoClients(): Record<string, CognitoClientConfig> {
     const clientId = process.env[`COGNITO_CLIENT_${name}_ID`];
     const clientSecret = process.env[`COGNITO_CLIENT_${name}_SECRET`];
     const scopes =
-      process.env[`COGNITO_CLIENT_${name}_SCOPES`] || 'api/read api/write';
+      process.env[`COGNITO_CLIENT_${name}_SCOPES`] || 'udp/read udp/write';
 
     if (clientId && clientSecret) {
       const normalizeName = name.toLowerCase().replace(/_/g, '-');
@@ -78,10 +74,6 @@ export const config: E2EConfig = {
     tokenEndpoint: getRequiredEnv('TOKEN_ENDPOINT'),
     clients: loadCognitoClients(),
     defaultClient: getOptionalEnv('COGNITO_DEAULT_CLIENT', 'flex'),
-  },
-  dynamodb: {
-    tableName: getRequiredEnv('DYNAMODB_TABLE_NAME'),
-    region: getOptionalEnv('AWS_REGION', 'eu-west-2'),
   },
 };
 

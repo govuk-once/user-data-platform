@@ -20,6 +20,13 @@
         "cwd": "e2e"
       }
     },
+    "pr": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
+        "cwd": "e2e"
+      }
+    },
     "deploy": {
       "executor": "nx:run-commands",
       "options": {

@@ -3,6 +3,7 @@ import { MainStack, MonitoringStack } from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
+import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
 
 const app = new App();
 
@@ -51,6 +52,7 @@ if (!skipMainStack) {
     description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
     vpc: vpcStack.vpc,
     lambdaSecurityGroup: vpcStack.lambdaSecurityGroup,
+    codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
 
@@ -83,5 +85,21 @@ if (!skipMainStack) {
   );
 
   monitoringStack.addDependency(mainStack);
+
+  const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
+    developerId,
+    environment,
+    env: awsEnv,
+    description: `E2E testing stack${developerId ? ` for ${developerId}` : ''}`,
+    vpc: vpcStack.vpc,
+    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
+    kmsKey: mainStack.kmsKey,
+    apiEndpoint: mainStack.api.url,
+    cognitoDomain: mainStack.cognitoDomain,
+    cognitoCient: mainStack.cognitoClient,
+    cognitoEndpoint: mainStack.cognitoEndpoint,
+  });
+
+  e2eStack.addDependency(mainStack);
 }
 app.synth();

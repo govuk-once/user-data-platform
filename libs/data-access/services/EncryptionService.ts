@@ -115,7 +115,6 @@ export class EncryptionService {
     const command = new DecryptCommand({
       CiphertextBlob: Buffer.from(encyptedKey, 'base64'),
     });
-
     const response = await this.kmsClient.send(command);
 
     if (!response.Plaintext) {

@@ -61,6 +61,9 @@ importers:
       http-errors:
         specifier: ^2.0.1
         version: 2.0.1
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -161,9 +164,6 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
-      typescript@latest:
-        specifier: link:@nx/js/typescript@latest
-        version: link:@nx/js/typescript@latest
       vite-tsconfig-paths:
         specifier: 5.1.4
         version: 5.1.4(typescript@5.9.3)(vite@7.2.4(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2))
@@ -6052,6 +6052,12 @@ packages:
     resolution:
       {
         integrity: sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==,
+      }
+
+  jsonc-parser@3.3.1:
+    resolution:
+      {
+        integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==,
       }
 
   jsonwebtoken@9.0.3:
@@ -12373,6 +12379,8 @@ snapshots:
       semver: 7.7.3
 
   jsonc-parser@3.2.0: {}
+
+  jsonc-parser@3.3.1: {}
 
   jsonwebtoken@9.0.3:
     dependencies:

@@ -28,10 +28,28 @@
         "cwd": "cdk"
       }
     },
+
+    "deploy:dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk deploy --all -c env=dev --require-approval never",
+        "cwd": "cdk"
+      }
+    },
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk destroy --all -c env=dev --force",
+        "cwd": "cdk"
+      }
+    },
+
+    "destroy:dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk destroy --all -c env=dev --force",
         "cwd": "cdk"
       }
     },

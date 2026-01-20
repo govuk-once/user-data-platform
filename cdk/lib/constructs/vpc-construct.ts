@@ -2,7 +2,6 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
-import { Environment } from 'aws-cdk-lib/aws-appconfig';
 import * as kms from 'aws-cdk-lib/aws-kms';
 
 export interface VpcConstructprops {
@@ -16,12 +15,16 @@ export class VpcConstuct extends Construct {
   public readonly vpc: ec2.Vpc;
   public readonly vpcEndpointSecurityGroup: ec2.SecurityGroup;
   public readonly lambdaSecurityGroup: ec2.SecurityGroup;
-  public readonly dynamoDbEnpoint: ec2.GatewayVpcEndpoint;
+  public readonly dynamoDbEndpoint: ec2.GatewayVpcEndpoint;
   public readonly s3Endpoint: ec2.GatewayVpcEndpoint;
   public readonly kmsEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly cognitoEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly cloudwatchEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly excecuteApiEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly codebuildSecurityGroup: ec2.SecurityGroup;
+  public readonly codeBuildEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly ecrApiEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly secretsManagerEndpoint: ec2.InterfaceVpcEndpoint;
 
   constructor(scope: Construct, id: string, props: VpcConstructprops) {
     super(scope, id);
@@ -34,8 +37,18 @@ export class VpcConstuct extends Construct {
       maxAzs,
       enableDnsHostnames: true,
       enableDnsSupport: true,
-      natGateways: 0,
+      natGateways: 1, // single nat gateway for e2e tests
       subnetConfiguration: [
+        {
+          name: 'public',
+          subnetType: ec2.SubnetType.PUBLIC,
+          cidrMask: 24,
+        },
+        {
+          name: 'private-egres',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 24,
+        },
         {
           name: 'private',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
@@ -62,6 +75,14 @@ export class VpcConstuct extends Construct {
       'Allow Https From VPC CIDR',
     );
 
+    this.dynamoDbEndpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
+      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+    });
+
+    this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+    });
+
     this.lambdaSecurityGroup = new ec2.SecurityGroup(this, 'lambdaSg', {
       vpc: this.vpc,
       securityGroupName: `vpc-lambda-sg-${environment}`,
@@ -72,16 +93,57 @@ export class VpcConstuct extends Construct {
 
     this.lambdaSecurityGroup.addIngressRule(
       ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
-      ec2.Port.tcp(443),
-      'Allow Https to VPC Endpoints',
+      ec2.Port.udp(53),
+      'Allow DNS (tcp) to vcp resolver',
     );
 
-    this.dynamoDbEnpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
-    });
+    this.lambdaSecurityGroup.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(53),
+      'Allow DNS (tcp) to vcp resolver',
+    );
 
-    this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.S3,
+    this.lambdaSecurityGroup.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      'Allow HTTPS to VPC endpoints',
+    );
+
+    this.lambdaSecurityGroup.addEgressRule(
+      this.vpcEndpointSecurityGroup,
+      ec2.Port.tcp(443),
+      'Allow HTTPS to VPC interface endpoints',
+    );
+
+    this.lambdaSecurityGroup.addEgressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(53),
+      'Allow DNS (UDP) to VPC resolver',
+    );
+
+    this.lambdaSecurityGroup.addEgressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(53),
+      'Allow DNS (TCP) to VPC resolver',
+    );
+
+    this.lambdaSecurityGroup.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      'Allow Http outbound to gateway endpoints',
+    );
+
+    this.vpcEndpointSecurityGroup.addIngressRule(
+      this.lambdaSecurityGroup,
+      ec2.Port.tcp(443),
+      'Allow Http from lambda security group',
+    );
+
+    this.codebuildSecurityGroup = new ec2.SecurityGroup(this, 'CodeBuildSG', {
+      vpc: this.vpc,
+      securityGroupName: `codebuild-sg-${environment}`,
+      description: 'Security group for CodeBuild with NAT gateway access',
+      allowAllOutbound: true,
     });
 
     this.kmsEndpoint = this.vpc.addInterfaceEndpoint('kmsEndpoint', {
@@ -118,6 +180,39 @@ export class VpcConstuct extends Construct {
       'CloudwatchEndpoint',
       {
         service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
+
+    this.codeBuildEndpoint = this.vpc.addInterfaceEndpoint(
+      'CodeBuildEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.CODEBUILD,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
+
+    this.ecrApiEndpoint = this.vpc.addInterfaceEndpoint('EcrApiEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.secretsManagerEndpoint = this.vpc.addInterfaceEndpoint(
+      'SecretManagerEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
         securityGroups: [this.vpcEndpointSecurityGroup],
         privateDnsEnabled: true,
         subnets: {

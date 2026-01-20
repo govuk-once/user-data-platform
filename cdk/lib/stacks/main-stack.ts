@@ -17,6 +17,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
+import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -31,6 +32,7 @@ export interface MainStackProps extends StackProps {
   crossAccountPrincipals?: string[];
   vpc?: ec2.IVpc;
   lambdaSecurityGroup?: ec2.ISecurityGroup;
+  codebuildSecurityGroup?: ec2.ISecurityGroup;
 }
 
 export class MainStack extends Stack {
@@ -38,6 +40,9 @@ export class MainStack extends Stack {
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
+  public readonly cognitoClient: UserPoolClient;
+  public readonly cognitoDomain: string;
+  public readonly cognitoEndpoint: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -59,6 +64,7 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
+      codebuildSecurityGroup,
     } = props;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
@@ -101,6 +107,14 @@ export class MainStack extends Stack {
       m2mClients,
     });
 
+    const client = cognito.m2mClients.get('flex');
+    if (!client) {
+      throw new Error('Flex m2m client not found required for e2e tests');
+    }
+    this.cognitoClient = client;
+    this.cognitoDomain = `${cognito.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
+    this.cognitoEndpoint = cognito.tokenEndpoint;
+
     const apiGateway = new ApiGatewayConstruct(this, 'Api', {
       developerId,
       environment,
@@ -108,7 +122,7 @@ export class MainStack extends Stack {
       vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
       crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
-      cachingEnabled: true,
+      cachingEnabled: environment !== 'dev' ? true : false,
     });
 
     this.api = apiGateway.api;
@@ -130,7 +144,7 @@ export class MainStack extends Stack {
       cognitoIssuer: cognito.issuerUrl,
       resourceServerIdentifier: 'udp',
       vpc,
-      securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+      securityGroups: codebuildSecurityGroup ? [codebuildSecurityGroup] : [],
       kmsKey: kmsConstruct.key,
     });
 
