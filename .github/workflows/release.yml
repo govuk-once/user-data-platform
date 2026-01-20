@@ -73,7 +73,7 @@ jobs:
 
   e2e-staging:
     name: E2E tests on staging
-    needs: [create-release, deploy-staging]
+    needs: deploy-staging
     runs-on: ubuntu-latest
 
     steps:
@@ -160,7 +160,7 @@ jobs:
   # Temp disable untill defiend and permissions corect on repo
   # deploy-profuction:
   #   name: Deploy to production
-  #   needs: [create-release, e2e-staging]
+  #   needs: e2e-staging
   #   runs-on: ubuntu-latest
   #   environment: production
 
