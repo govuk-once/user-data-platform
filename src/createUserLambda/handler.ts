@@ -50,6 +50,7 @@ type CreateUserBody = z.infer<typeof CreateUserSchema>;
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
+    console.log({ event });
     const input = {
       ...(event.body as unknown as CreateUserBody),
     } as unknown as IdentityInput;
