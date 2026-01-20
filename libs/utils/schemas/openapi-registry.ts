@@ -11,6 +11,7 @@ import type { RouteConfig } from '../types';
 import { routes } from '../routes';
 import { OpenAPIObject } from '@asteasolutions/zod-to-openapi/dist/types';
 import { RouteParameter } from '@asteasolutions/zod-to-openapi/dist/openapi-registry';
+import { version } from '../../../package.json';
 
 export const registry = new OpenAPIRegistry();
 
@@ -78,7 +79,7 @@ export function generateOpenApiDocument() {
     openapi: '3.0.3',
     info: {
       title: 'User Data platform API',
-      version: '1.0.0',
+      version,
       description: 'Private Api for the User data Platform',
     },
     tags: [
