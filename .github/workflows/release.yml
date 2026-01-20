@@ -120,12 +120,12 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy CDK stack to staging
-        runs: npx nx run cdk:deploy:stag
+        run: npx nx run cdk:deploy:stag
 
       - name: Get Stack outputs
         id: get-outputs
         working-directory: cdk
-        runs: |
+        run: |
           CODEBUILD_PROJECT=$(aws cloudformation decribe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
           echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
           echo "COdebuild Project: ${CODEBUILD_PROJECT}"
