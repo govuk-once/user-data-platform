@@ -8,7 +8,7 @@ Feature: User Data API
         Given I am authenticated as "flex"
 
     Scenario: Create user for tests
-        When I send a post to '/identity/123' with the body '{"appId":"123", "serviceName": "app"}'
+        When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
         Then the response status should be 201
 

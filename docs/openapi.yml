@@ -23,6 +23,111 @@ components:
   schemas: {}
   parameters: {}
 paths:
+  /user:
+    post:
+      summary: Create User Record
+      description: Create User Record
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                appId:
+                  type: string
+                  minLength: 1
+                  description: The Pairwise ID
+                  example: 123456-789910-11121314-15
+                accessToken:
+                  type: string
+                  description: The User access token
+                  example: 239h3h23h283h23928EHD283DH23D23D32D23D23D32
+                refreshToken:
+                  type: string
+                  description: The User access token
+                  example: 239R203IE23DIJWODJFOISDJFIODSJFIOSDJFOISDJFDF
+                idToken:
+                  type: string
+                  description: The User access token
+                  example: 3280DJ23DJ02J3D92EUFSDJFKEJFKJDFLWFSHDLFSDF
+              required:
+                - appId
+      responses:
+        '201':
+          description: Sucesss
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    description: The status code of the response
+                    example: 201
+                  body:
+                    type: string
+                    minLength: 1
+                    description: message
+                    example: User Successfully Created
+                required:
+                  - statusCode
+                  - body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unauthorized
+                required:
+                  - body
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Forbidden
+                required:
+                  - body
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Unprocessable Entity
+                required:
+                  - body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    description: Error message
+                    example: Internal Server Error
+                required:
+                  - body
   /identity/{identifier}:
     post:
       summary: Create Identity Record

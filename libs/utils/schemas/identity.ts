@@ -2,6 +2,25 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 extendZodWithOpenApi(z);
 
+export const CreateUserSchema = z.object({
+  appId: z.string('is required').min(1).openapi({
+    description: 'The Pairwise ID',
+    example: '123456-789910-11121314-15',
+  }),
+  accessToken: z.string().optional().openapi({
+    description: 'The User access token',
+    example: '239h3h23h283h23928EHD283DH23D23D32D23D23D32',
+  }),
+  refreshToken: z.string().optional().openapi({
+    description: 'The User access token',
+    example: '239R203IE23DIJWODJFOISDJFIODSJFIOSDJFOISDJFDF',
+  }),
+  idToken: z.string().optional().openapi({
+    description: 'The User access token',
+    example: '3280DJ23DJ02J3D92EUFSDJFKEJFKJDFLWFSHDLFSDF',
+  }),
+});
+
 export const IdentityPathSchema = z.object({
   identifier: z.string('is required').min(1).openapi({
     description: 'The One login',
@@ -44,6 +63,17 @@ export const CreateIdentityResponseSchema = z.object({
   body: z.string('is required').min(1).openapi({
     description: 'message',
     example: 'Identity Successfully created',
+  }),
+});
+
+export const CreateUserResponseSchema = z.object({
+  statusCode: z.number().openapi({
+    description: 'The status code of the response',
+    example: 201,
+  }),
+  body: z.string('is required').min(1).openapi({
+    description: 'message',
+    example: 'User Successfully Created',
   }),
 });
 

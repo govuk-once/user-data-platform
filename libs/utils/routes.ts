@@ -9,9 +9,11 @@ import {
 import {
   CreateIdentityRequestSchema,
   CreateIdentityResponseSchema,
+  CreateUserResponseSchema,
   DeleteIdentityResponseSchema,
   IdentityPathSchema,
   IdentityResponseSchema,
+  CreateUserSchema,
 } from './schemas/identity';
 
 import type { RouteConfig } from './types';
@@ -19,6 +21,24 @@ import type { RouteConfig } from './types';
 export * from './types';
 
 export const routes = {
+  createUser: {
+    name: 'createUser',
+    dynamoDbActions: [
+      'dynamodb:PutItem',
+      'dynamodb:GetItem',
+      'dynamodb:Query',
+      'dynamodb:Scan',
+    ],
+    authorizationScopes: ['udp/write'],
+    method: 'POST',
+    path: '/user',
+    summary: 'Create User Record',
+    description: 'Create User Record',
+    tags: ['user'],
+    body: CreateUserSchema,
+    response: CreateUserResponseSchema,
+    successStatus: 201,
+  },
   createIdentity: {
     name: 'createIdentity',
     dynamoDbActions: [

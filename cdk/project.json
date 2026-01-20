@@ -4,6 +4,7 @@
   "sourceRoot": "cdk",
   "implicitDependencies": [
     "@src/authorizationLambda",
+    "@src/createUserLambda",
     "@src/deleteDataLambda",
     "@src/postDataLambda",
     "@src/getDataLambda",
