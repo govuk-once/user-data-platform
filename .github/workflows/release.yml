@@ -2,10 +2,11 @@ name: Release Pipeline
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
 
 concurrency:
-  group: release-${{ github.sha }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -14,77 +15,11 @@ env:
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      new_tag: ${{ steps.tag_version.outputs.new_tag }}
-      new_version: ${{ steps.tag_version.outputs.new_version }}
-      changelog: ${{ steps.tag_version.outputs.changelog }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Bump version and push tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-          release_branches: main
-
-      - name: Create Github Release
-        uses: ncipollo/release-actions@v1
-        with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm@latest-10
-          pnpm install
-
-      - name: Setup NODE_VERSION
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install Dependancies
-        run: pnpm i --frozen-lockfile
-
-      - name: Update package.json version
-        run: |
-          npm version ${{ steps.tag_version.outputs.new_version }} --no-git-tag-version
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add package.json
-          git commit -m "chore: bump version to ${{ steps.tag_version.outputs.new_tag }}"
-
-      - name: Regenerate OpenAPI docs
-        run: pnpm generate:openapi
-
-      - name: Commit OpenApi docs
-        run: |
-          git add docs/openapi.yml
-          git commit -m "docs: update OpenApi spec for ${{ steps.tag_version.outputs.new_tag }}"
-          git push
-
   deploy-staging:
     name: Deploy to staging
-    needs: create-release
     runs-on: ubuntu-latest
     environment: staging
     outputs:
@@ -96,7 +31,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.create-release.outputs.new_tag }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -145,7 +80,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.create-release.outputs.new_tag }}
+          ref: ${{ github.ref_name }}
 
       - name: Setup pnpm
         run: |
@@ -222,7 +157,7 @@ jobs:
             esac
           done
 
- # Temp disable untill defiend and permissions corect on repo
+  # Temp disable untill defiend and permissions corect on repo
   # deploy-profuction:
   #   name: Deploy to production
   #   needs: [create-release, e2e-staging]
