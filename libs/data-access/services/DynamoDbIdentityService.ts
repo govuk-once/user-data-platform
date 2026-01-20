@@ -22,12 +22,25 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     this.logger = logger;
   }
 
-  public async create(input: IdentityInput) {
+  public async link(input: IdentityInput) {
     if (input.appId === input.serviceId) {
-      const result = await this.getById(input.appId, false);
-      if (result) return;
+      throw createHttpError.BadRequest(
+        'AppId and serviceId should not be the same',
+      );
     }
     const entity = await this.createFromInput(input);
+    this.validateEntity(entity);
+    await this.repository.save(entity);
+  }
+
+  public async create(input: IdentityInput) {
+    const result = await this.getById(input.appId, false);
+    if (result) return;
+
+    const entity = await this.createFromInput({
+      ...input,
+      serviceId: input.appId,
+    });
     this.validateEntity(entity);
     await this.repository.save(entity);
   }

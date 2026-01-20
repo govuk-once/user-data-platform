@@ -8,6 +8,7 @@ import createHttpError from 'http-errors';
 process.env['TABLE_NAME'] = 'test-table';
 
 const mockSave = vi.fn();
+const mockLink = vi.fn();
 const mockGet = vi.fn();
 
 // Mock the data-access library
@@ -15,12 +16,14 @@ vi.mock('@libs/data-access', () => ({
   ServiceFactory: class {
     getService() {
       return {
+        link: mockLink,
         create: mockSave,
         getById: mockGet,
       };
     }
   },
   DynamoDBIdentityService: class {
+    link = mockLink;
     create = mockSave;
   },
   DynamoDBRepository: class {},
@@ -169,11 +172,11 @@ describe('createItentityHandler', () => {
         }) as any,
       };
 
-      mockSave.mockResolvedValue(undefined);
+      mockLink.mockResolvedValue(undefined);
 
       const result = await handler(event, mockContext);
 
-      expect(mockSave).toHaveBeenCalled();
+      expect(mockLink).toHaveBeenCalled();
 
       expect(result?.statusCode).toBe(201);
     });
@@ -198,11 +201,11 @@ describe('createItentityHandler', () => {
         }) as any,
       };
 
-      mockSave.mockResolvedValue(undefined);
+      mockLink.mockResolvedValue(undefined);
 
       const result = await handler(event, mockContext);
 
-      expect(mockSave).toHaveBeenCalled();
+      expect(mockLink).toHaveBeenCalled();
 
       expect(result?.statusCode).toBe(201);
     });
@@ -227,7 +230,7 @@ describe('createItentityHandler', () => {
         }) as any,
       };
 
-      mockSave.mockRejectedValue(createHttpError.NotFound());
+      mockLink.mockRejectedValue(createHttpError.NotFound());
 
       const result = await handler(event, mockContext);
 
@@ -254,7 +257,7 @@ describe('createItentityHandler', () => {
         }) as any,
       };
 
-      mockSave.mockRejectedValue(Error('Unknown'));
+      mockLink.mockRejectedValue(Error('Unknown'));
 
       const result = await handler(event, mockContext);
 

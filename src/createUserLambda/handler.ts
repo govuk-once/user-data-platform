@@ -6,7 +6,6 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
-  CreateIdentityRequestSchema,
   createEnvValidator,
   zodValidator,
   getTracer,
@@ -14,6 +13,7 @@ import {
   getLogger,
   injectLambdaContext,
   routes,
+  CreateUserSchema,
 } from '@libs/utils';
 import { z } from 'zod';
 
@@ -22,7 +22,7 @@ const { middleware: envMiddleware, getEnv } = createEnvValidator({
   optional: { KMS_KEY_ID: undefined },
 });
 
-const { STACK: stack, SERVICE_NAME: serviceName = 'udpCreateIdentity' } =
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpCreateUser' } =
   process.env;
 
 const tracer = getTracer({ serviceName });
@@ -46,20 +46,19 @@ function getFactory() {
   return factory;
 }
 
-type CreateItemBody = z.infer<typeof CreateIdentityRequestSchema>;
+type CreateUserBody = z.infer<typeof CreateUserSchema>;
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const input = {
-      ...(event.body as unknown as CreateItemBody),
-      serviceId: event.pathParameters.identifier,
+      ...(event.body as unknown as CreateUserBody),
     } as unknown as IdentityInput;
 
-    await getFactory().getService('identity').link(input);
+    await getFactory().getService('identity').create(input);
 
     return {
       statusCode: 201,
-      body: 'Identity Successfully created',
+      body: 'User Successfully Created',
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -82,8 +81,7 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(
     zodValidator({
-      pathParameters: routes.createIdentity.params,
-      body: routes.createIdentity.body,
+      body: routes.createUser.body,
     }),
   )
   .use(httpErrorHandler())
