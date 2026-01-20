@@ -38,6 +38,24 @@
         "cwd": "cdk"
       }
     },
+
+    "deploy:stag": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk deploy --all -c env=stag --require-approval never",
+        "cwd": "cdk"
+      }
+    },
+
+    "deploy:prod": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk deploy --all -c env=prod --require-approval never",
+        "cwd": "cdk"
+      }
+    },
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
