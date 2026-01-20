@@ -37,7 +37,10 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     const result = await this.getById(input.appId, false);
     if (result) return;
 
-    const entity = await this.createFromInput(input);
+    const entity = await this.createFromInput({
+      ...input,
+      serviceId: input.appId,
+    });
     this.validateEntity(entity);
     await this.repository.save(entity);
   }
