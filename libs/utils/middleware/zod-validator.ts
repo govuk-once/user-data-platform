@@ -24,7 +24,6 @@ export function zodValidator<
 ): MiddlewareObj<APIGatewayProxyEventV2> {
   return {
     before: async (request: APIGatewayRequest) => {
-      console.log({ request, schemas });
       try {
         if (schemas.pathParameters) {
           request.event.pathParameters = schemas.pathParameters.parse(
