@@ -1,0 +1,115 @@
+name: E2E Tests Workflow
+
+on:
+  workflow_call:
+    inputs:
+      codebuild-project:
+        description: 'CodeBuild project name'
+        required: true
+        type: string
+      source-bucket:
+        description: 'S3 bucket for source code'
+        required: true
+        type: string
+      source-path:
+        description: 'S3 path for source code'
+        required: true
+        type: string
+      aws-region:
+        description: 'AWS region'
+        required: false
+        type: string
+        default: 'eu-west-2'
+      node-version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '20'
+      deployment-role:
+        description: 'AWS IAM role to assume'
+        required: true
+        type: string
+    secrets:
+      aws-role:
+        description: 'AWS IAM role ARN'
+        required: true
+    outputs:
+      build-id:
+        description: 'CodeBuild build ID'
+        value: ${{ jobs.e2e.outputs.build-id }}
+
+jobs:
+  e2e:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    outputs:
+      build-id: ${{ steps.codebuild.outputs.build-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Upload source to S3
+        run: |
+          echo "Getting pnpm store path"
+          STORE_PATH=$(pnpm store path)
+          pnpm store prune
+
+          mkdir -p .pnpm-store
+          cp -r "${STORE_PATH}"/* .pnpm-store/
+
+          echo "Uploading source to S3 for E2E tests"
+          zip -rqy source.zip . -x '.git/*' -x '.nx/*' -x "cdk/cdk.out/*"
+          aws s3 cp source.zip "s3://${{ inputs.source-bucket }}/${{ inputs.source-path }}"
+
+      - name: Trigger CodeBuild and wait for completion
+        id: codebuild
+        run: |
+          echo "Starting CodeBuild project: ${{ inputs.codebuild-project }}"
+
+          # Start Build
+          BUILD_ID=$(aws codebuild start-build --project-name "${{ inputs.codebuild-project }}" --query 'build.id' --output text)
+
+          echo "Build started: ${BUILD_ID}"
+          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
+
+          # Poll for completion
+          while true; do
+            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
+            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
+
+            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
+
+            case "${BUILD_STATUS}" in
+              SUCCEEDED)
+                echo "E2E tests passed!"
+                exit 0
+                ;;
+              FAILED|FAULT|STOPPED|TIMED_OUT)
+                echo "E2E tests failed with status: ${BUILD_STATUS}"
+
+                # Get build logs URL
+                echo "Build logs: https://${{ inputs.aws-region }}.console.aws.amazon.com/codesuite/codebuild/projects/${{ inputs.codebuild-project }}/build/${BUILD_ID}"
+
+                exit 1
+                ;;
+              IN_PROGRESS)
+                sleep 30
+                ;;
+              *)
+                echo "Unknown status: ${BUILD_STATUS}"
+                sleep 30
+                ;;
+            esac
+          done

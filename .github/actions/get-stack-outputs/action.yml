@@ -1,0 +1,41 @@
+name: 'Get CDK Stack Outputs'
+description: 'Get CodeBuild project, source bucket, and source path from CDK stack'
+
+inputs:
+  stack-name:
+    description: 'Name of the CloudFormation stack'
+    required: true
+  aws-region:
+    description: 'AWS region'
+    required: false
+    default: 'eu-west-2'
+
+outputs:
+  codebuild-project:
+    description: 'CodeBuild project name'
+    value: ${{ steps.get-outputs.outputs.codebuild-project }}
+  source-bucket:
+    description: 'Source bucket name'
+    value: ${{ steps.get-outputs.outputs.source-bucket }}
+  source-path:
+    description: 'Source path'
+    value: ${{ steps.get-outputs.outputs.source-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get Stack outputs
+      id: get-outputs
+      shell: bash
+      run: |
+        CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text --region ${{ inputs.aws-region }})
+        echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
+        echo "CodeBuild Project: ${CODEBUILD_PROJECT}"
+        
+        SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text --region ${{ inputs.aws-region }})
+        echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
+        echo "Source Bucket: ${SOURCE_BUCKET}"
+        
+        SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text --region ${{ inputs.aws-region }})
+        echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
+        echo "Source Path: ${SOURCE_PATH}"
