@@ -31,6 +31,15 @@ repos:
 
   - repo: local
     hooks:
+      # Generate OpenAPI docs (from git-hooks/pre-commit)
+      - id: generate-openapi
+        name: Generate OpenAPI Docs
+        entry: bash git-hooks/pre-commit
+        language: system
+        pass_filenames: false
+        stages:
+          - 'pre-commit'
+
       # Prettier formatting
       - id: format-check
         name: Format Check
@@ -73,6 +82,13 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-push]
+
+      # Validate conventional commits (from git-hooks/commit-msg)
+      - id: commit-msg-validation
+        name: Validate Conventional Commit Format
+        entry: bash git-hooks/commit-msg
+        language: system
+        stages: [commit-msg]
 
   - repo: https://github.com/semgrep/semgrep
     rev: v1.89.0
