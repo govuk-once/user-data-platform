@@ -60,6 +60,7 @@ jobs:
     secrets:
       aws-role: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
     with:
+      deployment-role: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       codebuild-project: ${{ needs.deploy.outputs.codebuild-project }}
       source-bucket: ${{ needs.deploy.outputs.source-bucket }}
       source-path: ${{ needs.deploy.outputs.source-path }}
