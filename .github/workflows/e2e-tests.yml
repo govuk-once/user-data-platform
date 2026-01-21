@@ -61,6 +61,9 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Upload source to S3
+        env:
+          SOURCE_BUCKET: ${{ inputs.source-bucket }}
+          SOURCE_PATH: ${{ inputs.source-path }}
         run: |
           echo "Getting pnpm store path"
           STORE_PATH=$(pnpm store path)
@@ -71,15 +74,18 @@ jobs:
 
           echo "Uploading source to S3 for E2E tests"
           zip -rqy source.zip . -x '.git/*' -x '.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${{ inputs.source-bucket }}/${{ inputs.source-path }}"
+          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
 
       - name: Trigger CodeBuild and wait for completion
         id: codebuild
+        env:
+          CODEBUILD_PROJECT: ${{ inputs.codebuild-project }}
+          AWS_REGION: ${{ inputs.aws-region }}
         run: |
-          echo "Starting CodeBuild project: ${{ inputs.codebuild-project }}"
+          echo "Starting CodeBuild project: ${CODEBUILD_PROJECT}"
 
           # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${{ inputs.codebuild-project }}" --query 'build.id' --output text)
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
 
           echo "Build started: ${BUILD_ID}"
           echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
@@ -100,7 +106,7 @@ jobs:
                 echo "E2E tests failed with status: ${BUILD_STATUS}"
 
                 # Get build logs URL
-                echo "Build logs: https://${{ inputs.aws-region }}.console.aws.amazon.com/codesuite/codebuild/projects/${{ inputs.codebuild-project }}/build/${BUILD_ID}"
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
 
                 exit 1
                 ;;

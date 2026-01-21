@@ -27,15 +27,18 @@ runs:
     - name: Get Stack outputs
       id: get-outputs
       shell: bash
+      env:
+        STACK_NAME: ${{ inputs.stack-name }}
+        AWS_REGION: ${{ inputs.aws-region }}
       run: |
-        CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text --region ${{ inputs.aws-region }})
+        CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text --region "$AWS_REGION")
         echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
         echo "CodeBuild Project: ${CODEBUILD_PROJECT}"
-        
-        SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text --region ${{ inputs.aws-region }})
+
+        SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text --region "$AWS_REGION")
         echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
         echo "Source Bucket: ${SOURCE_BUCKET}"
-        
-        SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name ${{ inputs.stack-name }} --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text --region ${{ inputs.aws-region }})
+
+        SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text --region "$AWS_REGION")
         echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
         echo "Source Path: ${SOURCE_PATH}"
