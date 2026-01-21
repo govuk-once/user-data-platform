@@ -3,7 +3,7 @@ name: Release Pipeline
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -11,7 +11,7 @@ concurrency:
 
 env:
   AWS_REGION: eu-west-2
-  NODE_VERSION: "20"
+  NODE_VERSION: '20'
 
 permissions:
   id-token: write
@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -90,7 +90,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -182,7 +182,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -230,7 +230,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
