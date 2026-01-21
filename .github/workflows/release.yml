@@ -3,7 +3,7 @@ name: Release Pipeline
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -11,13 +11,151 @@ concurrency:
 
 env:
   AWS_REGION: eu-west-2
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  deploy-dev:
+    name: Deploy to dev
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
+      source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
+      source-path: ${{ steps.get-outputs.outputs.source-path }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm@latest-10
+          pnpm install
+
+      - name: Setup NODE_VERSION
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@4
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CDK stack to dev
+        run: npx nx run cdk:deploy:dev
+      - name: Get Stack outputs
+        id: get-outputs
+        working-directory: cdk
+        run: |
+          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
+          echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
+          echo "COdebuild Project: ${CODEBUILD_PROJECT}"
+          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
+          echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
+          echo "Source Bucket: ${SOURCE_BUCKET}"
+          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
+          echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
+          echo "Source Path: ${SOURCE_PATH}"
+
+  e2e-dev:
+    name: E2E tests on dev
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm@latest-10
+          pnpm install
+
+      - name: Setup NODE_VERSION
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@4
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload source to S3
+        run: |
+          echo "UPLOADING source to s3 get store path"
+          STORE_PATH=$(pnpm store path)
+          pnpm store prune
+
+          mkdir -p .pnpm-store
+          cp -r "${STORE_PATH}"/* .pnpm-store/
+
+          echo "UPLOADING source to s3 for e2e"
+          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
+          aws s3 cp source.zip "s3://${{ needs.deploy.outputs.source-bucket }}/${{ needs.deploy.outputs.source-path }}"
+
+      - name: Trigger Codebuild and wait for completion
+        id: codebuild
+        run: |
+          echo "Starting Codebuild project: ${{ needs.deploy.outputs.codebuild-project }}"
+
+          # Start Build
+          BUILD_ID=$(aws codebuild start-build --project-name "${{ needs.deploy.outputs.codebuild-project }}" --query 'build.id' --output text)
+
+          echo "Build started ${BUILD_ID}"
+          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
+
+          # poll for completion
+          while true; do
+            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
+            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
+
+            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
+
+            case "${BUILD_STATUS}" in
+              SUCCEEDED)
+                echo "E2E tests passed!"
+                exit 0
+                ;;
+              FAILED|FAULT|STOPPED|TIMED_OUT)
+                echo "E2E tests failed with status &{BUILD_STATUS}"
+
+                # get build logs
+                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${Build_ID}" --query 'builds[0].arn' --output text)
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${{ needs.deploy.outputs.codebuild-project }}/build/${BUILD_ID}"
+
+                exit 1
+                ;;
+              IN_PROGRESS)
+                sleep 30
+                ;;
+              *)
+                echo "unknown status: ${BUILD_STATUS}"
+                sleep 30
+                ;;
+            esac
+          done
+
   deploy-staging:
     name: Deploy to staging
     runs-on: ubuntu-latest
@@ -43,9 +181,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
-      - name: Install Dependancies
+      - name: Install Dependencies
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
@@ -61,7 +199,7 @@ jobs:
         id: get-outputs
         working-directory: cdk
         run: |
-          CODEBUILD_PROJECT=$(aws cloudformation decribe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
+          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
           echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
           echo "COdebuild Project: ${CODEBUILD_PROJECT}"
           SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
@@ -91,9 +229,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
-      - name: Install Dependancies
+      - name: Install Dependencies
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
@@ -157,8 +295,8 @@ jobs:
             esac
           done
 
-  # Temp disable untill defiend and permissions corect on repo
-  # deploy-profuction:
+  # Temp disable until defined and permissions correct on repo
+  # deploy-production:
   #   name: Deploy to production
   #   needs: e2e-staging
   #   runs-on: ubuntu-latest
@@ -181,7 +319,7 @@ jobs:
   #         node-version: ${{ env.NODE_VERSION }}
   #         cache: 'pnpm'
 
-  #     - name: Install Dependancies
+  #     - name: Install Dependencies
   #       run: pnpm i --frozen-lockfile
 
   #     - name: Configure AWS Credentials

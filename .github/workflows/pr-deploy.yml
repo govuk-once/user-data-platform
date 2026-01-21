@@ -43,7 +43,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install Dependancies
+      - name: Install Dependencies
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS credentials
@@ -87,12 +87,12 @@ jobs:
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9 --activate
 
-      - name: Install Dependancies
+      - name: Install Dependencies
         run: |
           rm pnpm-lock.yaml
           pnpm install
 
-      - name: Configure Aws Credentions
+      - name: Configure Aws Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
