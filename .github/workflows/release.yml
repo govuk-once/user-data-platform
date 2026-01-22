@@ -65,6 +65,11 @@ jobs:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Set CDK environment variables
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=${{ env.AWS_REGION }}" >> $GITHUB_ENV
+
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
       - name: Get Stack outputs
@@ -203,6 +208,11 @@ jobs:
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set CDK environment variables
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=${{ env.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Deploy CDK stack to staging
         run: npx nx run cdk:deploy:stag
