@@ -59,7 +59,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@4
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -106,7 +106,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@4
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -198,7 +198,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@4
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -246,7 +246,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@4
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
