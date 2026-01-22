@@ -12,17 +12,15 @@ const developerId = process.env.DEVELOPER_ID || undefined;
 
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
 
-const account = process.env.CDK_DEFAULT_ACCOUNT;
+const account = developerId ? null : process.env.CDK_DEFAULT_ACCOUNT;
 const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
 
-// For cross-stack references to work, all stacks must have the same environment configuration
-const awsEnv =
-  account && region
-    ? {
-        account,
-        region,
-      }
-    : undefined;
+const awsEnv = account
+  ? {
+      account,
+      region,
+    }
+  : undefined;
 
 const crossAccountPrincipals: string[] = (() => {
   const ctx = app.node.tryGetContext('crossAccountPrincipals');
