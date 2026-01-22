@@ -21,6 +21,8 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
+    permissions:
+      contents: write
 
   deploy-dev:
     name: Deploy to dev
