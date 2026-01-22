@@ -2,6 +2,11 @@ name: Auto Version on Main
 
 on:
   workflow_call:
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID:
+        required: true
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: write
