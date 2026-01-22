@@ -23,6 +23,9 @@ jobs:
     uses: ./.github/workflows/version.yml
     permissions:
       contents: write
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
   deploy-dev:
     name: Deploy to dev
