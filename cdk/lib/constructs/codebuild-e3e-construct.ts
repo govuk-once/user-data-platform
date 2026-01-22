@@ -23,7 +23,6 @@ export interface CodeBuildE2eConstructProps {
   readonly environment: string;
   readonly vpc: IVpc;
   readonly securityGroups: ISecurityGroup[];
-  readonly kmsKey: IKey;
   readonly apiEndpoint: string;
   readonly cognitoDomain: string;
   readonly cognitoClientSecret: ISecret;
@@ -46,7 +45,6 @@ export class CodeBuildE2eConstruct extends Construct {
       environment,
       vpc,
       securityGroups,
-      kmsKey,
       apiEndpoint,
       cognitoClientId,
       cognitoClientSecret,
@@ -66,7 +64,6 @@ export class CodeBuildE2eConstruct extends Construct {
       logGroupName: `/aws/codebuild/${resourcePrefix}-e2e-cucumber-tests`,
       retention: RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
-      encryptionKey: kmsKey,
     });
 
     const codebuildRole = new Role(this, 'CodeBuildRole', {
@@ -133,13 +130,13 @@ export class CodeBuildE2eConstruct extends Construct {
     //   }),
     // );
 
-    codebuildRole.addToPolicy(
-      new PolicyStatement({
-        sid: 'KMSDecrypt',
-        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
-        resources: [kmsKey.keyArn],
-      }),
-    );
+    // codebuildRole.addToPolicy(
+    //   new PolicyStatement({
+    //     sid: 'KMSDecrypt',
+    //     actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
+    //     resources: [kmsKey.keyArn],
+    //   }),
+    // );
 
     codebuildRole.addToPolicy(
       new PolicyStatement({

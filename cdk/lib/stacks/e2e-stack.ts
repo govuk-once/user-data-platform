@@ -53,7 +53,6 @@ export class E2eStack extends Stack {
       ? `${developerId}-${environment}`
       : environment;
 
-    const kmsKey = Alias.fromAliasName(this, 'kmsKeyAlias', kmsKeyAlias);
 
     this.sourceBucket = new Bucket(this, 'SourceBucket', {
       bucketName: `${resourcePrefix}-e2e-source-${this.account}`,
@@ -71,7 +70,6 @@ export class E2eStack extends Stack {
     this.cognitoSecret = new Secret(this, 'CogntioE2ESecret', {
       secretName: `${resourcePrefix}/e2e/cognito-client`,
       description: `Cognito M2M client secret for E2E tests - ${resourcePrefix}`,
-      encryptionKey: kmsKey,
       removalPolicy: RemovalPolicy.DESTROY,
       secretStringValue: cognitoCient.userPoolClientSecret,
     });
@@ -81,7 +79,6 @@ export class E2eStack extends Stack {
       environment,
       vpc,
       securityGroups: [codeBuildSecurityGroup],
-      kmsKey,
       apiEndpoint,
       cognitoEndpoint,
       cognitoDomain,
