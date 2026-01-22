@@ -24,10 +24,14 @@ jobs:
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
       - name: Configure Git
+        enc:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          APP_SLUG: ${{ steps.generate_token.outputs.app-slug }}
+          APP_ID: ${{ steps.get-user-id.outputs.user-id }}
         run: |
-          git config --global url."https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/".insteadOf https://github.com/
-          git config --global user.name '${{ steps.generate_token.outputs.app-slug }}[bot]'
-          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.generate_token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf https://github.com/
+          git config --global user.name '${APP_SLUG}[bot]'
+          git config --global user.email '${APP_ID}+${APP_SLUG}[bot]@users.noreply.github.com'
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,9 +84,12 @@ jobs:
 
       - name: Calculate new version
         id: new-version
+        env:
+          CURRENT_VERSION: ${{ steps.current-version.outputs.version }}
+          BUMP_TYPE: ${{ steps.bump.outputs.bump }}
         run: |
-          CURRENT="${{ steps.current-version.outputs.version }}"
-          BUMP="${{ steps.bump.outputs.bump }}"
+          CURRENT="${CURRENT_VERSION}"
+          BUMP="${BUMP_TYPE}"
 
           # Split version into parts
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
@@ -111,36 +118,38 @@ jobs:
           echo "New version: $NEW_VERSION"
 
       - name: Update package.json version
+        env:
+          NEW_VERSION: ${{ steps.new-version.outputs.version }}
         run: |
-          NEW_VERSION="${{ steps.new-version.outputs.version }}"
-          npm version $NEW_VERSION --no-git-tag-version
+          npm version "${NEW_VERSION}" --no-git-tag-version
           echo "Updated package.json to version $NEW_VERSION"
 
       - name: Commit version bump
+        env:
+          NEW_VERSION: ${{ steps.new-version.outputs.version }}
         run: |
-          NEW_VERSION="${{ steps.new-version.outputs.version }}"
           git add package.json
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || echo "No changes to commit"
+          git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]" || echo "No changes to commit"
 
       - name: Create and push tag
+        env:
+          NEW_VERSION: ${{ steps.new-version.outputs.version }}
         run: |
-          NEW_VERSION="${{ steps.new-version.outputs.version }}"
-          git tag -a "v$NEW_VERSION" -m "Release version $NEW_VERSION"
+          git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
           git push origin main
-          git push origin "v$NEW_VERSION"
-          echo "Created and pushed tag v$NEW_VERSION"
+          git push origin "v${NEW_VERSION}"
+          echo "Created and pushed tag v${NEW_VERSION}"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          NEW_VERSION: ${{ steps.new-version.outputs.version }}
+          BUMP_TYPE: ${{ steps.bump.output.bump }}
         run: |
-          NEW_VERSION="${{ steps.new-version.outputs.version }}"
-          BUMP="${{ steps.bump.outputs.bump }}"
-
-          gh release create "v$NEW_VERSION" \
-            --title "Release v$NEW_VERSION" \
-            --notes "## Changes in v$NEW_VERSION
+          gh release create "v${NEW_VERSION}" \
+            --title "Release v${NEW_VERSION}" \
+            --notes "## Changes in v${NEW_VERSION}
 
           This release was automatically generated from commits to main.
 
-          **Version bump type**: $BUMP"
+          **Version bump type**: ${BUMP}"

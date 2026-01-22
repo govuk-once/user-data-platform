@@ -113,6 +113,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload source to S3
+        env:
+          SOURCE_BUCKET:  ${{ needs.deploy.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
         run: |
           echo "UPLOADING source to s3 get store path"
           STORE_PATH=$(pnpm store path)
@@ -123,15 +126,17 @@ jobs:
 
           echo "UPLOADING source to s3 for e2e"
           zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${{ needs.deploy.outputs.source-bucket }}/${{ needs.deploy.outputs.source-path }}"
+          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
 
       - name: Trigger Codebuild and wait for completion
         id: codebuild
+        env:
+          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
         run: |
-          echo "Starting Codebuild project: ${{ needs.deploy.outputs.codebuild-project }}"
+          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
           # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${{ needs.deploy.outputs.codebuild-project }}" --query 'build.id' --output text)
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
 
           echo "Build started ${BUILD_ID}"
           echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
@@ -152,8 +157,8 @@ jobs:
                 echo "E2E tests failed with status &{BUILD_STATUS}"
 
                 # get build logs
-                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${Build_ID}" --query 'builds[0].arn' --output text)
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${{ needs.deploy.outputs.codebuild-project }}/build/${BUILD_ID}"
+                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].arn' --output text)
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
 
                 exit 1
                 ;;
@@ -253,6 +258,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload source to S3
+        env:
+          SOURCE_BUCKET:  ${{ needs.deploy.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
         run: |
           echo "UPLOADING source to s3 get store path"
           STORE_PATH=$(pnpm store path)
@@ -263,15 +271,17 @@ jobs:
 
           echo "UPLOADING source to s3 for e2e"
           zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${{ needs.deploy.outputs.source-bucket }}/${{ needs.deploy.outputs.source-path }}"
+          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
 
       - name: Trigger Codebuild and wait for completion
         id: codebuild
+        env:
+          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
         run: |
-          echo "Starting Codebuild project: ${{ needs.deploy.outputs.codebuild-project }}"
+          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
           # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${{ needs.deploy.outputs.codebuild-project }}" --query 'build.id' --output text)
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
 
           echo "Build started ${BUILD_ID}"
           echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
@@ -292,8 +302,8 @@ jobs:
                 echo "E2E tests failed with status &{BUILD_STATUS}"
 
                 # get build logs
-                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${Build_ID}" --query 'builds[0].arn' --output text)
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${{ needs.deploy.outputs.codebuild-project }}/build/${BUILD_ID}"
+                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].arn' --output text)
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
 
                 exit 1
                 ;;
