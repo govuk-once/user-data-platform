@@ -120,24 +120,26 @@ export class CodeBuildE2eConstruct extends Construct {
       }),
     );
 
-    codebuildRole.addToPolicy(
-      new PolicyStatement({
-        sid: 'SecretManagerRead',
-        actions: [
-          'secretsmanager:GetSecretValue',
-          'secretsmanager:DescribeSecret',
-        ],
-        resources: [cognitoClientSecret.secretArn],
-      }),
-    );
+    cognitoClientSecret.grantRead(codebuildRole)
 
-    codebuildRole.addToPolicy(
-      new PolicyStatement({
-        sid: 'KMSDecrypt',
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys*'],
-        resources: [kmsKey.keyArn],
-      }),
-    );
+    // codebuildRole.addToPolicy(
+    //   new PolicyStatement({
+    //     sid: 'SecretManagerRead',
+    //     actions: [
+    //       'secretsmanager:GetSecretValue',
+    //       'secretsmanager:DescribeSecret',
+    //     ],
+    //     resources: [cognitoClientSecret.secretArn],
+    //   }),
+    // );
+
+    // codebuildRole.addToPolicy(
+    //   new PolicyStatement({
+    //     sid: 'KMSDecrypt',
+    //     actions: ['kms:Decrypt', 'kms:GenerateDataKeys*'],
+    //     resources: [kmsKey.keyArn],
+    //   }),
+    // );
 
     codebuildRole.addToPolicy(
       new PolicyStatement({
