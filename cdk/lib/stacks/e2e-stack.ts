@@ -80,6 +80,7 @@ export class E2eStack extends Stack {
       vpc,
       securityGroups: [codeBuildSecurityGroup],
       apiEndpoint,
+      kmsKeyAlias,
       cognitoEndpoint,
       cognitoDomain,
       cognitoClientId: cognitoCient.userPoolClientId,

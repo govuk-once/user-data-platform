@@ -31,6 +31,7 @@ export interface CodeBuildE2eConstructProps {
   readonly buildTimeout?: Duration;
   readonly sourceBucket: string;
   readonly cognitoEndpoint?: string;
+  readonly kmsKeyAlias?: string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -47,6 +48,7 @@ export class CodeBuildE2eConstruct extends Construct {
       securityGroups,
       apiEndpoint,
       cognitoClientId,
+      kmsKeyAlias,
       cognitoClientSecret,
       cognitoDomain,
       awsRegion,
@@ -117,26 +119,26 @@ export class CodeBuildE2eConstruct extends Construct {
       }),
     );
 
-    cognitoClientSecret.grantRead(codebuildRole)
+    codebuildRole.addToPolicy(
+      new PolicyStatement({
+        sid: 'SecretManagerRead',
+        actions: [
+          'secretsmanager:GetServerValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        resources: [cognitoClientSecret.secretArn],
+      }),
+    );
 
-    // codebuildRole.addToPolicy(
-    //   new PolicyStatement({
-    //     sid: 'SecretManagerRead',
-    //     actions: [
-    //       'secretsmanager:GetSecretValue',
-    //       'secretsmanager:DescribeSecret',
-    //     ],
-    //     resources: [cognitoClientSecret.secretArn],
-    //   }),
-    // );
-
-    // codebuildRole.addToPolicy(
-    //   new PolicyStatement({
-    //     sid: 'KMSDecrypt',
-    //     actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
-    //     resources: [kmsKey.keyArn],
-    //   }),
-    // );
+    codebuildRole.addToPolicy(
+      new PolicyStatement({
+        sid: 'KMSDecrypt',
+        actions: ['kms:Decrypt', 'kms:DescribeKey'],
+        resources: [
+          `arn:aws:kms:${awsRegion}:${stack.account}:alias/${kmsKeyAlias}`,
+        ],
+      }),
+    );
 
     codebuildRole.addToPolicy(
       new PolicyStatement({
