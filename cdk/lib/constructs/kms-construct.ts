@@ -51,11 +51,11 @@ export class KmsConstruct extends Construct {
           'kms:Decrypt',
           'kms:ReEncrypt*',
           'kms:GenerateDataKey*',
-          'kms:DescribeKey'
+          'kms:DescribeKey',
         ],
-        resources: ['*']
-      })
-    )
+        resources: ['*'],
+      }),
+    );
 
     this.key.addToResourcePolicy(
       new iam.PolicyStatement({

@@ -67,7 +67,7 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
-  const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`
+  const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`;
 
   const monitoringStack = new MonitoringStack(
     app,
@@ -82,7 +82,7 @@ if (!skipMainStack) {
       api: mainStack.api,
       lambdas: mainStack.lambdas,
       notificationEmails: [],
-      kmsKeyAlias
+      kmsKeyAlias,
     },
   );
 

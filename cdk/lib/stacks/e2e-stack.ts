@@ -53,7 +53,6 @@ export class E2eStack extends Stack {
       ? `${developerId}-${environment}`
       : environment;
 
-
     this.sourceBucket = new Bucket(this, 'SourceBucket', {
       bucketName: `${resourcePrefix}-e2e-source-${this.account}`,
       encryption: BucketEncryption.S3_MANAGED,
