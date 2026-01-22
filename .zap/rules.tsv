@@ -1,0 +1,28 @@
+# ZAP Alert Filter Rules for UDP REST API
+# Format: AlertID	Action	URLPattern (optional)
+# Actions: IGNORE (suppress), WARN (report but don't fail), FAIL (report and fail)
+#
+# UDP uses Bearer token authentication, not cookies, so cookie-related
+# alerts are false positives. Many browser security headers are also
+# not applicable to REST APIs.
+
+# Cookie-related alerts (not applicable - API uses Bearer tokens)
+10010	IGNORE	# Cookie No HttpOnly Flag
+10011	IGNORE	# Cookie Without Secure Flag
+10054	IGNORE	# Cookie Without SameSite Attribute
+90033	IGNORE	# Loosely Scoped Cookie
+
+# Browser security headers (not applicable to REST APIs)
+10015	WARN	# Incomplete or No Cache-control Header
+10016	IGNORE	# Web Browser XSS Protection Not Enabled (X-XSS-Protection deprecated)
+10020	IGNORE	# X-Frame-Options Header (clickjacking - not relevant for APIs)
+10038	IGNORE	# Content Security Policy Header Not Set
+10055	IGNORE	# CSP Scanner
+10063	IGNORE	# Permissions Policy Header Not Set
+
+# Infrastructure headers (handled at API Gateway/CloudFront level)
+10035	WARN	# Strict-Transport-Security Header Not Set
+10037	WARN	# Server Leaks Information via "X-Powered-By" HTTP Response Header
+
+# Content headers (keep as warnings to review)
+10021	WARN	# X-Content-Type-Options Header Missing
