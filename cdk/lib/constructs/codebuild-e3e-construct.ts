@@ -24,7 +24,6 @@ export interface CodeBuildE2eConstructProps {
   readonly vpc: IVpc;
   readonly securityGroups: ISecurityGroup[];
   readonly kmsKey: IKey;
-  readonly kmsKeyAlias: string;
   readonly apiEndpoint: string;
   readonly cognitoDomain: string;
   readonly cognitoClientSecret: ISecret;
@@ -48,7 +47,6 @@ export class CodeBuildE2eConstruct extends Construct {
       vpc,
       securityGroups,
       kmsKey,
-      kmsKeyAlias,
       apiEndpoint,
       cognitoClientId,
       cognitoClientSecret,
@@ -137,7 +135,7 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'KMSDecrypt',
         actions: ['kms:Decrypt', 'kms:GenerateDataKeys*'],
-        resources: [`arn:aws:kms:${awsRegion}:${stack.account}:${kmsKeyAlias}`],
+        resources: [kmsKey.keyArn],
       }),
     );
 

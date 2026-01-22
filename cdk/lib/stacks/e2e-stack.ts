@@ -82,7 +82,6 @@ export class E2eStack extends Stack {
       vpc,
       securityGroups: [codeBuildSecurityGroup],
       kmsKey,
-      kmsKeyAlias,
       apiEndpoint,
       cognitoEndpoint,
       cognitoDomain,
