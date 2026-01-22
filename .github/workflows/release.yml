@@ -2,8 +2,8 @@ name: Release Pipeline
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -18,8 +18,13 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Version
+    uses: ./.github/workflows/version.yml
+
   deploy-dev:
     name: Deploy to dev
+    needs: version
     runs-on: ubuntu-latest
     environment: dev
     outputs:
