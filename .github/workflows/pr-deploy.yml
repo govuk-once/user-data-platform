@@ -54,6 +54,8 @@ jobs:
 
       - name: Deploy CDK stack
         run: |
+          export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          export CDK_DEFAULT_REGION=${{ env.AWS_REGION }}
           npx nx run cdk:deploy:dev
 
       - name: Get Stack outputs
