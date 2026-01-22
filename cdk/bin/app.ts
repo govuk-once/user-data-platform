@@ -12,7 +12,7 @@ const developerId = process.env.DEVELOPER_ID || undefined;
 
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
 
-const account = developerId ? null : process.env.CDK_DEFAULT_ACCOUNT;
+const account = process.env.CDK_DEFAULT_ACCOUNT;
 const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
 
 const awsEnv = account
@@ -67,6 +67,8 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
+  const kmsKeyAlias = `alias/${developerId ? `${developerId}-` : ''}encryption-${environment}`
+
   const monitoringStack = new MonitoringStack(
     app,
     `${stackPrefix}-monitoring`,
@@ -80,7 +82,7 @@ if (!skipMainStack) {
       api: mainStack.api,
       lambdas: mainStack.lambdas,
       notificationEmails: [],
-      kmsKey: mainStack.kmsKey,
+      kmsKeyAlias
     },
   );
 
@@ -93,7 +95,7 @@ if (!skipMainStack) {
     description: `E2E testing stack${developerId ? ` for ${developerId}` : ''}`,
     vpc: vpcStack.vpc,
     codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
-    kmsKey: mainStack.kmsKey,
+    kmsKeyAlias,
     apiEndpoint: mainStack.api.url,
     cognitoDomain: mainStack.cognitoDomain,
     cognitoCient: mainStack.cognitoClient,
