@@ -66,7 +66,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy CDK stack to dev
-        run: npx nx run cdk:deploy:dev
+        run: |
+          export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          export CDK_DEFAULT_REGION=${{ env.AWS_REGION }}
+          npx nx run cdk:deploy:dev
       - name: Get Stack outputs
         id: get-outputs
         working-directory: cdk
@@ -205,7 +208,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy CDK stack to staging
-        run: npx nx run cdk:deploy:stag
+        run: |
+          export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          export CDK_DEFAULT_REGION=${{ env.AWS_REGION }}
+          npx nx run cdk:deploy:stag
 
       - name: Get Stack outputs
         id: get-outputs
