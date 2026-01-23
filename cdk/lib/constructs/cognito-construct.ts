@@ -35,8 +35,8 @@ export class CognitoConstruct extends Construct {
     const {
       developerId,
       environment,
-      userPoolName = 'api-auth',
-      domainPrefix = 'api-auth',
+      userPoolName = 'gov-uk-udp-api-auth',
+      domainPrefix = 'gov-uk-udp-api-auth',
       resourceServerIdentifier = 'udp',
       resourceServerName = 'API',
       resorceServerScopes = [
