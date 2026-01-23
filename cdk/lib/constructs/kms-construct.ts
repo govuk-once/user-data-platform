@@ -43,6 +43,22 @@ export class KmsConstruct extends Construct {
 
     this.key.addToResourcePolicy(
       new iam.PolicyStatement({
+        sid: 'AlowIAMPolicies',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.AccountRootPrincipal()],
+        actions: [
+          'kms:Encrypt',
+          'kms:Decrypt',
+          'kms:ReEncrypt*',
+          'kms:GenerateDataKey*',
+          'kms:DescribeKey',
+        ],
+        resources: ['*'],
+      }),
+    );
+
+    this.key.addToResourcePolicy(
+      new iam.PolicyStatement({
         sid: 'AllowLambdaService',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('lambda.amazonaws.com')],

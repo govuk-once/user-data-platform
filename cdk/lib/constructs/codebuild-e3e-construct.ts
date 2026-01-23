@@ -23,7 +23,6 @@ export interface CodeBuildE2eConstructProps {
   readonly environment: string;
   readonly vpc: IVpc;
   readonly securityGroups: ISecurityGroup[];
-  readonly kmsKey: IKey;
   readonly apiEndpoint: string;
   readonly cognitoDomain: string;
   readonly cognitoClientSecret: ISecret;
@@ -32,6 +31,7 @@ export interface CodeBuildE2eConstructProps {
   readonly buildTimeout?: Duration;
   readonly sourceBucket: string;
   readonly cognitoEndpoint?: string;
+  readonly kmsKeyAlias?: string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -46,9 +46,9 @@ export class CodeBuildE2eConstruct extends Construct {
       environment,
       vpc,
       securityGroups,
-      kmsKey,
       apiEndpoint,
       cognitoClientId,
+      kmsKeyAlias,
       cognitoClientSecret,
       cognitoDomain,
       awsRegion,
@@ -66,7 +66,6 @@ export class CodeBuildE2eConstruct extends Construct {
       logGroupName: `/aws/codebuild/${resourcePrefix}-e2e-cucumber-tests`,
       retention: RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
-      encryptionKey: kmsKey,
     });
 
     const codebuildRole = new Role(this, 'CodeBuildRole', {
@@ -124,7 +123,7 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'SecretManagerRead',
         actions: [
-          'secretsmanager:GetSecretValue',
+          'secretsmanager:GetServerValue',
           'secretsmanager:DescribeSecret',
         ],
         resources: [cognitoClientSecret.secretArn],
@@ -134,8 +133,8 @@ export class CodeBuildE2eConstruct extends Construct {
     codebuildRole.addToPolicy(
       new PolicyStatement({
         sid: 'KMSDecrypt',
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys*'],
-        resources: [kmsKey.keyArn],
+        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKey*'],
+        resources: ['*'],
       }),
     );
 

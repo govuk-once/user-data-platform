@@ -7,7 +7,7 @@ import {
 } from 'aws-cdk-lib';
 import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
-import { IKey } from 'aws-cdk-lib/aws-kms';
+import { Alias, IKey } from 'aws-cdk-lib/aws-kms';
 import { Construct } from 'constructs';
 import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
@@ -22,7 +22,7 @@ export interface E2EStackProps extends StackProps {
   readonly environment: string;
   readonly vpc: IVpc;
   readonly codeBuildSecurityGroup: ISecurityGroup;
-  readonly kmsKey: IKey;
+  readonly kmsKeyAlias: string;
   readonly apiEndpoint: string;
   readonly cognitoDomain: string;
   readonly cognitoEndpoint: string;
@@ -42,7 +42,7 @@ export class E2eStack extends Stack {
       environment,
       vpc,
       codeBuildSecurityGroup,
-      kmsKey,
+      kmsKeyAlias,
       cognitoCient,
       cognitoDomain,
       apiEndpoint,
@@ -69,7 +69,6 @@ export class E2eStack extends Stack {
     this.cognitoSecret = new Secret(this, 'CogntioE2ESecret', {
       secretName: `${resourcePrefix}/e2e/cognito-client`,
       description: `Cognito M2M client secret for E2E tests - ${resourcePrefix}`,
-      encryptionKey: kmsKey,
       removalPolicy: RemovalPolicy.DESTROY,
       secretStringValue: cognitoCient.userPoolClientSecret,
     });
@@ -79,8 +78,8 @@ export class E2eStack extends Stack {
       environment,
       vpc,
       securityGroups: [codeBuildSecurityGroup],
-      kmsKey,
       apiEndpoint,
+      kmsKeyAlias,
       cognitoEndpoint,
       cognitoDomain,
       cognitoClientId: cognitoCient.userPoolClientId,
