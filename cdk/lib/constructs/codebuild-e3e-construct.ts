@@ -134,13 +134,7 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'KMSDecrypt',
         actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKey*'],
-        resources: [
-          Stack.of(this).formatArn({
-            service:'kms',
-            resource: 'alias',
-            resourceName: kmsKeyAlias
-          })
-        ],
+        resources: ['*'],
       }),
     );
 
