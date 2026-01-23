@@ -24,7 +24,7 @@ jobs:
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
       - name: Configure Git
-        enc:
+        env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           APP_SLUG: ${{ steps.generate_token.outputs.app-slug }}
           APP_ID: ${{ steps.get-user-id.outputs.user-id }}
