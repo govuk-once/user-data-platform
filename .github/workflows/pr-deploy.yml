@@ -59,14 +59,17 @@ jobs:
       - name: Get Stack outputs
         id: get-outputs
         working-directory: cdk
+        env:
+          STACK_NAME: ${{ env.DEVELOPER_ID }}-dev-e2e
         run: |
-          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name ${{ env.DEVELOPER_ID }}-dev-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
+          echo "Fetch from stack ${STACK_NAME}"
+          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
           echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
           echo "CodeBuild project: ${CODEBUILD_PROJECT}"
-          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name ${{ env.DEVELOPER_ID }}-dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
+          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
           echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
           echo "source bucket: ${SOURCE_BUCKET}"
-          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name ${{ env.DEVELOPER_ID }}-dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
+          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
           echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
           echo "source path: ${SOURCE_PATH}"
 
@@ -99,6 +102,9 @@ jobs:
           aws-region: eu-west-2
 
       - name: Upload source to S3
+        env:
+          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
         run: |
           echo "UPLOADING source to s3 get store path"
           STORE_PATH=$(pnpm store path)
@@ -109,15 +115,17 @@ jobs:
 
           echo "UPLOADING source to s3 for e2e"
           zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${{ needs.deploy.outputs.source-bucket }}/${{ needs.deploy.outputs.source-path }}"
+          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
 
       - name: Trigger Codebuild and wait for completion
         id: codebuild
+        env:
+          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
         run: |
-          echo "Starting Codebuild project: ${{ needs.deploy.outputs.codebuild-project }}"
+          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
           # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${{ needs.deploy.outputs.codebuild-project }}" --query 'build.id' --output text)
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
 
           echo "Build started ${BUILD_ID}"
           echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
@@ -135,11 +143,11 @@ jobs:
                 exit 0
                 ;;
               FAILED|FAULT|STOPPED|TIMED_OUT)
-                echo "E2E tests failed with status &{BUILD_STATUS}"
+                echo "E2E tests failed with status ${BUILD_STATUS}"
 
                 # get build logs
-                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${Build_ID}" --query 'builds[0].arn' --output text)
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${{ needs.deploy.outputs.codebuild-project }}/build/${BUILD_ID}"
+                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].arn' --output text)
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
 
                 exit 1
                 ;;
@@ -156,15 +164,19 @@ jobs:
       - name: Post test results to PR
         if: always()
         uses: actions/github-script@v7
+        env:
+          BUILD_ID: ${{ steps.codebuild.outputs.build-id }}
+          JOB_STATUS: ${{ job.status }}
+          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
         with:
           script: |
-            const buildid = `${{ steps.codebuild.outputs.build-id }}`;
-            const status = `${{ job.status }}`;
-            const region = `${{ env.AWS_REGION }}`;
-            const project = `${{ needs.deploy.outputs.codebuild-project }}`;
+            const buildid = process.env.BUILD_ID;
+            const status = process.env.JOB_STATUS;
+            const region = process.env.AWS_REGION;
+            const project = process.env.CODEBUILD_PROJECT;
 
             const emoji = status == 'success' ? '' : '';
-            const logsUrl = "http://${region}.console.aws.amazon.com/codesuite/codebuild/projects/${project}/build/${buildid}"
+            const logsUrl = `http://${region}.console.aws.amazon.com/codesuite/codebuild/projects/${project}/build/${buildid}`
 
             await github.rest.issues.createComment({
                 owner: context.repo.owner,
