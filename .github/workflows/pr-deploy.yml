@@ -62,6 +62,7 @@ jobs:
         env:
           STACK_NAME: ${{ env.DEVELOPER_ID }}-dev-e2e
         run: |
+          echo "Fetch from stack ${STACK_NAME}"
           CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
           echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
           echo "CodeBuild project: ${CODEBUILD_PROJECT}"
