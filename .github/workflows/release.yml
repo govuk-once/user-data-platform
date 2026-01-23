@@ -67,6 +67,7 @@ jobs:
 
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
+        
       - name: Get Stack outputs
         id: get-outputs
         working-directory: cdk
