@@ -67,7 +67,7 @@ jobs:
 
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
-        
+
       - name: Get Stack outputs
         id: get-outputs
         working-directory: cdk
@@ -115,8 +115,8 @@ jobs:
 
       - name: Upload source to S3
         env:
-          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
-          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
+          SOURCE_BUCKET: ${{ needs.deploy-dev.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy-dev.outputs.source-path }}
         run: |
           echo "UPLOADING source to s3 get store path"
           STORE_PATH=$(pnpm store path)
@@ -132,7 +132,7 @@ jobs:
       - name: Trigger Codebuild and wait for completion
         id: codebuild
         env:
-          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
+          CODEBUILD_PROJECT: ${{ needs.deploy-dev.outputs.codebuild-project }}
         run: |
           echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
@@ -260,8 +260,8 @@ jobs:
 
       - name: Upload source to S3
         env:
-          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
-          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
+          SOURCE_BUCKET: ${{ needs.deploy-staging.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy-staging.outputs.source-path }}
         run: |
           echo "UPLOADING source to s3 get store path"
           STORE_PATH=$(pnpm store path)
@@ -277,7 +277,7 @@ jobs:
       - name: Trigger Codebuild and wait for completion
         id: codebuild
         env:
-          CODEBUILD_PROJECT: ${{ needs.deploy.outputs.codebuild-project }}
+          CODEBUILD_PROJECT: ${{ needs.deploy-staging.outputs.codebuild-project }}
         run: |
           echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
