@@ -16,6 +16,7 @@ import {
   Bucket,
   BucketEncryption,
 } from 'aws-cdk-lib/aws-s3';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;
@@ -57,7 +58,7 @@ export class E2eStack extends Stack {
       bucketName: `${resourcePrefix}-e2e-source-${this.account}`,
       encryption: BucketEncryption.S3_MANAGED,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       autoDeleteObjects: true,
       lifecycleRules: [
         {
@@ -69,7 +70,7 @@ export class E2eStack extends Stack {
     this.cognitoSecret = new Secret(this, 'CogntioE2ESecret', {
       secretName: `${resourcePrefix}/e2e/cognito-client`,
       description: `Cognito M2M client secret for E2E tests - ${resourcePrefix}`,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       secretStringValue: cognitoCient.userPoolClientSecret,
     });
 

@@ -3,6 +3,7 @@ import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { RemovalPolicy } from 'aws-cdk-lib';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface RateLimitingConfig {
   readonly enabled?: boolean;
@@ -161,7 +162,7 @@ export class WafConstruct extends Construct {
       this.logGroup = new logs.LogGroup(this, 'WafLogs', {
         logGroupName: `aws-waf-logs-${resourcePrefix}-${environment}`,
         retention: logRetentionDays,
-        removalPolicy: RemovalPolicy.DESTROY,
+        removalPolicy: getRemovalPolicy(environment),
         encryptionKey: kmsKey,
       });
 

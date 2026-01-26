@@ -3,6 +3,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface VpcConstructprops {
   readonly environment: string;
@@ -224,7 +225,7 @@ export class VpcConstuct extends Construct {
     const flowLogGroup = new logs.LogGroup(this, 'FlowLogGroup', {
       logGroupName: `/aws/vpc/flow-logs-${environment}`,
       retention: logs.RetentionDays.ONE_MONTH,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       encryptionKey: kmsKey,
     });
 

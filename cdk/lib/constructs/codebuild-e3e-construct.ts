@@ -16,6 +16,7 @@ import { IKey } from 'aws-cdk-lib/aws-kms';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
 
 export interface CodeBuildE2eConstructProps {
@@ -65,7 +66,7 @@ export class CodeBuildE2eConstruct extends Construct {
     this.logGroup = new LogGroup(this, 'BuildLogGroup', {
       logGroupName: `/aws/codebuild/${resourcePrefix}-e2e-cucumber-tests`,
       retention: RetentionDays.ONE_MONTH,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
     });
 
     const codebuildRole = new Role(this, 'CodeBuildRole', {
@@ -123,7 +124,7 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'SecretManagerRead',
         actions: [
-          'secretsmanager:GetServerValue',
+          'secretsmanager:GetSecretValue',
           'secretsmanager:DescribeSecret',
         ],
         resources: [cognitoClientSecret.secretArn],
@@ -133,7 +134,7 @@ export class CodeBuildE2eConstruct extends Construct {
     codebuildRole.addToPolicy(
       new PolicyStatement({
         sid: 'KMSDecrypt',
-        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKey*'],
+        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKeys*'],
         resources: ['*'],
       }),
     );
