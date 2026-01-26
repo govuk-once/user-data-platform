@@ -15,6 +15,7 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import * as path from 'path';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface LambdaAuthorizerConstuctProps {
   readonly developerId?: string;
@@ -63,7 +64,7 @@ export class LambdaAuthorizerConstuct extends Construct {
     this.logGroup = new LogGroup(this, 'LogGroup', {
       logGroupName: `/aws/lambda/${fullFunctionName}`,
       retention: logRetentionDays,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       encryptionKey: kmsKey,
     });
 

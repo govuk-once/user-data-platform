@@ -1,3 +1,4 @@
+import { RemovalPolicy } from 'aws-cdk-lib';
 import {
   name as serviceName,
   team,
@@ -24,4 +25,14 @@ export enum GovUkOnceEnvironments {
   Test = 'test',
   Stag = 'stag',
   Prod = 'prod',
+}
+
+export function getRemovalPolicy(enviroment: string): RemovalPolicy {
+  if (
+    enviroment === GovUkOnceEnvironments.Prod ||
+    enviroment === GovUkOnceEnvironments.Prod
+  ) {
+    return RemovalPolicy.RETAIN;
+  }
+  return RemovalPolicy.DESTROY;
 }

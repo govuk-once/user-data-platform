@@ -2,6 +2,7 @@ import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { RemovalPolicy } from 'aws-cdk-lib';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface LocalSecondaryIndexeConfig {
   readonly indexName: string;
@@ -57,7 +58,7 @@ export class DynamoDBConstruct extends Construct {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: pointInTimeRecovery,
       },
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       timeToLiveAttribute: ttlAttributeName,
     });
 

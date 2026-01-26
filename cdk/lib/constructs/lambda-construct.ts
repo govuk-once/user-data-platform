@@ -8,6 +8,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import * as path from 'path';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface LambdaApiConstructProps {
   readonly developerId?: string;
@@ -73,7 +74,7 @@ export class LambdaApiConstruct extends Construct {
     this.logGroup = new logs.LogGroup(this, 'LogGroup', {
       logGroupName: `/aws/lambda/${fullFunctionName}`,
       retention: logRetentionDays,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       encryptionKey: kmsKey,
     });
 

@@ -2,6 +2,7 @@ import { Construct } from 'constructs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface KmsConstructProps {
   readonly developerId?: string;
@@ -37,7 +38,7 @@ export class KmsConstruct extends Construct {
       description: `${resourcePrefix}-${environment} encryption key`,
       enableKeyRotation,
       pendingWindow: Duration.days(deletionWindowInDays),
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
       alias: `${resourcePrefix}-${environment}`,
     });
 
@@ -62,7 +63,7 @@ export class KmsConstruct extends Construct {
         sid: 'AllowLambdaService',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('lambda.amazonaws.com')],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys*'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );

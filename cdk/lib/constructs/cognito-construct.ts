@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface M2MClientConfig {
   readonly scopes: string[];
@@ -73,7 +74,7 @@ export class CognitoConstruct extends Construct {
         tempPasswordValidity: Duration.days(7),
       },
       accountRecovery: cognito.AccountRecovery.NONE,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: getRemovalPolicy(environment),
     });
 
     this.userPoolDomain = this.userPool.addDomain('Domain', {
