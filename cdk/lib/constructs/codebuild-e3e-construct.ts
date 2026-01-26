@@ -134,7 +134,7 @@ export class CodeBuildE2eConstruct extends Construct {
     codebuildRole.addToPolicy(
       new PolicyStatement({
         sid: 'KMSDecrypt',
-        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKeys*'],
+        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );
