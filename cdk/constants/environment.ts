@@ -27,10 +27,12 @@ export enum GovUkOnceEnvironments {
   Prod = 'prod',
 }
 
-
 export function getRemovalPolicy(enviroment: string): RemovalPolicy {
-  if(enviroment === GovUkOnceEnvironments.Prod || enviroment === GovUkOnceEnvironments.Prod) {
-    return RemovalPolicy.RETAIN
+  if (
+    enviroment === GovUkOnceEnvironments.Prod ||
+    enviroment === GovUkOnceEnvironments.Prod
+  ) {
+    return RemovalPolicy.RETAIN;
   }
-  return RemovalPolicy.DESTROY
+  return RemovalPolicy.DESTROY;
 }
