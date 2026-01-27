@@ -284,7 +284,7 @@ export class MainStack extends Stack {
           cognitoUserPoolId: cognito.userPool.userPoolId,
           m2mClients: cognito.m2mClients,
           externalConsumers,
-          apiUrl: this.api.url
+          apiUrl: this.api.url,
         },
       );
 
