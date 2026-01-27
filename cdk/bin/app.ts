@@ -37,16 +37,7 @@ const enablePrivateLink =
   app.node.tryGetContext('enablePrivateLink') === 'true' ||
   app.node.tryGetContext('enablePrivateLink') === true;
 
-const privateLinkAllowedPrincipalArns: string[] = (() => {
-  const ctx = app.node.tryGetContext('privateLinkAllowedPrincipals');
-  if (!ctx) return [];
-  if (Array.isArray(ctx)) return ctx;
-  try {
-    return JSON.parse(ctx);
-  } catch {
-    return [];
-  }
-})();
+
 
 const externalConsumersFromContext: Record<
   string,
@@ -71,6 +62,14 @@ const externalConsumers: Record<
 > = {
   ...externalConsumersFromContext,
 };
+
+const privateLinkAllowedPrincipalArns: string[] = [
+  ...new Set([
+    ...Object.values(externalConsumers).map(
+      (c) => `arn:aws:iam::${c.accountId}:root`,
+    ),
+  ]),
+];
 
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 

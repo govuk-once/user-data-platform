@@ -248,3 +248,43 @@ There is a pre-commit hook which will generate the openapi docs on pre-commit
 if you would like to run and see them locally you can generate and serve them with
 
 ``nx run @udp:openapi`
+
+### API Consumer Configuration
+
+External consumers are onboarded by adding configuratuin to `cdk/cdk.json` and deploying , the stack automatically provisions Cognito credentials and stores them in Secrets Manager, and grants the consumer's AWS account read access to the secret.
+
+#### 1. Add the conumer to `cdk/cdk.jdon`
+
+Under the appropriate envireonment key, add an entry with consumer name and their aws account id and scopes
+
+```json
+{
+  "context": {
+    "externalConsumers:dev": {
+      "partner-app": {
+        "accountId": "234234234234",
+        "description": "Partner application for data integration",
+        "scopes": ["udp/read"]
+      }
+    }
+  }
+}
+```
+
+#### 2. Deploy
+
+```bash
+npx nx run cdk:deploy:dev
+```
+
+this creates:
+
+- A cogntio M2M client with a `udp/read` scope
+- A secrets manager secret at `/udp/dev/consumers/partner-app/config`
+- OAuth2 client credentials
+- auth endpoint details
+- A resource policy granting `secretsmanager:GetSecretValue`
+
+#### 3. Share the secret ARN with the new consumer
+
+Share the `/udp/dev/consumers/partner-app/config` arn value with the consumer
