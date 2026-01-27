@@ -55,7 +55,6 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 
 AppConfig is provisioned as part of the main CDK stack. Feature flags are stored as a hosted configuration profile using the AppConfig feature flag format.
 
-Application access helpers live in [libs/appconfig](libs/appconfig) and are exported from [libs/appconfig/index.ts](libs/appconfig/index.ts) via `AppConfigFeatureFlagsClient`.
 
 ### Adding a new feature flag per environment
 
@@ -77,6 +76,8 @@ To introduce a new flag:
   **On git push:**
 
 - Run all unit tests (via `vitest run`)
+
+## pre-commit
 
 To run all hooks manually:
 

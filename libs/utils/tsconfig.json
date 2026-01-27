@@ -3,7 +3,8 @@
   "compilerOptions": {
     "composite": false,
     "declaration": true,
-    "outDir": "../../dist/libs/utils"
+    "outDir": "../../dist/libs/utils",
+    "rootDir": "."
   },
   "include": ["**/*.ts"],
   "exclude": [

@@ -18,7 +18,6 @@
   "include": ["bin/**/*ts", "lib/**/*.ts", "constants/**/*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out"],
   "paths": {
-    "@libs/appconfig": ["libs/appconfig/index.ts"],
     "@libs/data-access": ["libs/data-access/index.ts"],
     "@libs/utils": ["libs/utils/index.ts"],
     "@libs/*": ["libs/*/src"],
