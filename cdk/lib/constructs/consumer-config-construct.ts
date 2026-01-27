@@ -21,6 +21,7 @@ export interface ConsumerConfigProps {
   readonly cognitoUserPoolId: string;
   readonly m2mClients: Map<string, UserPoolClient>;
   readonly externalConsumers: Record<string, ExternalConsumerConfig>;
+  readonly apiUrl: string;
 }
 
 export class ConsumerConfigConstruct extends Construct {
@@ -40,6 +41,7 @@ export class ConsumerConfigConstruct extends Construct {
       cognitoUserPoolId,
       m2mClients,
       externalConsumers,
+      apiUrl,
     } = props;
 
     const secretPathPrefix = developerId
@@ -66,6 +68,7 @@ export class ConsumerConfigConstruct extends Construct {
           ),
           region: SecretValue.unsafePlainText(region),
           apiAccountId: SecretValue.unsafePlainText(accountId),
+          apiUrl: SecretValue.unsafePlainText(apiUrl),
           availabilityZones: SecretValue.unsafePlainText(
             JSON.stringify(availabilityZones),
           ),

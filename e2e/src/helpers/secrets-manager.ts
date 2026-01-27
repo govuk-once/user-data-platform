@@ -12,6 +12,7 @@ export interface ConsumerConfig {
   cognitoUserPoolId: string;
   cognitoClientId: string;
   cognitoClientSecret: string;
+  apiUrl: string;
 }
 
 let cachedConsumerConfig: ConsumerConfig | null = null;

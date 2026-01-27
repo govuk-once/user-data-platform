@@ -288,3 +288,79 @@ this creates:
 #### 3. Share the secret ARN with the new consumer
 
 Share the `/udp/dev/consumers/partner-app/config` arn value with the consumer
+
+#### 4 Consumer integration example
+
+The consumer reads their secrets from Secret Manager, authenticated with cognito and calls the API
+
+```typescript
+import {
+  SecretManagerClient,
+  GetSecretValueCommand,
+} from '@aws-cdk/client-secrets-manager';
+
+interface ConsumerConfig {
+  privateLinkServiceName: string;
+  region: string;
+  apiAccountId: string;
+  availabilityZones: string;
+  cognitoTokenEndpoint: string;
+  cognitoUserPoolId: string;
+  cognitoClientId: string;
+  cognitoClientSecret: string;
+  apiUrl: string;
+}
+
+async function getConsumerConfig(secretArn: string): Promise<ConsumerConfig> {
+  const client = new SecretsManagerClient({});
+  const { secretString } = await client.send(
+    new GetSecretValueCommand({ secretId: secretArn }),
+  );
+}
+
+export async function getAccessToken(config: ConsumerConfig): Promise<string> {
+  const { tokenEndpoint } = config.cognito;
+
+  const credentials = Buffer.from(
+    `${clientConfig.clientId}:${clientConfig.clientSecret}`,
+  ).toString('base64');
+
+  const response = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientConfig.clientId,
+      scope: clientConfig.scopes.join(' '),
+    }),
+  });
+
+  if (!response.ok) {
+    // throw error
+  }
+
+  const { access_token } = (await response.json()) as { access_token: string };
+
+  return access_token;
+}
+
+const callApi = (url, config, token) => {
+  const result = fetch(`${config.apiUrl}/${url}`, {
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+    body: '*'
+  });
+};
+
+const config = getConsumerConfig(
+  'arn:aws:secretmanager:eu-west-2:*******************', // ARN provided by UDP
+);
+
+const token = await getAccessToken(config);
+const result = await callApi(config, token);
+```
