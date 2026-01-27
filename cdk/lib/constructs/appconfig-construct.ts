@@ -76,17 +76,13 @@ export class AppConfigConstruct extends Construct {
     );
 
     this.hostedConfigurationVersion =
-      new appconfig.CfnHostedConfigurationVersion(
-        this,
-        'FeatureFlagsVersion',
-        {
-          applicationId: this.application.ref,
-          configurationProfileId: this.configurationProfile.ref,
-          content: JSON.stringify(featureFlags, null, 2),
-          contentType: 'application/json',
-          description: `Feature flags for ${environment}`,
-        },
-      );
+      new appconfig.CfnHostedConfigurationVersion(this, 'FeatureFlagsVersion', {
+        applicationId: this.application.ref,
+        configurationProfileId: this.configurationProfile.ref,
+        content: JSON.stringify(featureFlags, null, 2),
+        contentType: 'application/json',
+        description: `Feature flags for ${environment}`,
+      });
 
     this.deploymentStrategy = new appconfig.CfnDeploymentStrategy(
       this,

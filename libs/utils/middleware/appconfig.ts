@@ -96,8 +96,10 @@ export function appConfigFeatureFlags<TEvent = unknown, TResult = unknown>(
         });
       }
 
-      const reqWithAppConfig =
-        request as unknown as RequestWithAppConfig<TEvent, TResult>;
+      const reqWithAppConfig = request as unknown as RequestWithAppConfig<
+        TEvent,
+        TResult
+      >;
       if (!reqWithAppConfig.internal) {
         reqWithAppConfig.internal = {};
       }

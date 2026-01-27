@@ -51,7 +51,6 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 - ESLint linting
 - TypeScript type checking
 
-
 ## Feature flags (AppConfig)
 
 AppConfig is provisioned as part of the main CDK stack. Feature flags are stored as a hosted configuration profile using the AppConfig feature flag format.
@@ -61,11 +60,11 @@ Application access helpers live in [libs/appconfig](libs/appconfig) and are expo
 ### Adding a new feature flag per environment
 
 1. Update the environment-specific feature flag map:
-    - [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts)
-    - Add a new flag under `featureFlagsByEnvironment` and set `enabled` per environment.
+   - [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts)
+   - Add a new flag under `featureFlagsByEnvironment` and set `enabled` per environment.
 
 2. Deploy the stack for the target environment:
-    - The AppConfig deployment is created automatically when the stack updates.
+   - The AppConfig deployment is created automatically when the stack updates.
 
 ### Example
 
@@ -75,7 +74,7 @@ To introduce a new flag:
 
 - Add the flag definition to each environment block (same name, different `enabled` values).
 - Redeploy the target environment.
-**On git push:**
+  **On git push:**
 
 - Run all unit tests (via `vitest run`)
 

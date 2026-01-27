@@ -43,9 +43,7 @@ describe('AppConfigFeatureFlagsClient', () => {
     expect(send.mock.calls[0][0]).toBeInstanceOf(
       StartConfigurationSessionCommand,
     );
-    expect(send.mock.calls[1][0]).toBeInstanceOf(
-      GetLatestConfigurationCommand,
-    );
+    expect(send.mock.calls[1][0]).toBeInstanceOf(GetLatestConfigurationCommand);
     expect(result).toEqual(featureFlags);
   });
 

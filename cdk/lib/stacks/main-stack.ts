@@ -9,9 +9,7 @@ import { KmsConstruct } from '../constructs/kms-construct';
 import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
 import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
-import {
-  AppConfigConstruct,
-} from '../constructs/appconfig-construct';
+import { AppConfigConstruct } from '../constructs/appconfig-construct';
 import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
