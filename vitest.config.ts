@@ -19,6 +19,7 @@ export default defineConfig({
         __dirname,
         './libs/data-access/index.ts',
       ),
+      '@libs/appconfig': path.resolve(__dirname, './libs/appconfig/index.ts'),
       '@libs/utils': path.resolve(__dirname, './libs/utils/index.ts'),
     },
   },

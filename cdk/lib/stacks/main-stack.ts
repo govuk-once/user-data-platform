@@ -9,6 +9,10 @@ import { KmsConstruct } from '../constructs/kms-construct';
 import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
 import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
+import {
+  AppConfigConstruct,
+} from '../constructs/appconfig-construct';
+import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -43,6 +47,9 @@ export class MainStack extends Stack {
   public readonly cognitoClient: UserPoolClient;
   public readonly cognitoDomain: string;
   public readonly cognitoEndpoint: string;
+  public readonly appConfigApplicationId: string;
+  public readonly appConfigEnvironmentId: string;
+  public readonly appConfigProfileId: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -106,6 +113,20 @@ export class MainStack extends Stack {
       environment,
       m2mClients,
     });
+
+    const featureFlags =
+      featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
+
+    const appConfig = new AppConfigConstruct(this, 'AppConfig', {
+      developerId,
+      environment,
+      applicationName: `${serviceName}-appconfig`,
+      featureFlags,
+    });
+
+    this.appConfigApplicationId = appConfig.application.ref;
+    this.appConfigEnvironmentId = appConfig.environment.ref;
+    this.appConfigProfileId = appConfig.configurationProfile.ref;
 
     const client = cognito.m2mClients.get('flex');
     if (!client) {
@@ -210,6 +231,24 @@ export class MainStack extends Stack {
       value: this.region,
       description: 'Aws Region',
       exportName: `${id}-AwsRegion`,
+    });
+
+    new CfnOutput(this, 'AppConfigApplicationId', {
+      value: this.appConfigApplicationId,
+      description: 'AppConfig Application ID',
+      exportName: `${id}-AppConfigApplicationId`,
+    });
+
+    new CfnOutput(this, 'AppConfigEnvironmentId', {
+      value: this.appConfigEnvironmentId,
+      description: 'AppConfig Environment ID',
+      exportName: `${id}-AppConfigEnvironmentId`,
+    });
+
+    new CfnOutput(this, 'AppConfigProfileId', {
+      value: this.appConfigProfileId,
+      description: 'AppConfig Configuration Profile ID',
+      exportName: `${id}-AppConfigProfileId`,
     });
 
     for (const [clientName, client] of cognito.m2mClients) {

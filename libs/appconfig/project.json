@@ -1,0 +1,26 @@
+{
+  "name": "@libs/appconfig",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/appconfig/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test:unit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest libs/appconfig/**/*"
+      }
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run libs/appconfig/**/* --coverage"
+      }
+    }
+  }
+}
