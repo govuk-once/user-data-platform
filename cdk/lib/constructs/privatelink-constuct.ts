@@ -32,7 +32,7 @@ export interface PrivateLinkConstructProps {
   readonly environment: string;
   readonly vpc: IVpc;
   readonly vpcEndpoint: IInterfaceVpcEndpoint;
-  readonly vpcEncpointSecurityGroup: ISecurityGroup;
+  readonly vpcEndpointSecurityGroup: ISecurityGroup;
   readonly allowedPrincipalArns?: string[];
   readonly acceptanceRequired?: boolean;
   readonly kmsKey?: IKey;
@@ -52,7 +52,7 @@ export class PrivateLinkConstruct extends Construct {
       environment,
       vpc,
       vpcEndpoint,
-      vpcEncpointSecurityGroup,
+      vpcEndpointSecurityGroup,
       allowedPrincipalArns = [],
       acceptanceRequired = true,
       kmsKey,
@@ -211,7 +211,7 @@ export class PrivateLinkConstruct extends Construct {
       description: `Network load balancer Dns Name`,
     });
 
-    new CfnOutput(this, 'EndpointServiceName', {
+    new CfnOutput(this, 'EndpointServiceId', {
       value: this.endpointService.vpcEndpointServiceId,
       description: `VPC Endpoint service ID for external account to connect`,
     });
