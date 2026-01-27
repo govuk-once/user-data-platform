@@ -5,7 +5,7 @@ Feature: Consumer Config Api Access
     And use those credentials to authentivate and access the API
 
     Background:
-        Given the consumer consfig secret is available
+        Given the consumer secret is available
 
     Scenario: consumer config secret contains all required fields
         Then the consumer config should contain "privateLinkServiceName"
@@ -24,4 +24,4 @@ Feature: Consumer Config Api Access
         When I authenticate using the consumer config credentials
         And I send a get to '/identity/test-consumer-access' using consumer credentials
         Then the response status should be 404
-        # 404 is expected - user doesnt exist 
+        # 404 is expected - user doesnt exist

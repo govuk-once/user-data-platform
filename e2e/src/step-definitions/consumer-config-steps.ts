@@ -34,7 +34,7 @@ Then(
   },
 );
 
-When('I authenticate using the consuer config credentials', async function () {
+When('I authenticate using the consumer config credentials', async function () {
   if (!consumerConfig) {
     consumerConfig = await getConsumerConfig();
   }
