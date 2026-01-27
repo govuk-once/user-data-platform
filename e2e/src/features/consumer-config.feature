@@ -1,4 +1,4 @@
-@udp @consumer-config
+@udp
 Feature: Consumer Config Api Access
     As and external consumer
     I want to retrieve my API configuration from Secrets manager
@@ -23,5 +23,5 @@ Feature: Consumer Config Api Access
     Scenario: Consumer can access the API using config credentials
         When I authenticate using the consumer config credentials
         And I send a get to '/identity/test-consumer-access' using consumer credentials
-        then the response status should be 404
+        Then the response status should be 404
         # 404 is expected - user doesnt exist 
