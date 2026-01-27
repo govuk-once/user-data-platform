@@ -37,8 +37,6 @@ const enablePrivateLink =
   app.node.tryGetContext('enablePrivateLink') === 'true' ||
   app.node.tryGetContext('enablePrivateLink') === true;
 
-
-
 const externalConsumersFromContext: Record<
   string,
   { accountId: string; description?: string; scopes: string[] }
