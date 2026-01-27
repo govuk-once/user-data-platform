@@ -4,7 +4,8 @@
     "outDir": "../../dist/libs/appconfig",
     "types": ["node"],
     "composite": false,
-    "declaration": true
+    "declaration": true,
+    "rootDir": "."
   },
   "include": ["**/*.ts", "index.ts"],
   "exclude": ["node_modules", "**/*.test.ts"]
