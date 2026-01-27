@@ -21,7 +21,7 @@ Given('the consumer secret is available', async function () {
 });
 
 Then(
-  'the consumer config should comtain {string',
+  'the consumer config should contain {string}',
   async function (fieldName: string) {
     if (!consumerConfig) {
       throw new Error('consumer config not loaded');
