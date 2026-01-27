@@ -134,6 +134,7 @@ export class PrivateLinkConstruct extends Construct {
           'elastivloadbalancing:DeregisterTargets',
           `elasticloadbalancing:DescribeTargetHealth`,
         ],
+        resources: [this.targetGroup.targetGroupArn],
       }),
     );
 
