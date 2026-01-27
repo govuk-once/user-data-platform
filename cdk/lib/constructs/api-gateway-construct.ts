@@ -65,7 +65,7 @@ export class ApiGatewayConstruct extends Construct {
       }),
       // allow access from VPC endponts
       new iam.PolicyStatement({
-        effect: iam.Effect.DENY,
+        effect: iam.Effect.ALLOW,
         principals: [new iam.AnyPrincipal()],
         actions: ['execute-api:Invoke'],
         resources: ['execute-api/*'],

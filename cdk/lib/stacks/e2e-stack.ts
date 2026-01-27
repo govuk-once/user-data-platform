@@ -10,7 +10,7 @@ import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { Alias, IKey } from 'aws-cdk-lib/aws-kms';
 import { Construct } from 'constructs';
 import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
   BlockPublicAccess,
   Bucket,
@@ -28,6 +28,7 @@ export interface E2EStackProps extends StackProps {
   readonly cognitoDomain: string;
   readonly cognitoEndpoint: string;
   readonly cognitoCient: UserPoolClient;
+  readonly e2eTestConsumerSecret?: ISecret;
 }
 
 export class E2eStack extends Stack {
@@ -48,6 +49,7 @@ export class E2eStack extends Stack {
       cognitoDomain,
       apiEndpoint,
       cognitoEndpoint,
+      e2eTestConsumerSecret,
     } = props;
 
     const resourcePrefix = developerId
@@ -87,6 +89,7 @@ export class E2eStack extends Stack {
       cognitoClientSecret: this.cognitoSecret,
       awsRegion: this.region,
       sourceBucket: this.sourceBucket.bucketName,
+      consumerConfigSecret: e2eTestConsumerSecret,
     });
 
     new CfnOutput(this, 'CodeBuildProjectName', {

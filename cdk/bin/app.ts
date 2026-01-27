@@ -33,17 +33,77 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
+const enablePrivateLink =
+  app.node.tryGetContext('enablePrivateLink') === 'true' ||
+  app.node.tryGetContext('enablePrivateLink') === true;
+
+const privateLinkAllowedPrincipalArns: string[] = (() => {
+  const ctx = app.node.tryGetContext('privateLinkAllowedPrincipals');
+  if (!ctx) return [];
+  if (Array.isArray(ctx)) return ctx;
+  try {
+    return JSON.parse(ctx);
+  } catch {
+    return [];
+  }
+})();
+
+const externalConsumersFromContext: Record<
+  string,
+  { accountId: string; description?: string; scopes: string[] }
+> = () => {
+  const envSepcificKey = `externalConsumers:${environment}`;
+  const ctx =
+    app.node.tryGetContext(envSepcificKey) ||
+    app.node.tryGetContext('externalConsumers');
+  if (!ctx) return {};
+  if (typeof ctx === 'object' && !Array.isArray(ctx)) return ctx;
+  try {
+    return JSON.parse(ctx);
+  } catch {
+    return [];
+  }
+};
+
+const externalConsumers: Record<
+  string,
+  { accountId: string; scopes: string[]; description?: string }
+> = {
+  ...externalConsumersFromContext,
+};
+
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
+  enablePrivateLink,
+  privateLinkAllowedPrincipalArns,
 });
 
 Aspects.of(app).add(new CheckovSuppressionAspect());
 
 if (!skipMainStack) {
+  const m2mClients: Record<
+    string,
+    { scopes: string[]; accessTokenValidityMinutes: number }
+  > = {
+    flex: {
+      scopes: ['udp/read', 'udp/write', 'udp/delete'],
+      accessTokenValidityMinutes: 60,
+    },
+  };
+
+  for (const consumerName of Object.keys(externalConsumers)) {
+    if (!m2mClients[consumerName]) {
+      m2mClients[consumerName] = {
+        scopes: externalConsumers[consumerName].scopes,
+        accessTokenValidityMinutes: 60,
+      };
+    }
+  }
+
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
@@ -55,13 +115,11 @@ if (!skipMainStack) {
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
+    privateLinkServiceName: vpcStack.privateLinkServiceName,
+    availabilityZones: vpcStack.vpc.availabilityZones,
+    externalConsumers,
+    m2mClients,
 
-    m2mClients: {
-      flex: {
-        scopes: ['udp/read', 'udp/write', 'udp/delete'],
-        accessTokenValidityMinutes: 60,
-      },
-    },
     ...repoMetaData,
   });
 
@@ -100,6 +158,7 @@ if (!skipMainStack) {
     cognitoDomain: mainStack.cognitoDomain,
     cognitoCient: mainStack.cognitoClient,
     cognitoEndpoint: mainStack.cognitoEndpoint,
+    e2eTestConsumerSecret: mainStack.e2eTestConsumerSecret,
   });
 
   e2eStack.addDependency(mainStack);

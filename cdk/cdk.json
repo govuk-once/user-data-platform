@@ -14,6 +14,9 @@
     ]
   },
   "context": {
+    "externalConsumers:dev": {},
+    "externalConsumers:stag": {},
+    "externalConsumers:prod": {},
     "@aws-cdk/aws-signer:signingProfileNamePassedToCfn": true,
     "@aws-cdk/aws-ecs-patterns:secGroupsDisablesImplicitOpenListener": true,
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,

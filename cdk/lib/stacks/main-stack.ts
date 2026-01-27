@@ -20,6 +20,11 @@ import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
 import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
+import {
+  ConsumerConfigConstruct,
+  ExternalConsumerConfig,
+} from '../constructs/consumer-config-construct';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -35,6 +40,9 @@ export interface MainStackProps extends StackProps {
   vpc?: ec2.IVpc;
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
+  privateLinkServiceName?: string;
+  availabilityZones?: string[];
+  externalConsumers?: Record<string, ExternalConsumerConfig>;
 }
 
 export class MainStack extends Stack {
@@ -48,6 +56,7 @@ export class MainStack extends Stack {
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
+  public readonly e2eTestConsumerSecret?: ISecret;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -70,6 +79,9 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       codebuildSecurityGroup,
+      privateLinkServiceName,
+      availabilityZones = [],
+      externalConsumers = {},
     } = props;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
@@ -255,6 +267,27 @@ export class MainStack extends Stack {
         description: `M2M Client ID for ${clientName}`,
         exportName: `${id}-M2MClientId-${clientName}`,
       });
+    }
+
+    if (Object.keys(externalConsumers).length > 0) {
+      const consumerConfig = new ConsumerConfigConstruct(
+        this,
+        'ConsumerConfig',
+        {
+          developerId,
+          environment,
+          region: this.region,
+          accountId: this.account,
+          privateLinkServiceName,
+          availabilityZones,
+          cognitoTokenEndpoint: cognito.tokenEndpoint,
+          cognitoUserPoolId: cognito.userPool.userPoolId,
+          m2mClients: cognito.m2mClients,
+          externalConsumers,
+        },
+      );
+
+      this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
   }
 }

@@ -33,6 +33,7 @@ export interface CodeBuildE2eConstructProps {
   readonly sourceBucket: string;
   readonly cognitoEndpoint?: string;
   readonly kmsKeyAlias?: string;
+  readonly consumerConfigSecret?: ISecret;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -56,6 +57,7 @@ export class CodeBuildE2eConstruct extends Construct {
       buildTimeout = Duration.minutes(30),
       sourceBucket,
       cognitoEndpoint,
+      consumerConfigSecret,
     } = props;
 
     const stack = Stack.of(this);
@@ -120,6 +122,11 @@ export class CodeBuildE2eConstruct extends Construct {
       }),
     );
 
+    const secretArns = [cognitoClientSecret.secretArn];
+    if (consumerConfigSecret) {
+      secretArns.push(consumerConfigSecret.secretArn);
+    }
+
     codebuildRole.addToPolicy(
       new PolicyStatement({
         sid: 'SecretManagerRead',
@@ -127,7 +134,7 @@ export class CodeBuildE2eConstruct extends Construct {
           'secretsmanager:GetSecretValue',
           'secretsmanager:DescribeSecret',
         ],
-        resources: [cognitoClientSecret.secretArn],
+        resources: secretArns,
       }),
     );
 
@@ -196,6 +203,32 @@ export class CodeBuildE2eConstruct extends Construct {
       path: `${resourcePrefix}/source.zip`,
     });
 
+    const environmentVariables: Record<
+      string,
+      { value: string; type?: BuildEnvironmentVariableType }
+    > = {
+      API_BASE_URL: { value: apiEndpoint },
+      COGNITO_DOMAIN: { value: cognitoDomain },
+      COGNITO_CLIENT_FLEX_ID: { value: cognitoClientId },
+      COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint  || ''},
+      COGNITO_CLIENT_FLEX_SECRET: {
+        type: BuildEnvironmentVariableType.SECRETS_MANAGER,
+        value: cognitoClientSecret.secretArn,
+      },
+      COGNITO_CLIENT_FLEX_SCOPES: {
+        value: 'udp/read udp/write udp/delete',
+      },
+      COGNITO_DEFAULT_CLIENT: { value: 'flex' },
+      AWS_REGION: { value: awsRegion },
+      DEBUG: { value: 'false' },
+    };
+
+    if (consumerConfigSecret) {
+      environmentVariables.CONSUMER_CONFIG_SECRET_ARN = {
+        value: consumerConfigSecret.secretArn,
+      };
+    }
+
     this.project = new Project(this, 'E2eProject', {
       projectName: `${resourcePrefix}-e2e-cucumber-tests`,
       description: `Runs Cucumber e3e tests in vpc for ${resourcePrefix}`,
@@ -204,22 +237,7 @@ export class CodeBuildE2eConstruct extends Construct {
         buildImage: LinuxBuildImage.STANDARD_7_0,
         computeType: ComputeType.SMALL,
         privileged: false,
-        environmentVariables: {
-          API_BASE_URL: { value: apiEndpoint },
-          COGNITO_DOMAIN: { value: cognitoDomain },
-          COGNITO_CLIENT_FLEX_ID: { value: cognitoClientId },
-          COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint },
-          COGNITO_CLIENT_FLEX_SECRET: {
-            type: BuildEnvironmentVariableType.SECRETS_MANAGER,
-            value: cognitoClientSecret.secretArn,
-          },
-          COGNITO_CLIENT_FLEX_SCOPES: {
-            value: 'udp/read udp/write udp/delete',
-          },
-          COGNITO_DEFAULT_CLIENT: { value: 'flex' },
-          AWS_REGION: { value: awsRegion },
-          DEBUG: { value: 'false' },
-        },
+        environmentVariables,
       },
       vpc,
       subnetSelection: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },

@@ -14,6 +14,7 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   authenticated?: boolean;
   timeout?: number;
+  apitoken?: string
 }
 
 const DEBUG = process.env.DEBUG === 'true' || process.env.DEBUG === '1';
@@ -40,6 +41,7 @@ export class ApiClient {
       body,
       headers = {},
       authenticated = true,
+      apitoken,
       timeout = 25000,
     } = options;
 
@@ -53,6 +55,10 @@ export class ApiClient {
     if (authenticated) {
       const token = await getAccessToken(this.clientName);
       requestHeaders.Authorization = `Bearer ${token}`;
+    }
+
+    if(apitoken) {
+      requestHeaders.Authorization = `Bearer ${apitoken}`;
     }
 
     const normalizedBase = this.baseUrl.replace(/\/+$/, '');
