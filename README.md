@@ -51,10 +51,26 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 - ESLint linting
 - TypeScript type checking
 
+## pre-commit
+
+To run all hooks manually:
+
+```bash
+# Run all pre-commit hooks
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run eslint --all-files
+pre-commit run detect-secrets --all-files
+```
+
+**On git push:**
+
+- Run all unit tests (via `vitest run`)
+
 ## Feature flags (AppConfig)
 
 AppConfig is provisioned as part of the main CDK stack. Feature flags are stored as a hosted configuration profile using the AppConfig feature flag format.
-
 
 ### Adding a new feature flag per environment
 
@@ -73,22 +89,6 @@ To introduce a new flag:
 
 - Add the flag definition to each environment block (same name, different `enabled` values).
 - Redeploy the target environment.
-  **On git push:**
-
-- Run all unit tests (via `vitest run`)
-
-## pre-commit
-
-To run all hooks manually:
-
-```bash
-# Run all pre-commit hooks
-pre-commit run --all-files
-
-# Run specific hook
-pre-commit run eslint --all-files
-pre-commit run detect-secrets --all-files
-```
 
 #### Managing Detected Secrets
 
