@@ -107,7 +107,7 @@ export class PrivateLinkConstruct extends Construct {
       runtime: Runtime.NODEJS_20_X,
       handler: 'index.handler',
       timeout: Duration.minutes(1),
-      memorySize: 120,
+      memorySize: 128,
       logGroup: lambdaLogGroup,
       environment: {
         VPC_ENDPOINT_ID: vpcEndpoint.vpcEndpointId,
