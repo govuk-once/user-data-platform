@@ -17,20 +17,6 @@ export const featureFlagsByEnvironment: Record<string, AppConfigFeatureFlags> =
         },
       },
     },
-    [GovUkOnceEnvironments.Test]: {
-      version: '1',
-      flags: {
-        enableNewIdentityFlow: {
-          name: 'Enable new identity flow',
-          description: 'Turns on the new identity creation flow',
-        },
-      },
-      values: {
-        enableNewIdentityFlow: {
-          enabled: true,
-        },
-      },
-    },
     [GovUkOnceEnvironments.Stag]: {
       version: '1',
       flags: {
