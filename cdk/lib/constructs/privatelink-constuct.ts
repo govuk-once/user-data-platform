@@ -18,7 +18,6 @@ import { ArnPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { IKey } from 'aws-cdk-lib/aws-kms';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { Endpoint } from 'aws-cdk-lib/aws-rds';
 import {
   AwsCustomResource,
   AwsCustomResourcePolicy,
@@ -26,6 +25,7 @@ import {
   Provider,
 } from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
+import path from 'path';
 
 export interface PrivateLinkConstructProps {
   readonly developerId?: string;
@@ -104,7 +104,7 @@ export class PrivateLinkConstruct extends Construct {
 
     this.updateTargetLambda = new Function(this, 'UpdateTargetLambda', {
       functionName: `${resourcePrefix}-update-nlb-targets-${environment}`,
-      runtime: Runtime.PYTHON_3_12,
+      runtime: Runtime.NODEJS_20_X,
       handler: 'index.handler',
       timeout: Duration.minutes(1),
       memorySize: 120,
@@ -113,7 +113,9 @@ export class PrivateLinkConstruct extends Construct {
         VPC_ENDPOINT_ID: vpcEndpoint.vpcEndpointId,
         TARGET_GROUP_ARN: this.targetGroup.targetGroupArn,
       },
-      code: Code.fromInline(``),
+      code: Code.fromAsset(
+        path.resolve(process.cwd(), '..', 'build', 'updateNlbTargetsLambda'),
+      ),
     });
 
     this.updateTargetLambda.addToRolePolicy(

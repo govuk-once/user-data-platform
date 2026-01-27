@@ -210,7 +210,7 @@ export class CodeBuildE2eConstruct extends Construct {
       API_BASE_URL: { value: apiEndpoint },
       COGNITO_DOMAIN: { value: cognitoDomain },
       COGNITO_CLIENT_FLEX_ID: { value: cognitoClientId },
-      COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint  || ''},
+      COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint || '' },
       COGNITO_CLIENT_FLEX_SECRET: {
         type: BuildEnvironmentVariableType.SECRETS_MANAGER,
         value: cognitoClientSecret.secretArn,

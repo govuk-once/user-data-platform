@@ -14,7 +14,7 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   authenticated?: boolean;
   timeout?: number;
-  apitoken?: string
+  apitoken?: string;
 }
 
 const DEBUG = process.env.DEBUG === 'true' || process.env.DEBUG === '1';
@@ -57,7 +57,7 @@ export class ApiClient {
       requestHeaders.Authorization = `Bearer ${token}`;
     }
 
-    if(apitoken) {
+    if (apitoken) {
       requestHeaders.Authorization = `Bearer ${apitoken}`;
     }
 
