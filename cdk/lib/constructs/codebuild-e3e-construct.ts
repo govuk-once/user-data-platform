@@ -1,18 +1,21 @@
-import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import {
   BuildEnvironmentVariableType,
   BuildSpec,
   Cache,
   ComputeType,
-  IBuildImage,
   LinuxBuildImage,
   LocalCacheMode,
   Project,
   Source,
 } from 'aws-cdk-lib/aws-codebuild';
 import { ISecurityGroup, IVpc, SubnetType } from 'aws-cdk-lib/aws-ec2';
-import { PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { IKey } from 'aws-cdk-lib/aws-kms';
+import {
+  IRole,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from 'aws-cdk-lib/aws-iam';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
@@ -25,15 +28,14 @@ export interface CodeBuildE2eConstructProps {
   readonly vpc: IVpc;
   readonly securityGroups: ISecurityGroup[];
   readonly apiEndpoint: string;
-  readonly cognitoDomain: string;
-  readonly cognitoClientSecret: ISecret;
-  readonly cognitoClientId: string;
   readonly awsRegion: string;
   readonly buildTimeout?: Duration;
   readonly sourceBucket: string;
   readonly cognitoEndpoint?: string;
   readonly kmsKeyAlias?: string;
   readonly consumerConfigSecret?: ISecret;
+  readonly apiId: string;
+  readonly e2eTestConsumerRole?: IRole;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -49,15 +51,12 @@ export class CodeBuildE2eConstruct extends Construct {
       vpc,
       securityGroups,
       apiEndpoint,
-      cognitoClientId,
-      kmsKeyAlias,
-      cognitoClientSecret,
-      cognitoDomain,
       awsRegion,
       buildTimeout = Duration.minutes(30),
       sourceBucket,
-      cognitoEndpoint,
       consumerConfigSecret,
+      apiId,
+      e2eTestConsumerRole,
     } = props;
 
     const stack = Stack.of(this);
@@ -73,7 +72,7 @@ export class CodeBuildE2eConstruct extends Construct {
 
     const codebuildRole = new Role(this, 'CodeBuildRole', {
       assumedBy: new ServicePrincipal('codebuild.amazonaws.com'),
-      description: `Iam role for E2e Codebuild Project - ${resourcePrefix}`,
+      description: `IAM role for E2E Codebuild Project - ${resourcePrefix}`,
     });
 
     codebuildRole.addToPolicy(
@@ -95,12 +94,12 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'VpcNetworking',
         actions: [
-          'ec2:CreateNetweorkInterface',
+          'ec2:CreateNetworkInterface',
           'ec2:DescribeNetworkInterfaces',
           'ec2:DeleteNetworkInterface',
           'ec2:DescribeSubnets',
-          'ec2:DescribeSecuriyGroups',
-          'ec2:DescribeDhcOptions',
+          'ec2:DescribeSecurityGroups',
+          'ec2:DescribeDhcpOptions',
           'ec2:DescribeVpcs',
         ],
         resources: ['*'],
@@ -122,21 +121,43 @@ export class CodeBuildE2eConstruct extends Construct {
       }),
     );
 
-    const secretArns = [cognitoClientSecret.secretArn];
+    codebuildRole.addToPolicy(
+      new PolicyStatement({
+        sid: 'ApiGatewayInvoke',
+        actions: ['execute-api:Invoke'],
+        resources: [
+          `arn:aws:execute-api:${awsRegion}:${stack.account}:${apiId}/*`,
+        ],
+      }),
+    );
+
+    if (e2eTestConsumerRole) {
+      codebuildRole.addToPolicy(
+        new PolicyStatement({
+          sid: 'AssumeE2ETestRole',
+          actions: ['sts:AssumeRole'],
+          resources: [e2eTestConsumerRole.roleArn],
+        }),
+      );
+    }
+
+    const secretArns: string[] = [];
     if (consumerConfigSecret) {
       secretArns.push(consumerConfigSecret.secretArn);
     }
 
-    codebuildRole.addToPolicy(
-      new PolicyStatement({
-        sid: 'SecretManagerRead',
-        actions: [
-          'secretsmanager:GetSecretValue',
-          'secretsmanager:DescribeSecret',
-        ],
-        resources: secretArns,
-      }),
-    );
+    if (secretArns.length > 0) {
+      codebuildRole.addToPolicy(
+        new PolicyStatement({
+          sid: 'SecretManagerRead',
+          actions: [
+            'secretsmanager:GetSecretValue',
+            'secretsmanager:DescribeSecret',
+          ],
+          resources: secretArns,
+        }),
+      );
+    }
 
     codebuildRole.addToPolicy(
       new PolicyStatement({
@@ -177,7 +198,7 @@ export class CodeBuildE2eConstruct extends Construct {
           'codebuild:BatchPutCodeCoverages',
         ],
         resources: [
-          `arn:aws:codebuild:${awsRegion}:${stack.account}:report-group/${resourcePrefix}=e2e-*`,
+          `arn:aws:codebuild:${awsRegion}:${stack.account}:report-group/${resourcePrefix}-e2e-*`,
         ],
       }),
     );
@@ -208,17 +229,6 @@ export class CodeBuildE2eConstruct extends Construct {
       { value: string; type?: BuildEnvironmentVariableType }
     > = {
       API_BASE_URL: { value: apiEndpoint },
-      COGNITO_DOMAIN: { value: cognitoDomain },
-      COGNITO_CLIENT_FLEX_ID: { value: cognitoClientId },
-      COGNITO_TOKEN_ENDPOINT: { value: cognitoEndpoint || '' },
-      COGNITO_CLIENT_FLEX_SECRET: {
-        type: BuildEnvironmentVariableType.SECRETS_MANAGER,
-        value: cognitoClientSecret.secretArn,
-      },
-      COGNITO_CLIENT_FLEX_SCOPES: {
-        value: 'udp/read udp/write udp/delete',
-      },
-      COGNITO_DEFAULT_CLIENT: { value: 'flex' },
       AWS_REGION: { value: awsRegion },
       DEBUG: { value: 'false' },
     };
@@ -231,7 +241,7 @@ export class CodeBuildE2eConstruct extends Construct {
 
     this.project = new Project(this, 'E2eProject', {
       projectName: `${resourcePrefix}-e2e-cucumber-tests`,
-      description: `Runs Cucumber e3e tests in vpc for ${resourcePrefix}`,
+      description: `Runs Cucumber E2E tests in VPC for ${resourcePrefix}`,
       source,
       environment: {
         buildImage: LinuxBuildImage.STANDARD_7_0,

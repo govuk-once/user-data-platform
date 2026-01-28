@@ -8,11 +8,9 @@ export interface ConsumerConfig {
   region: string;
   apiAccountId: string;
   availabilityZones: string;
-  cognitoTokenEndpoint: string;
-  cognitoUserPoolId: string;
-  cognitoClientId: string;
-  cognitoClientSecret: string;
   apiUrl: string;
+  consumerRoleArn: string;
+  externalId?: string;
 }
 
 let cachedConsumerConfig: ConsumerConfig | null = null;
@@ -48,33 +46,4 @@ export async function getConsumerConfig(): Promise<ConsumerConfig> {
 
 export function clearConsumerConfig(): void {
   cachedConsumerConfig = null;
-}
-
-export async function authenticateWithConsumerConfig(): Promise<string> {
-  const config = await getConsumerConfig();
-
-  const credentials = Buffer.from(
-    `${config.cognitoClientId}:${config.cognitoClientSecret}`,
-  ).toString('base64');
-
-  const response = await fetch(config.cognitoTokenEndpoint, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${credentials}`,
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: config.cognitoClientId,
-      scope: `udp/read udp/write udp/delete`,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to authenticate : ${errorText}`);
-  }
-
-  const tokenResponse = (await response.json()) as { access_token: string };
-  return tokenResponse.access_token;
 }

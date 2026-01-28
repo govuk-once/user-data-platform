@@ -1,14 +1,10 @@
 import { Given, Then, When } from '@cucumber/cucumber';
-import {
-  authenticateWithConsumerConfig,
-  ConsumerConfig,
-  getConsumerConfig,
-} from 'src/helpers/secrets-manager';
+import { ApiClient } from 'src/helpers/api-client';
+import { ConsumerConfig, getConsumerConfig } from 'src/helpers/secrets-manager';
 import { CustomWorld } from 'src/helpers/world';
 import { expect } from 'vitest';
 
 let consumerConfig: ConsumerConfig | null = null;
-let consumerAccessToken: string | null = null;
 
 Given('the consumer secret is available', async function () {
   const secretArn = process.env.CONSUMER_CONFIG_SECRET_ARN;
@@ -39,25 +35,24 @@ When('I authenticate using the consumer config credentials', async function () {
     consumerConfig = await getConsumerConfig();
   }
 
-  consumerAccessToken = await authenticateWithConsumerConfig();
-});
-
-Then('I should recieve a valid access token', async function () {
-  expect(consumerAccessToken).not.toBeNull();
-  expect(consumerAccessToken).not.toEqual('');
-  expect(consumerAccessToken!.split('.').length).toEqual(3);
+  this.api = new ApiClient(
+    consumerConfig.apiUrl,
+    consumerConfig.consumerRoleArn,
+    consumerConfig.externalId,
+  );
 });
 
 When(
   'I send a get to {string} using consumer credentials',
   async function (this: CustomWorld, path: string) {
-    if (!consumerAccessToken) {
-      throw new Error('Consumer access token not available');
+    if (!consumerConfig) {
+      consumerConfig = await getConsumerConfig();
     }
 
     const response = await this.api.get(path, {
       authenticated: false,
-      apitoken: consumerAccessToken,
+      roleArn: consumerConfig.consumerRoleArn,
+      externalId: consumerConfig.externalId,
     });
     this.storeResponse(response);
   },

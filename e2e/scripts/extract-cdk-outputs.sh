@@ -63,17 +63,6 @@ get_cfn_output() {
        --output text 2>/dev/null || echo ""
 }
 
-
-get_cfn_outputs_by_prefix() {
-    local stack_name="$1"
-    local prefix="$2"
-
-    aws cloudformation describe-stacks \
-       --stack-name "$stack_name" \
-       --query "Stacks[0].Outputs[?starts_with(OutputKey, '$prefix')].[OutputKey,OutputValue]" \
-       --output text 2>/dev/null || echo ""
-}
-
 if ! aws cloudformation describe-stacks --stack-name "$STACK_NAME" &>/dev/null; then
     echo "Error: Stack '$STACK_NAME' not found"
     echo ""
@@ -89,44 +78,9 @@ fi
 echo " Getting vars"
 
 API_ENDPOINT=$(get_cfn_output "$STACK_NAME" "ApiEndpoint")
-COGNITO_DOMAIN=$(get_cfn_output "$STACK_NAME" "CognitoDomain")
-USER_POOL_ID=$(get_cfn_output "$STACK_NAME" "UserPoolId")
-TOKEN_ENDPOINT=$(get_cfn_output "$STACK_NAME" "TokenEndpoint")
+API_ID=$(get_cfn_output "$STACK_NAME" "ApiId")
 DYNAMODB_TABLE=$(get_cfn_output "$STACK_NAME" "TableName")
 AWS_REGION=$(get_cfn_output "$STACK_NAME" "AwsRegion")
-M2M_OUTPUTS=$(get_cfn_outputs_by_prefix "$STACK_NAME" "M2MClientId")
-
-echo "$M2M_OUTPUTS"
-
-COGNITO_CLIENTS=""
-if [ -n "$M2M_OUTPUTS" ]; then
-    while IFS=$'\t' read -r output_key client_id; do
-        if [ -z "$output_key" ]; then
-            continue
-        fi
-
-        client_name=$(echo "$output_key" | sed -E 's/^M2MClientId-?//1')
-
-        echo "$client_name $output_key"
-
-
-        CLIENT_SECRET=$(aws cognito-idp describe-user-pool-client \
-            --user-pool-id "$USER_POOL_ID" \
-            --client-id "$client_id" \
-            --query "UserPoolClient.ClientSecret" \
-            --output text 2>/dev/null || echo "")
-
-        ENV_NAME=$(echo "$client_name" | tr '[:lower:]-' '[:upper:]_')
-
-        echo " Found clients $client_name"
-
-        COGNTIO_CLIENTS="${COGNTIO_CLIENTS}
-# ${client_name} client
-COGNITO_CLIENT_${ENV_NAME}_ID=$client_id
-COGNITO_CLIENT_${ENV_NAME}_SECRET=$CLIENT_SECRET
-COGNITO_CLIENT_${ENV_NAME}_SCOPES=udp/read udp/write udp/delete"
-    done <<< "$M2M_OUTPUTS"
-fi
 
 
 cat > "$ENV_FILE" << EOF
@@ -134,11 +88,7 @@ cat > "$ENV_FILE" << EOF
 
 # API Configuration
 API_BASE_URL=$API_ENDPOINT
-
-COGNITO_DOMAIN=$COGNITO_DOMAIN
-USER_POOL_ID=$USER_POOL_ID
-TOKEN_ENDPOINT=$TOKEN_ENDPOINT
-$COGNTIO_CLIENTS
+API_ID=$API_ID
 
 
 DYNAMODB_TABLE_NAME=$DYNAMODB_TABLE

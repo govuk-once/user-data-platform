@@ -25,6 +25,11 @@ import {
   ExternalConsumerConfig,
 } from '../constructs/consumer-config-construct';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { IRole } from 'aws-cdk-lib/aws-iam';
+import {
+  IamConsumerConfig,
+  IamConumerConstruct,
+} from '../constructs/iam-consumer-construct';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -50,13 +55,11 @@ export class MainStack extends Stack {
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
-  public readonly cognitoClient: UserPoolClient;
-  public readonly cognitoDomain: string;
-  public readonly cognitoEndpoint: string;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
   public readonly e2eTestConsumerSecret?: ISecret;
+  public readonly e2eTestConsumerRole?: IRole;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -67,18 +70,11 @@ export class MainStack extends Stack {
       serviceName,
       teamName,
       version,
-      m2mClients = {
-        flex: {
-          scopes: ['udp/read', 'udp/write', 'udp/delete'],
-          accessTokenValidityMinutes: 60,
-        },
-      },
       stackPrefix,
       vpcEndpointId,
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
-      codebuildSecurityGroup,
       privateLinkServiceName,
       availabilityZones = [],
       externalConsumers = {},
@@ -118,12 +114,6 @@ export class MainStack extends Stack {
 
     this.table = db.table;
 
-    const cognito = new CognitoConstruct(this, 'Cognito', {
-      developerId,
-      environment,
-      m2mClients,
-    });
-
     const featureFlags =
       featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
 
@@ -137,14 +127,6 @@ export class MainStack extends Stack {
     this.appConfigApplicationId = appConfig.application.ref;
     this.appConfigEnvironmentId = appConfig.environment.ref;
     this.appConfigProfileId = appConfig.configurationProfile.ref;
-
-    const client = cognito.m2mClients.get('flex');
-    if (!client) {
-      throw new Error('Flex m2m client not found required for e2e tests');
-    }
-    this.cognitoClient = client;
-    this.cognitoDomain = `${cognito.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
-    this.cognitoEndpoint = cognito.tokenEndpoint;
 
     const apiGateway = new ApiGatewayConstruct(this, 'Api', {
       developerId,
@@ -169,16 +151,6 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
     });
 
-    const authorizer = new LambdaAuthorizerConstuct(this, 'Authorizer', {
-      developerId,
-      environment,
-      cognitoIssuer: cognito.issuerUrl,
-      resourceServerIdentifier: 'udp',
-      vpc,
-      securityGroups: codebuildSecurityGroup ? [codebuildSecurityGroup] : [],
-      kmsKey: kmsConstruct.key,
-    });
-
     let lambdasList = [];
     for (const route of Object.values(routes)) {
       const lambda = new LambdaApiConstruct(this, route.name, {
@@ -191,7 +163,6 @@ export class MainStack extends Stack {
         dynamoDBtable: db.table,
         dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
         api: apiGateway.api,
-        authorizer: authorizer.authorizer,
         httpMethod: route.method,
         routePath: route.path,
         environmentVariables: {
@@ -207,28 +178,57 @@ export class MainStack extends Stack {
 
     this.lambdas = lambdasList;
 
+    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
+      test: {
+        permissions: ['read', 'write', 'delete'],
+        description: 'Internal E2E test consumer {codebuild}',
+      },
+    };
+
+    for (const [consumerName, consumerConfig] of Object.entries(
+      externalConsumers,
+    )) {
+      IamConsumerConfigs[consumerName] = {
+        permissions: consumerConfig.permissions,
+        accountId: consumerConfig.accountId,
+        externalId: consumerConfig.externalId,
+        description: consumerConfig.description,
+      };
+    }
+
+    const iamConsumers = new IamConumerConstruct(this, 'IamConsumers', {
+      developerId,
+      environment,
+      api: this.api,
+      consumers: IamConsumerConfigs,
+    });
+
+    this.e2eTestConsumerRole = iamConsumers.consumerRoles.get('test');
+
+    if (Object.keys(externalConsumers).length > 0) {
+      const consumerConfig = new ConsumerConfigConstruct(
+        this,
+        'ConsumerConfig',
+        {
+          developerId,
+          environment,
+          region: this.region,
+          accountId: this.account,
+          privateLinkServiceName,
+          availabilityZones,
+          consumerRoles: iamConsumers.consumerRoles,
+          externalConsumers,
+          apiUrl: this.api.url,
+        },
+      );
+
+      this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
+    }
+
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.url,
       description: 'Api Endpoint url',
       exportName: `${id}-ApiEndpoint`,
-    });
-
-    new CfnOutput(this, 'UserPoolId', {
-      value: cognito.userPool.userPoolId,
-      description: 'Cogntio user pool id',
-      exportName: `${id}-UserPoolId`,
-    });
-
-    new CfnOutput(this, 'TokenEndpoint', {
-      value: cognito.tokenEndpoint,
-      description: 'oAuth2 Token Endpoint',
-      exportName: `${id}-TokenEndpoint`,
-    });
-
-    new CfnOutput(this, 'CognitoDomain', {
-      value: `${cognito.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
-      description: 'Cognito Domain for oAuth2',
-      exportName: `${id}-CognitoDomain`,
     });
 
     new CfnOutput(this, 'TableName', {
@@ -260,35 +260,5 @@ export class MainStack extends Stack {
       description: 'AppConfig Configuration Profile ID',
       exportName: `${id}-AppConfigProfileId`,
     });
-
-    for (const [clientName, client] of cognito.m2mClients) {
-      new CfnOutput(this, `M2MClientId-${clientName}`, {
-        value: client.userPoolClientId,
-        description: `M2M Client ID for ${clientName}`,
-        exportName: `${id}-M2MClientId-${clientName}`,
-      });
-    }
-
-    if (Object.keys(externalConsumers).length > 0) {
-      const consumerConfig = new ConsumerConfigConstruct(
-        this,
-        'ConsumerConfig',
-        {
-          developerId,
-          environment,
-          region: this.region,
-          accountId: this.account,
-          privateLinkServiceName,
-          availabilityZones,
-          cognitoTokenEndpoint: cognito.tokenEndpoint,
-          cognitoUserPoolId: cognito.userPool.userPoolId,
-          m2mClients: cognito.m2mClients,
-          externalConsumers,
-          apiUrl: this.api.url,
-        },
-      );
-
-      this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
-    }
   }
 }

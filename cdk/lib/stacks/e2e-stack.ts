@@ -1,13 +1,6 @@
-import {
-  CfnOutput,
-  Duration,
-  RemovalPolicy,
-  Stack,
-  StackProps,
-} from 'aws-cdk-lib';
+import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
-import { Alias, IKey } from 'aws-cdk-lib/aws-kms';
 import { Construct } from 'constructs';
 import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
 import { ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
@@ -17,6 +10,7 @@ import {
   BucketEncryption,
 } from 'aws-cdk-lib/aws-s3';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { IRole } from 'aws-cdk-lib/aws-iam';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;
@@ -25,15 +19,13 @@ export interface E2EStackProps extends StackProps {
   readonly codeBuildSecurityGroup: ISecurityGroup;
   readonly kmsKeyAlias: string;
   readonly apiEndpoint: string;
-  readonly cognitoDomain: string;
-  readonly cognitoEndpoint: string;
-  readonly cognitoCient: UserPoolClient;
+  readonly apiId: string;
+  readonly e2eTestConsumerRole?: IRole;
   readonly e2eTestConsumerSecret?: ISecret;
 }
 
 export class E2eStack extends Stack {
   public readonly codebuildProject: CodeBuildE2eConstruct;
-  public readonly cognitoSecret: Secret;
   public readonly sourceBucket: Bucket;
 
   constructor(scope: Construct, id: string, props: E2EStackProps) {
@@ -45,10 +37,9 @@ export class E2eStack extends Stack {
       vpc,
       codeBuildSecurityGroup,
       kmsKeyAlias,
-      cognitoCient,
-      cognitoDomain,
       apiEndpoint,
-      cognitoEndpoint,
+      apiId,
+      e2eTestConsumerRole,
       e2eTestConsumerSecret,
     } = props;
 
@@ -69,13 +60,6 @@ export class E2eStack extends Stack {
       ],
     });
 
-    this.cognitoSecret = new Secret(this, 'CogntioE2ESecret', {
-      secretName: `${resourcePrefix}/e2e/cognito-client`,
-      description: `Cognito M2M client secret for E2E tests - ${resourcePrefix}`,
-      removalPolicy: getRemovalPolicy(environment),
-      secretStringValue: cognitoCient.userPoolClientSecret,
-    });
-
     this.codebuildProject = new CodeBuildE2eConstruct(this, 'CodeBuild', {
       developerId,
       environment,
@@ -83,13 +67,11 @@ export class E2eStack extends Stack {
       securityGroups: [codeBuildSecurityGroup],
       apiEndpoint,
       kmsKeyAlias,
-      cognitoEndpoint,
-      cognitoDomain,
-      cognitoClientId: cognitoCient.userPoolClientId,
-      cognitoClientSecret: this.cognitoSecret,
+      apiId,
       awsRegion: this.region,
       sourceBucket: this.sourceBucket.bucketName,
       consumerConfigSecret: e2eTestConsumerSecret,
+      e2eTestConsumerRole,
     });
 
     new CfnOutput(this, 'CodeBuildProjectName', {
@@ -102,12 +84,6 @@ export class E2eStack extends Stack {
       value: this.codebuildProject.project.projectArn,
       description: 'Codebuild project ARN for E2E tests',
       exportName: `${id}-CodeBuildProjectArn`,
-    });
-
-    new CfnOutput(this, 'CognitoSecretArn', {
-      value: this.cognitoSecret.secretArn,
-      description: 'Secret manager Arn E2E client cognito',
-      exportName: `${id}-CognitoSecretArn`,
     });
 
     new CfnOutput(this, 'SourceBucketName', {

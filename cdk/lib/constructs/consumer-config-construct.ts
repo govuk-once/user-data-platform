@@ -1,12 +1,17 @@
 import { CfnOutput, SecretValue } from 'aws-cdk-lib';
-import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
-import { AccountPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import {
+  AccountPrincipal,
+  Effect,
+  PolicyStatement,
+  Role,
+} from 'aws-cdk-lib/aws-iam';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 export interface ExternalConsumerConfig {
   readonly accountId: string;
-  readonly scopes: string[];
+  readonly permissions: ('read' | 'write' | 'delete')[];
+  readonly externalId?: string;
   readonly description?: string;
 }
 
@@ -17,9 +22,7 @@ export interface ConsumerConfigProps {
   readonly accountId: string;
   readonly privateLinkServiceName?: string;
   readonly availabilityZones: string[];
-  readonly cognitoTokenEndpoint: string;
-  readonly cognitoUserPoolId: string;
-  readonly m2mClients: Map<string, UserPoolClient>;
+  readonly consumerRoles: Map<string, Role>;
   readonly externalConsumers: Record<string, ExternalConsumerConfig>;
   readonly apiUrl: string;
 }
@@ -37,9 +40,7 @@ export class ConsumerConfigConstruct extends Construct {
       accountId,
       privateLinkServiceName,
       availabilityZones,
-      cognitoTokenEndpoint,
-      cognitoUserPoolId,
-      m2mClients,
+      consumerRoles,
       externalConsumers,
       apiUrl,
     } = props;
@@ -51,35 +52,37 @@ export class ConsumerConfigConstruct extends Construct {
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
-      const m2mClient = m2mClients.get(consumerName);
+      const consumerRole = consumerRoles.get(consumerName);
 
-      if (!m2mClient) {
+      if (!consumerRole) {
         throw new Error(
-          `External conumer ${consumerName} does not have a matching M2M client`,
+          `External conumer ${consumerName} does not have a matching IAM Consumer Role`,
+        );
+      }
+
+      const secretValue: Record<string, SecretValue> = {
+        privateLinkServiceName: SecretValue.unsafePlainText(
+          privateLinkServiceName ?? 'NOT_ENABLED',
+        ),
+        region: SecretValue.unsafePlainText(region),
+        apiAccountId: SecretValue.unsafePlainText(accountId),
+        apiUrl: SecretValue.unsafePlainText(apiUrl),
+        availabilityZones: SecretValue.unsafePlainText(
+          JSON.stringify(availabilityZones),
+        ),
+        consumerRoleArn: SecretValue.unsafePlainText(consumerRole.roleArn),
+      };
+
+      if (consumerConfig.externalId) {
+        secretValue.externalId = SecretValue.unsafePlainText(
+          consumerConfig.externalId,
         );
       }
 
       const secret = new Secret(this, `secret-${consumerName}`, {
         secretName: `${secretPathPrefix}/consumers/${consumerName}/config`,
         description: `Api configuration for external consumer ${consumerName}`,
-        secretObjectValue: {
-          privateLinkServiceName: SecretValue.unsafePlainText(
-            privateLinkServiceName ?? 'NOT_ENABLED',
-          ),
-          region: SecretValue.unsafePlainText(region),
-          apiAccountId: SecretValue.unsafePlainText(accountId),
-          apiUrl: SecretValue.unsafePlainText(apiUrl),
-          availabilityZones: SecretValue.unsafePlainText(
-            JSON.stringify(availabilityZones),
-          ),
-          cognitoTokenEndpoint:
-            SecretValue.unsafePlainText(cognitoTokenEndpoint),
-          cognitoUserPoolId: SecretValue.unsafePlainText(cognitoUserPoolId),
-          cognitoClientId: SecretValue.unsafePlainText(
-            m2mClient.userPoolClientId,
-          ),
-          cognitoClientSecret: m2mClient.userPoolClientSecret,
-        },
+        secretObjectValue: secretValue,
       });
 
       secret.addToResourcePolicy(
@@ -96,7 +99,7 @@ export class ConsumerConfigConstruct extends Construct {
 
       new CfnOutput(this, `ConsumerSecretArn-${consumerName}`, {
         value: secret.secretArn,
-        description: `Secret Arn for external consumer ${consumerName}`,
+        description: `Secret ARN for external consumer ${consumerName}`,
       });
 
       new CfnOutput(this, `ConsumerSecretName-${consumerName}`, {

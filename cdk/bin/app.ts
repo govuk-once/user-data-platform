@@ -39,7 +39,12 @@ const enablePrivateLink =
 
 const externalConsumersFromContext: Record<
   string,
-  { accountId: string; description?: string; scopes: string[] }
+  {
+    accountId: string;
+    description?: string;
+    permissions: ('read' | 'write' | 'delete')[];
+    externalId: string;
+  }
 > = (() => {
   const envSpecificKey = `externalConsumers:${environment}`;
   const ctx =
@@ -50,13 +55,18 @@ const externalConsumersFromContext: Record<
   try {
     return JSON.parse(ctx);
   } catch {
-    return [];
+    return {};
   }
 })();
 
 const externalConsumers: Record<
   string,
-  { accountId: string; scopes: string[]; description?: string }
+  {
+    accountId: string;
+    description?: string;
+    permissions: ('read' | 'write' | 'delete')[];
+    externalId: string;
+  }
 > = {
   ...externalConsumersFromContext,
 };
@@ -82,25 +92,6 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 Aspects.of(app).add(new CheckovSuppressionAspect());
 
 if (!skipMainStack) {
-  const m2mClients: Record<
-    string,
-    { scopes: string[]; accessTokenValidityMinutes: number }
-  > = {
-    flex: {
-      scopes: ['udp/read', 'udp/write', 'udp/delete'],
-      accessTokenValidityMinutes: 60,
-    },
-  };
-
-  for (const consumerName of Object.keys(externalConsumers)) {
-    if (!m2mClients[consumerName]) {
-      m2mClients[consumerName] = {
-        scopes: externalConsumers[consumerName].scopes,
-        accessTokenValidityMinutes: 60,
-      };
-    }
-  }
-
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
@@ -115,7 +106,6 @@ if (!skipMainStack) {
     privateLinkServiceName: vpcStack.privateLinkServiceName,
     availabilityZones: vpcStack.vpc.availabilityZones,
     externalConsumers,
-    m2mClients,
 
     ...repoMetaData,
   });
@@ -152,10 +142,8 @@ if (!skipMainStack) {
     codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     kmsKeyAlias,
     apiEndpoint: mainStack.api.url,
-    cognitoDomain: mainStack.cognitoDomain,
-    cognitoCient: mainStack.cognitoClient,
-    cognitoEndpoint: mainStack.cognitoEndpoint,
-    e2eTestConsumerSecret: mainStack.e2eTestConsumerSecret,
+    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+    apiId: mainStack.api.restApiId,
   });
 
   e2eStack.addDependency(mainStack);

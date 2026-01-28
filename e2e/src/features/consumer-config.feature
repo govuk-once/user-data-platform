@@ -12,16 +12,10 @@ Feature: Consumer Config Api Access
         And the consumer config should contain "region"
         And the consumer config should contain "apiAccountId"
         And the consumer config should contain "availabilityZones"
-        And the consumer config should contain "cognitoTokenEndpoint"
-        And the consumer config should contain "cognitoUserPoolId"
-        And the consumer config should contain "cognitoClientId"
-
-    Scenario: Consumer can authenticate using config credentials
-        When I authenticate using the consumer config credentials
-        Then I should recieve a valid access token
+        And the consumer config should contain "consumerRoleArn"
 
     Scenario: Consumer can access the API using config credentials
-        When I authenticate using the consumer config credentials
+        When I create and API client using the consumer config credentials
         And I send a get to '/identity/test-consumer-access' using consumer credentials
         Then the response status should be 404
         # 404 is expected - user doesnt exist

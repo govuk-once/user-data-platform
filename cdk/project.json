@@ -3,7 +3,6 @@
   "$schema": "../node_modules/nk/schemas/project-schema.json",
   "sourceRoot": "cdk",
   "implicitDependencies": [
-    "@src/authorizationLambda",
     "@src/createUserLambda",
     "@src/deleteDataLambda",
     "@src/postDataLambda",

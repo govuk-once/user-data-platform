@@ -6,7 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration } from 'aws-cdk-lib';
 import * as path from 'path';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 
@@ -25,7 +25,6 @@ export interface LambdaApiConstructProps {
   readonly dynamoDBtable?: dynamodb.Table;
   readonly dynamoDbActions?: string[];
   readonly api?: apigateway.RestApi;
-  readonly authorizer?: apigateway.IAuthorizer;
   readonly httpMethod: string;
   readonly routePath: string;
   readonly logRetentionDays?: logs.RetentionDays;
@@ -57,7 +56,6 @@ export class LambdaApiConstruct extends Construct {
       dynamoDBtable,
       dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
       api,
-      authorizer,
       httpMethod,
       logRetentionDays = logs.RetentionDays.ONE_MONTH,
       routePath,
@@ -161,10 +159,7 @@ export class LambdaApiConstruct extends Construct {
       }
 
       resource.addMethod(httpMethod, integration, {
-        authorizer,
-        authorizationType: authorizer
-          ? apigateway.AuthorizationType.CUSTOM
-          : apigateway.AuthorizationType.NONE,
+        authorizationType: apigateway.AuthorizationType.IAM,
       });
     }
   }
