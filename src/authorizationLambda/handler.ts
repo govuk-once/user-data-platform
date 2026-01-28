@@ -22,7 +22,7 @@ let jwtValidator: JwtValidator | null = null;
 function getValidator() {
   if (!jwtValidator) {
     if (!COGNITO_ISSUER) {
-      throw new Error('COGNITO_ISSUER enviroment variable is required');
+      throw new Error('COGNITO_ISSUER environment variable is required');
     }
     jwtValidator = new JwtValidator({ issuer: COGNITO_ISSUER });
   }

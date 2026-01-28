@@ -24,7 +24,9 @@ export async function getConsumerConfig(): Promise<ConsumerConfig> {
 
   const secretArn = process.env.CONSUMER_CONFIG_SECRET_ARN;
   if (!secretArn) {
-    throw new Error('CONSUMER_CONFIG_SECRET_ARN enviroment variable isnot set');
+    throw new Error(
+      'CONSUMER_CONFIG_SECRET_ARN environment variable is not set',
+    );
   }
 
   const region = process.env.AWS_REGION || 'eu-west-2';
@@ -53,7 +55,7 @@ export async function authenticateWithConsumerConfig(): Promise<string> {
 
   const credentials = Buffer.from(
     `${config.cognitoClientId}:${config.cognitoClientSecret}`,
-  );
+  ).toString('base64');
 
   const response = await fetch(config.cognitoTokenEndpoint, {
     method: 'post',
@@ -73,6 +75,6 @@ export async function authenticateWithConsumerConfig(): Promise<string> {
     throw new Error(`Failed to authenticate : ${errorText}`);
   }
 
-  const tokenResponse = (await response.json()) as { acceess_token: string };
-  return tokenResponse.acceess_token;
+  const tokenResponse = (await response.json()) as { access_token: string };
+  return tokenResponse.access_token;
 }

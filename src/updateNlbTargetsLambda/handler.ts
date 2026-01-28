@@ -16,7 +16,7 @@ const elbv2 = new ElasticLoadBalancingV2Client({});
 
 export const handler = async () => {
   const vpcEndpointId = process.env.VPC_ENDPOINT_ID!;
-  const targetGroupArn = process.env.TARGET_GROU_ARN!;
+  const targetGroupArn = process.env.TARGET_GROUP_ARN!;
 
   const endpointResponse = await ec2.send(
     new DescribeVpcEndpointsCommand({
@@ -47,7 +47,7 @@ export const handler = async () => {
     }
   }
 
-  const currentTargetsResponse = elbv2.send(
+  const currentTargetsResponse = await elbv2.send(
     new DescribeTargetHealthCommand({
       TargetGroupArn: targetGroupArn,
     }),
@@ -77,7 +77,7 @@ export const handler = async () => {
     await elbv2.send(
       new RegisterTargetsCommand({
         TargetGroupArn: targetGroupArn,
-        Targets: ipsToRemove.map((ip) => ({ Id: ip, Port: 443 })),
+        Targets: ipsToAdd.map((ip) => ({ Id: ip, Port: 443 })),
       }),
     );
   }

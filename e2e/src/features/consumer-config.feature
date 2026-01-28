@@ -2,7 +2,7 @@
 Feature: Consumer Config Api Access
     As and external consumer
     I want to retrieve my API configuration from Secrets manager
-    And use those credentials to authentivate and access the API
+    And use those credentials to authenticate and access the API
 
     Background:
         Given the consumer secret is available

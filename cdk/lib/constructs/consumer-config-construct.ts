@@ -96,12 +96,12 @@ export class ConsumerConfigConstruct extends Construct {
 
       new CfnOutput(this, `ConsumerSecretArn-${consumerName}`, {
         value: secret.secretArn,
-        description: `Secret Arn for exernal consumer ${consumerName}`,
+        description: `Secret Arn for external consumer ${consumerName}`,
       });
 
       new CfnOutput(this, `ConsumerSecretName-${consumerName}`, {
         value: secret.secretName,
-        description: `Secret Name for exernal consumer ${consumerName}`,
+        description: `Secret Name for external consumer ${consumerName}`,
       });
     }
   }

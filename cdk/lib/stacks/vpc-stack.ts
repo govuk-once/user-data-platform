@@ -3,7 +3,7 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstuct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
-import { PrivateLinkConstruct } from '../constructs/privatelink-constuct';
+import { PrivateLinkConstruct } from '../constructs/privatelink-construct';
 
 export interface VpcStackProps extends StackProps {
   readonly environment: string;
@@ -89,7 +89,7 @@ export class VpcStack extends Stack {
         environment,
         vpc: vpcConstruct.vpc,
         vpcEndpoint: vpcConstruct.excecuteApiEndpoint,
-        vpcEncpointSecurityGroup: vpcConstruct.vpcEndpointSecurityGroup,
+        vpcEndpointSecurityGroup: vpcConstruct.vpcEndpointSecurityGroup,
         allowedPrincipalArns: privateLinkAllowedPrincipalArns,
         acceptanceRequired: true,
         kmsKey: kmsConstruct.key,
@@ -103,7 +103,7 @@ export class VpcStack extends Stack {
       new CfnOutput(this, `PrivateLinkServiceNameOutput`, {
         value: privatelink.endpointService.vpcEndpointServiceName,
         exportName: `${id}-PrivateLinkServiceName`,
-        description: `VPC endpoint service name for externl consumers`,
+        description: `VPC endpoint service name for external consumers`,
       });
 
       new CfnOutput(this, `PrivateLinkServiceIdOutput`, {

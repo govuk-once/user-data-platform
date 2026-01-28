@@ -131,7 +131,7 @@ export class PrivateLinkConstruct extends Construct {
         effect: Effect.ALLOW,
         actions: [
           `elasticloadbalancing:RegisterTargets`,
-          'elastivloadbalancing:DeregisterTargets',
+          'elasticloadbalancing:DeregisterTargets',
           `elasticloadbalancing:DescribeTargetHealth`,
         ],
         resources: [this.targetGroup.targetGroupArn],
@@ -142,7 +142,7 @@ export class PrivateLinkConstruct extends Construct {
       ruleName: `${resourcePrefix}-eni-change-${environment}`,
       description: 'Trigger NLB target update when vpc endpoint ENIs change',
       eventPattern: {
-        source: ['aws:ec3'],
+        source: ['aws.ec2'],
         detailType: ['AWS API Call via CloudTrail'],
         detail: {
           eventSource: ['ec2.amazonaws.com'],
@@ -156,10 +156,6 @@ export class PrivateLinkConstruct extends Construct {
     });
 
     eniChangeRule.addTarget(new LambdaFunction(this.updateTargetLambda));
-
-    const initialUodateProvider = new Provider(this, 'InitialUpdateProvider', {
-      onEventHandler: this.updateTargetLambda,
-    });
 
     new AwsCustomResource(this, 'InitialTargetUpdate', {
       onCreate: {

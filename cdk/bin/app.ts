@@ -40,10 +40,10 @@ const enablePrivateLink =
 const externalConsumersFromContext: Record<
   string,
   { accountId: string; description?: string; scopes: string[] }
-> = () => {
-  const envSepcificKey = `externalConsumers:${environment}`;
+> = (() => {
+  const envSpecificKey = `externalConsumers:${environment}`;
   const ctx =
-    app.node.tryGetContext(envSepcificKey) ||
+    app.node.tryGetContext(envSpecificKey) ||
     app.node.tryGetContext('externalConsumers');
   if (!ctx) return {};
   if (typeof ctx === 'object' && !Array.isArray(ctx)) return ctx;
@@ -52,7 +52,7 @@ const externalConsumersFromContext: Record<
   } catch {
     return [];
   }
-};
+})();
 
 const externalConsumers: Record<
   string,
