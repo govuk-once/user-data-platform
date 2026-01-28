@@ -83,12 +83,27 @@ AppConfig is provisioned as part of the main CDK stack. Feature flags are stored
 
 ### Example
 
-In [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts), `enableNewIdentityFlow` is enabled for `dev` and `test`, but disabled for `stag` and `prod`.
+In [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts), `enableNewIdentityFlow` is enabled for `dev`, but disabled for `stag` and `prod`.
 
 To introduce a new flag:
 
 - Add the flag definition to each environment block (same name, different `enabled` values).
 - Redeploy the target environment.
+
+Use [Powertools](https://docs.aws.amazon.com/powertools/typescript/1.16.0/api/functions/_aws_lambda_powertools_parameters.appconfig.getAppConfig.html) to access the value in the Lambda handler code:
+
+```ts
+import { getAppConfig } from '@aws-lambda-powertools/parameters/appconfig';
+
+export const handler = async (): Promise<void> => {
+  // Retrieve a configuration profile
+  const encodedConfig = await getAppConfig('my-config', {
+    application: 'my-app',
+    environment: 'prod',
+  });
+  const config = new TextDecoder('utf-8').decode(encodedConfig);
+};
+```
 
 #### Managing Detected Secrets
 
