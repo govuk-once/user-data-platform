@@ -88,7 +88,9 @@ export class AppConfigConstruct extends Construct {
       this,
       'DeploymentStrategy',
       {
-        name: deploymentStrategyName,
+        name: developerId
+          ? `${developerId}-${deploymentStrategyName}`
+          : deploymentStrategyName,
         description: 'Immediate feature flag rollout',
         deploymentDurationInMinutes: 1,
         growthFactor: 100,
