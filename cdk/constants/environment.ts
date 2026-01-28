@@ -22,7 +22,6 @@ export const repoMetaData: RepoMetaData = {
 
 export enum GovUkOnceEnvironments {
   Dev = 'dev',
-  Test = 'test',
   Stag = 'stag',
   Prod = 'prod',
 }

@@ -4,9 +4,6 @@
 
 ### Prerequisites
 
-- Node.js (v18 or later)
-- pnpm
-- Python 3.7+ (for pre-commit hooks)
 - detect-secrets (for secret detection)
 
 ### Installation
@@ -54,9 +51,7 @@ The project uses pre-commit hooks to maintain code quality. Hooks run automatica
 - ESLint linting
 - TypeScript type checking
 
-**On git push:**
-
-- Run all unit tests (via `vitest run`)
+## pre-commit
 
 To run all hooks manually:
 
@@ -67,6 +62,47 @@ pre-commit run --all-files
 # Run specific hook
 pre-commit run eslint --all-files
 pre-commit run detect-secrets --all-files
+```
+
+**On git push:**
+
+- Run all unit tests (via `vitest run`)
+
+## Feature flags (AppConfig)
+
+AppConfig is provisioned as part of the main CDK stack. Feature flags are stored as a hosted configuration profile using the AppConfig feature flag format.
+
+### Adding a new feature flag per environment
+
+1. Update the environment-specific feature flag map:
+   - [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts)
+   - Add a new flag under `featureFlagsByEnvironment` and set `enabled` per environment.
+
+2. Deploy the stack for the target environment:
+   - The AppConfig deployment is created automatically when the stack updates.
+
+### Example
+
+In [cdk/constants/appconfig-feature-flags.ts](cdk/constants/appconfig-feature-flags.ts), `enableNewIdentityFlow` is enabled for `dev`, but disabled for `stag` and `prod`.
+
+To introduce a new flag:
+
+- Add the flag definition to each environment block (same name, different `enabled` values).
+- Redeploy the target environment.
+
+Use [Powertools](https://docs.aws.amazon.com/powertools/typescript/1.16.0/api/functions/_aws_lambda_powertools_parameters.appconfig.getAppConfig.html) to access the value in the Lambda handler code:
+
+```ts
+import { getAppConfig } from '@aws-lambda-powertools/parameters/appconfig';
+
+export const handler = async (): Promise<void> => {
+  // Retrieve a configuration profile
+  const encodedConfig = await getAppConfig('my-config', {
+    application: 'my-app',
+    environment: 'prod',
+  });
+  const config = new TextDecoder('utf-8').decode(encodedConfig);
+};
 ```
 
 #### Managing Detected Secrets
