@@ -1,4 +1,4 @@
-## User Data Platform
+# User Data Platform
 
 ## Setup
 
@@ -249,118 +249,163 @@ if you would like to run and see them locally you can generate and serve them wi
 
 ``nx run @udp:openapi`
 
-### API Consumer Configuration
+### Connecting from an External Account
 
-External consumers are onboarded by adding configuratuin to `cdk/cdk.json` and deploying , the stack automatically provisions Cognito credentials and stores them in Secrets Manager, and grants the consumer's AWS account read access to the secret.
+External consumers authenticate using **IAM (SigV4)** and connect over **AWS PrivateLink**. There are no Cognito or OAuth credentials involved — access is controlled via cross-account IAM roles.
 
-#### 1. Add the conumer to `cdk/cdk.jdon`
+#### 1. UDP team steps (onboarding a consumer)
 
-Under the appropriate envireonment key, add an entry with consumer name and their aws account id and scopes
+Add a consumer entry to `cdk/cdk.json` under the appropriate environment key:
 
 ```json
 {
   "context": {
     "externalConsumers:dev": {
       "partner-app": {
-        "accountId": "234234234234",
-        "description": "Partner application for data integration",
-        "scopes": ["udp/read"]
+        "accountId": "123456789012",
+        "permissions": ["read", "write"],
+        "externalId": "optional-external-id",
+        "description": "Partner application for data integration"
       }
     }
   }
 }
 ```
 
-#### 2. Deploy
+| Field | Required | Description |
+|---|---|---|
+| `accountId` | Yes | The consumer's AWS account ID |
+| `permissions` | Yes | Array of `"read"`, `"write"`, `"delete"` |
+| `externalId` | No | Additional STS assume-role security |
+| `description` | No | Human-readable label |
+
+Deploy the stack:
 
 ```bash
 npx nx run cdk:deploy:dev
 ```
 
-this creates:
+This provisions:
 
-- A cogntio M2M client with a `udp/read` scope
-- A secrets manager secret at `/udp/dev/consumers/partner-app/config`
-- OAuth2 client credentials
-- auth endpoint details
-- A resource policy granting `secretsmanager:GetSecretValue`
+- **IAM role** with a cross-account trust policy allowing the consumer account to assume it. The role grants `execute-api:Invoke` scoped to the HTTP methods matching the configured permissions (`read` → GET, `write` → POST/PUT/PATCH, `delete` → DELETE).
+- **Secrets Manager secret** at `/udp/<env>/consumers/<name>/config` with a resource policy granting the consumer account `secretsmanager:GetSecretValue`.
+- **PrivateLink VPC Endpoint Service** (environment-wide, when `enablePrivateLink: true` in context) backed by an internal NLB, with the consumer account added as an allowed principal.
 
-#### 3. Share the secret ARN with the new consumer
+Share the secret ARN with the consumer.
 
-Share the `/udp/dev/consumers/partner-app/config` arn value with the consumer
+#### 2. Consumer (external service) steps
 
-#### 4 Consumer integration example
+##### Network connectivity
 
-The consumer reads their secrets from Secret Manager, authenticated with cognito and calls the API
+Create a VPC Interface Endpoint in your account pointing to the PrivateLink service name (found in the config secret). The UDP team must then accept the connection request.
+
+##### Read the config secret
+
+Use cross-account `secretsmanager:GetSecretValue` to retrieve the secret from the ARN provided by the UDP team:
 
 ```typescript
 import {
-  SecretManagerClient,
+  SecretsManagerClient,
   GetSecretValueCommand,
-} from '@aws-cdk/client-secrets-manager';
+} from '@aws-sdk/client-secrets-manager';
 
 interface ConsumerConfig {
   privateLinkServiceName: string;
   region: string;
   apiAccountId: string;
-  availabilityZones: string;
-  cognitoTokenEndpoint: string;
-  cognitoUserPoolId: string;
-  cognitoClientId: string;
-  cognitoClientSecret: string;
   apiUrl: string;
+  availabilityZones: string;
+  consumerRoleArn: string;
+  externalId?: string;
 }
 
 async function getConsumerConfig(secretArn: string): Promise<ConsumerConfig> {
-  const client = new SecretsManagerClient({});
-  const { secretString } = await client.send(
-    new GetSecretValueCommand({ secretId: secretArn }),
-  );
-}
-
-export async function getAccessToken(config: ConsumerConfig): Promise<string> {
-  const { tokenEndpoint } = config.cognito;
-
-  const credentials = Buffer.from(
-    `${clientConfig.clientId}:${clientConfig.clientSecret}`,
-  ).toString('base64');
-
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${credentials}`,
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientConfig.clientId,
-      scope: clientConfig.scopes.join(' '),
-    }),
+  const client = new SecretsManagerClient({
+    region: process.env.AWS_REGION || 'eu-west-2',
   });
 
-  if (!response.ok) {
-    // throw error
+  const response = await client.send(
+    new GetSecretValueCommand({ SecretId: secretArn }),
+  );
+
+  if (!response.SecretString) {
+    throw new Error('Consumer config secret is empty');
   }
 
-  const { access_token } = (await response.json()) as { access_token: string };
+  return JSON.parse(response.SecretString) as ConsumerConfig;
+}
+```
 
-  return access_token;
+##### Assume the consumer IAM role and sign requests with SigV4
+
+Use STS `AssumeRole` with the `consumerRoleArn` from the secret (and `externalId` if set), then sign each HTTP request using AWS Signature V4 for the `execute-api` service:
+
+```typescript
+import { Sha256 } from '@aws-crypto/sha256-js';
+import { SignatureV4 } from '@smithy/signature-v4';
+import { HttpRequest } from '@smithy/protocol-http';
+import { fromTemporaryCredentials } from '@aws-sdk/credential-providers';
+
+async function callApi(
+  config: ConsumerConfig,
+  method: string,
+  path: string,
+  body?: unknown,
+) {
+  const url = new URL(path, config.apiUrl);
+  const bodyString = body ? JSON.stringify(body) : undefined;
+
+  const request = new HttpRequest({
+    method,
+    protocol: url.protocol,
+    hostname: url.hostname,
+    path: url.pathname + url.search,
+    headers: {
+      host: url.host,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: bodyString,
+  });
+
+  const signer = new SignatureV4({
+    credentials: fromTemporaryCredentials({
+      params: {
+        RoleArn: config.consumerRoleArn,
+        RoleSessionName: 'consumer-session',
+        ...(config.externalId && { ExternalId: config.externalId }),
+      },
+    }),
+    region: config.region,
+    service: 'execute-api',
+    sha256: Sha256,
+  });
+
+  const signed = await signer.sign(request);
+
+  return fetch(url.toString(), {
+    method,
+    headers: signed.headers as Record<string, string>,
+    body: bodyString,
+  });
 }
 
-const callApi = (url, config, token) => {
-  const result = fetch(`${config.apiUrl}/${url}`, {
-    method: 'POST',
-    headers: {
-        Authorization: `Bearer ${token}`
-    }
-    body: '*'
-  });
-};
-
-const config = getConsumerConfig(
-  'arn:aws:secretmanager:eu-west-2:*******************', // ARN provided by UDP
+// Usage
+const config = await getConsumerConfig(
+  'arn:aws:secretsmanager:eu-west-2:************:secret:/udp/dev/consumers/partner-app/config',
 );
 
-const token = await getAccessToken(config);
-const result = await callApi(config, token);
+const response = await callApi(config, 'GET', '/users/123');
 ```
+
+#### 3. Consumer secret schema reference
+
+| Field | Type | Description |
+|---|---|---|
+| `privateLinkServiceName` | `string` | VPC Endpoint Service name to create an interface endpoint against (or `NOT_ENABLED`) |
+| `region` | `string` | AWS region where the API is deployed |
+| `apiAccountId` | `string` | AWS account ID that hosts the API |
+| `apiUrl` | `string` | Base URL of the API Gateway endpoint |
+| `availabilityZones` | `string` | JSON-encoded array of AZs the endpoint is available in |
+| `consumerRoleArn` | `string` | IAM role ARN to assume before calling the API |
+| `externalId` | `string?` | STS external ID required when assuming the role (only present if configured) |
