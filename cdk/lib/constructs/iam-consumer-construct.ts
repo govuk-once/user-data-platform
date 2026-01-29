@@ -127,6 +127,6 @@ export class IamConumerConstruct extends Construct {
       }
     }
 
-    return resources
+    return resources;
   }
 }

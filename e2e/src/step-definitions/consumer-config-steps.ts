@@ -30,17 +30,20 @@ Then(
   },
 );
 
-When('I create and API client using the consumer config credentials', async function () {
-  if (!consumerConfig) {
-    consumerConfig = await getConsumerConfig();
-  }
+When(
+  'I create and API client using the consumer config credentials',
+  async function () {
+    if (!consumerConfig) {
+      consumerConfig = await getConsumerConfig();
+    }
 
-  this.api = new ApiClient(
-    consumerConfig.apiUrl,
-    consumerConfig.consumerRoleArn,
-    consumerConfig.externalId,
-  );
-});
+    this.api = new ApiClient(
+      consumerConfig.apiUrl,
+      consumerConfig.consumerRoleArn,
+      consumerConfig.externalId,
+    );
+  },
+);
 
 When(
   'I send a get to {string} using consumer credentials',
