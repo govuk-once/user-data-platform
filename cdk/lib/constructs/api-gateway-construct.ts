@@ -47,7 +47,7 @@ export class ApiGatewayConstruct extends Construct {
     } = props;
 
     const fullApiName = developerId
-      ? `${developerId}-${apiName}-${environment}`
+      ? `${developerId}-${apiName}-${environment}-test`
       : `${apiName}-${environment}`;
 
     const policyStatements: iam.PolicyStatement[] = [
