@@ -70,15 +70,15 @@ export class ApiClient {
       const signed = await signRequest(method, url, body, signOptions);
 
       requestHeaders['Authorization'] = signed.headers.authorization;
-      requestHeaders['x-Amz-Date'] = signed.headers['x-amz-date'];
+      requestHeaders['X-Amz-Date'] = signed.headers['x-amz-date'];
 
       if (signed.headers['x-amz-security-token']) {
-        requestHeaders['x-amz-security-token'] =
+        requestHeaders['A-Amz-Security-Token'] =
           signed.headers['x-amz-security-token'];
       }
 
       if (signed.headers['x-amz-content-sha256']) {
-        requestHeaders['x-amz-content-sha256'] =
+        requestHeaders['X-Amz-Content-Sha256'] =
           signed.headers['x-amz-content-sha256'];
       }
     }
@@ -105,6 +105,10 @@ export class ApiClient {
       throw error;
     }
     clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.log({ response });
+    }
 
     let data: T;
     const contentType = response.headers.get('content-type');
