@@ -2,12 +2,13 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { CustomWorld } from '../helpers/world.js';
 import { expect } from 'vitest';
 
-Given(
-  'I am authenticated as {string}',
-  async function (this: CustomWorld, clientName: string) {
-    this.setClient(clientName);
-  },
-);
+Given('I am authenticated', async function (this: CustomWorld) {
+  this.enableAuth();
+});
+
+Given('I am not authenticated', async function (this: CustomWorld) {
+  this.disableAuth();
+});
 
 When(
   'I send a post to {string} with the body {string}',

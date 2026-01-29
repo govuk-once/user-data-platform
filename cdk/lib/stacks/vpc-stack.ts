@@ -3,11 +3,14 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstuct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
+import { PrivateLinkConstruct } from '../constructs/privatelink-construct';
 
 export interface VpcStackProps extends StackProps {
   readonly environment: string;
   readonly vpcCidr?: string;
   readonly maxAzs?: number;
+  readonly enablePrivateLink?: boolean;
+  readonly privateLinkAllowedPrincipalArns?: string[];
 }
 
 export class VpcStack extends Stack {
@@ -16,11 +19,19 @@ export class VpcStack extends Stack {
   public readonly lambdaSecurityGroup: ec2.SecurityGroup;
   public readonly executeApiEndpointId: string;
   public readonly codeBuildSecurityGroup: ec2.SecurityGroup;
+  public readonly privateLinkServiceName?: string;
+  public readonly privateLinkServiceId?: string;
 
   constructor(scope: Construct, id: string, props: VpcStackProps) {
     super(scope, id, props);
 
-    const { environment, vpcCidr, maxAzs } = props;
+    const {
+      environment,
+      vpcCidr,
+      maxAzs,
+      enablePrivateLink = false,
+      privateLinkAllowedPrincipalArns = [],
+    } = props;
 
     const kmsConstruct = new KmsConstruct(this, 'kms', {
       environment,
@@ -72,5 +83,34 @@ export class VpcStack extends Stack {
         description: `Private subnet ${idx} ID`,
       });
     });
+
+    if (enablePrivateLink) {
+      const privatelink = new PrivateLinkConstruct(this, 'PrivateLink', {
+        environment,
+        vpc: vpcConstruct.vpc,
+        vpcEndpoint: vpcConstruct.excecuteApiEndpoint,
+        vpcEndpointSecurityGroup: vpcConstruct.vpcEndpointSecurityGroup,
+        allowedPrincipalArns: privateLinkAllowedPrincipalArns,
+        acceptanceRequired: true,
+        kmsKey: kmsConstruct.key,
+      });
+
+      this.privateLinkServiceName =
+        privatelink.endpointService.vpcEndpointServiceName;
+      this.privateLinkServiceId =
+        privatelink.endpointService.vpcEndpointServiceId;
+
+      new CfnOutput(this, `PrivateLinkServiceNameOutput`, {
+        value: privatelink.endpointService.vpcEndpointServiceName,
+        exportName: `${id}-PrivateLinkServiceName`,
+        description: `VPC endpoint service name for external consumers`,
+      });
+
+      new CfnOutput(this, `PrivateLinkServiceIdOutput`, {
+        value: privatelink.endpointService.vpcEndpointServiceId,
+        exportName: `${id}-PrivateLinkServiceId`,
+        description: `VPC endpoint service ID`,
+      });
+    }
   }
 }

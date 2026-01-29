@@ -1,4 +1,4 @@
-import { getAccessToken } from './auth.js';
+import { signRequest, SignedRequestOptions } from './sigv4-signer';
 import { config } from './config.js';
 
 export interface ApiResponse<T = unknown> {
@@ -9,26 +9,30 @@ export interface ApiResponse<T = unknown> {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATHCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
   authenticated?: boolean;
   timeout?: number;
+  roleArn?: string;
+  externalId?: string;
 }
 
 const DEBUG = process.env.DEBUG === 'true' || process.env.DEBUG === '1';
 
 export class ApiClient {
   private baseUrl: string;
-  private clientName: string;
+  private defaultRoleArn?: string;
+  private defaultExternalId?: string;
 
-  constructor(baseUrl: string = config.apiBaseUrl, clientName?: string) {
+  constructor(
+    baseUrl: string = config.apiBaseUrl,
+    roleArn?: string,
+    externalId?: string,
+  ) {
     this.baseUrl = baseUrl;
-    this.clientName = clientName || config.cognito.defaultClient;
-  }
-
-  getClientName(): string {
-    return this.clientName;
+    this.defaultRoleArn = roleArn;
+    this.defaultExternalId = externalId;
   }
 
   async request<T = unknown>(
@@ -40,8 +44,14 @@ export class ApiClient {
       body,
       headers = {},
       authenticated = true,
+      roleArn = this.defaultRoleArn,
+      externalId = this.defaultExternalId,
       timeout = 25000,
     } = options;
+
+    const normalizedBase = this.baseUrl.replace(/\/+$/, '');
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const url = `${normalizedBase}${normalizedPath}`;
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -51,13 +61,27 @@ export class ApiClient {
     };
 
     if (authenticated) {
-      const token = await getAccessToken(this.clientName);
-      requestHeaders.Authorization = `Bearer ${token}`;
-    }
+      const signOptions: SignedRequestOptions = {
+        roleArn,
+        externalId,
+        region: config.awsRegion,
+      };
 
-    const normalizedBase = this.baseUrl.replace(/\/+$/, '');
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const url = `${normalizedBase}${normalizedPath}`;
+      const signed = await signRequest(method, url, body, signOptions);
+
+      requestHeaders['Authorization'] = signed.headers.authorization;
+      requestHeaders['X-Amz-Date'] = signed.headers['x-amz-date'];
+
+      if (signed.headers['x-amz-security-token']) {
+        requestHeaders['X-Amz-Security-Token'] =
+          signed.headers['x-amz-security-token'];
+      }
+
+      if (signed.headers['x-amz-content-sha256']) {
+        requestHeaders['X-Amz-Content-Sha256'] =
+          signed.headers['x-amz-content-sha256'];
+      }
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -81,6 +105,10 @@ export class ApiClient {
       throw error;
     }
     clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.log({ response });
+    }
 
     let data: T;
     const contentType = response.headers.get('content-type');

@@ -3,14 +3,14 @@
   "$schema": "../node_modules/nk/schemas/project-schema.json",
   "sourceRoot": "cdk",
   "implicitDependencies": [
-    "@src/authorizationLambda",
     "@src/createUserLambda",
     "@src/deleteDataLambda",
     "@src/postDataLambda",
     "@src/getDataLambda",
     "@src/createIdentityLambda",
     "@src/readIdentityLambda",
-    "@src/deleteIdentityLambda"
+    "@src/deleteIdentityLambda",
+    "@src/updateNlbTargetsLambda"
   ],
   "targets": {
     "diff": {
@@ -68,7 +68,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk destroy --all -c env=dev --force",
+        "command": "npx cdk destroy --exclusively \"$DEVELOPER_ID-dev-e2e\" \"$DEVELOPER_ID-dev-monitoring\" \"$DEVELOPER_ID-dev-main\" -c env=dev --force",
         "cwd": "cdk"
       }
     },

@@ -5,7 +5,7 @@ Feature: identity Api
     And link records to a single udpId for a user
 
     Background:
-        Given I am authenticated as "flex"
+        Given I am authenticated
 
     Scenario: Successfully create initial app User
         When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'
@@ -47,6 +47,6 @@ Feature: identity Api
         When i send a get to '/identity/unknown'
         Then the response status should be 404
 
-    Scenario: Reutrns a 403 if url is invalid
+    Scenario: Reutrns a 404 if url is invalid
         When i send a get to '/identity/'
-        Then the response status should be 403
+        Then the response status should be 404
