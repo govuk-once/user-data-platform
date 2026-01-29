@@ -272,12 +272,12 @@ Add a consumer entry to `cdk/cdk.json` under the appropriate environment key:
 }
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `accountId` | Yes | The consumer's AWS account ID |
-| `permissions` | Yes | Array of `"read"`, `"write"`, `"delete"` |
-| `externalId` | No | Additional STS assume-role security |
-| `description` | No | Human-readable label |
+| Field         | Required | Description                              |
+| ------------- | -------- | ---------------------------------------- |
+| `accountId`   | Yes      | The consumer's AWS account ID            |
+| `permissions` | Yes      | Array of `"read"`, `"write"`, `"delete"` |
+| `externalId`  | No       | Additional STS assume-role security      |
+| `description` | No       | Human-readable label                     |
 
 Deploy the stack:
 
@@ -400,12 +400,12 @@ const response = await callApi(config, 'GET', '/users/123');
 
 #### 3. Consumer secret schema reference
 
-| Field | Type | Description |
-|---|---|---|
-| `privateLinkServiceName` | `string` | VPC Endpoint Service name to create an interface endpoint against (or `NOT_ENABLED`) |
-| `region` | `string` | AWS region where the API is deployed |
-| `apiAccountId` | `string` | AWS account ID that hosts the API |
-| `apiUrl` | `string` | Base URL of the API Gateway endpoint |
-| `availabilityZones` | `string` | JSON-encoded array of AZs the endpoint is available in |
-| `consumerRoleArn` | `string` | IAM role ARN to assume before calling the API |
-| `externalId` | `string?` | STS external ID required when assuming the role (only present if configured) |
+| Field                    | Type      | Description                                                                          |
+| ------------------------ | --------- | ------------------------------------------------------------------------------------ |
+| `privateLinkServiceName` | `string`  | VPC Endpoint Service name to create an interface endpoint against (or `NOT_ENABLED`) |
+| `region`                 | `string`  | AWS region where the API is deployed                                                 |
+| `apiAccountId`           | `string`  | AWS account ID that hosts the API                                                    |
+| `apiUrl`                 | `string`  | Base URL of the API Gateway endpoint                                                 |
+| `availabilityZones`      | `string`  | JSON-encoded array of AZs the endpoint is available in                               |
+| `consumerRoleArn`        | `string`  | IAM role ARN to assume before calling the API                                        |
+| `externalId`             | `string?` | STS external ID required when assuming the role (only present if configured)         |
