@@ -3,7 +3,7 @@ import { SignatureV4 } from '@smithy/signature-v4';
 import { HttpRequest } from '@smithy/protocol-http';
 
 import {
-  fromEnv,
+  fromNodeProviderChain,
   fromTemporaryCredentials,
 } from '@aws-sdk/credential-providers';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
@@ -38,7 +38,7 @@ function getCredentialsProvider(
     });
   }
 
-  return fromEnv();
+  return fromNodeProviderChain();
 }
 
 export async function signRequest(
