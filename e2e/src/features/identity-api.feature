@@ -47,6 +47,6 @@ Feature: identity Api
         When i send a get to '/identity/unknown'
         Then the response status should be 404
 
-    Scenario: Reutrns a 403 if url is invalid
+    Scenario: Reutrns a 404 if url is invalid
         When i send a get to '/identity/'
-        Then the response status should be 403
+        Then the response status should be 404
