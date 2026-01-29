@@ -73,7 +73,7 @@ export class ApiClient {
       requestHeaders['X-Amz-Date'] = signed.headers['x-amz-date'];
 
       if (signed.headers['x-amz-security-token']) {
-        requestHeaders['A-Amz-Security-Token'] =
+        requestHeaders['X-Amz-Security-Token'] =
           signed.headers['x-amz-security-token'];
       }
 

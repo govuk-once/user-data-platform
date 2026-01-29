@@ -78,7 +78,7 @@ export async function signRequest(
 
   return {
     headers: {
-      authorization: signedReqest.headers['Authorization'] as string,
+      authorization: signedReqest.headers['authorization'] as string,
       'x-amz-date': signedReqest.headers['x-amz-date'] as string,
       'x-amz-security-token': signedReqest.headers['x-amz-security-token'] as
         | string
