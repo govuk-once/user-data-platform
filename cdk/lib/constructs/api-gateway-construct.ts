@@ -63,12 +63,17 @@ export class ApiGatewayConstruct extends Construct {
           },
         },
       }),
-      // allow access from VPC endponts
+      // allow authenticated access from VPC endponts
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         principals: [new iam.AnyPrincipal()],
         actions: ['execute-api:Invoke'],
         resources: ['execute-api/*'],
+        conditions: {
+          StringEquals: {
+            'aws:sourceVpce': vpcEndpointIds,
+          },
+        },
       }),
     ];
 
