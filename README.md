@@ -251,7 +251,9 @@ if you would like to run and see them locally you can generate and serve them wi
 
 ### Connecting from an External Account
 
-External consumers authenticate using **IAM (SigV4)** and connect over **AWS PrivateLink**. There are no Cognito or OAuth credentials involved — access is controlled via cross-account IAM roles.
+External consumers authenticate using **IAM (SigV4)** and call the API Gateway endpoint directly. There are no Cognito or OAuth credentials involved — access is controlled via cross-account IAM roles.
+
+> **Optional:** PrivateLink is available as an enhancement to keep traffic off the public internet. See the notes below for details.
 
 #### 1. UDP team steps (onboarding a consumer)
 
@@ -272,12 +274,12 @@ Add a consumer entry to `cdk/cdk.json` under the appropriate environment key:
 }
 ```
 
-| Field         | Required | Description                              |
-| ------------- | -------- | ---------------------------------------- |
-| `accountId`   | Yes      | The consumer's AWS account ID            |
-| `permissions` | Yes      | Array of `"read"`, `"write"`, `"delete"` |
-| `externalId`  | No       | Additional STS assume-role security      |
-| `description` | No       | Human-readable label                     |
+| Field | Required | Description |
+|---|---|---|
+| `accountId` | Yes | The consumer's AWS account ID |
+| `permissions` | Yes | Array of `"read"`, `"write"`, `"delete"` |
+| `externalId` | No | Additional STS assume-role security |
+| `description` | No | Human-readable label |
 
 Deploy the stack:
 
@@ -289,15 +291,12 @@ This provisions:
 
 - **IAM role** with a cross-account trust policy allowing the consumer account to assume it. The role grants `execute-api:Invoke` scoped to the HTTP methods matching the configured permissions (`read` → GET, `write` → POST/PUT/PATCH, `delete` → DELETE).
 - **Secrets Manager secret** at `/udp/<env>/consumers/<name>/config` with a resource policy granting the consumer account `secretsmanager:GetSecretValue`.
-- **PrivateLink VPC Endpoint Service** (environment-wide, when `enablePrivateLink: true` in context) backed by an internal NLB, with the consumer account added as an allowed principal.
+
+> If `enablePrivateLink: true` is set in context, a VPC Endpoint Service backed by an internal NLB is also provisioned, and the consumer account is added as an allowed principal.
 
 Share the secret ARN with the consumer.
 
 #### 2. Consumer (external service) steps
-
-##### Network connectivity
-
-Create a VPC Interface Endpoint in your account pointing to the PrivateLink service name (found in the config secret). The UDP team must then accept the connection request.
 
 ##### Read the config secret
 
@@ -310,11 +309,9 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 
 interface ConsumerConfig {
-  privateLinkServiceName: string;
   region: string;
   apiAccountId: string;
   apiUrl: string;
-  availabilityZones: string;
   consumerRoleArn: string;
   externalId?: string;
 }
@@ -400,12 +397,13 @@ const response = await callApi(config, 'GET', '/users/123');
 
 #### 3. Consumer secret schema reference
 
-| Field                    | Type      | Description                                                                          |
-| ------------------------ | --------- | ------------------------------------------------------------------------------------ |
-| `privateLinkServiceName` | `string`  | VPC Endpoint Service name to create an interface endpoint against (or `NOT_ENABLED`) |
-| `region`                 | `string`  | AWS region where the API is deployed                                                 |
-| `apiAccountId`           | `string`  | AWS account ID that hosts the API                                                    |
-| `apiUrl`                 | `string`  | Base URL of the API Gateway endpoint                                                 |
-| `availabilityZones`      | `string`  | JSON-encoded array of AZs the endpoint is available in                               |
-| `consumerRoleArn`        | `string`  | IAM role ARN to assume before calling the API                                        |
-| `externalId`             | `string?` | STS external ID required when assuming the role (only present if configured)         |
+| Field | Type | Description |
+|---|---|---|
+| `region` | `string` | AWS region where the API is deployed |
+| `apiAccountId` | `string` | AWS account ID that hosts the API |
+| `apiUrl` | `string` | Base URL of the API Gateway endpoint |
+| `consumerRoleArn` | `string` | IAM role ARN to assume before calling the API |
+| `externalId` | `string?` | STS external ID required when assuming the role (only present if configured) |
+| `privateLinkServiceName` | `string` | VPC Endpoint Service name (only present when PrivateLink is enabled; otherwise `NOT_ENABLED`) |
+| `availabilityZones` | `string` | JSON-encoded array of AZs the endpoint is available in (only present when PrivateLink is enabled) |
+
