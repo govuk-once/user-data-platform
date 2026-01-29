@@ -68,7 +68,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk destroy --exclusively \"dev-e2e\" \"dev-monitoring\" \"dev-main\" -c env=dev --force",
+        "command": "npx cdk destroy --exclusively \"$DEVELOPER_ID-dev-e2e\" \"$DEVELOPER_ID-dev-monitoring\" \"$DEVELOPER_ID-dev-main\" -c env=dev --force",
         "cwd": "cdk"
       }
     },
