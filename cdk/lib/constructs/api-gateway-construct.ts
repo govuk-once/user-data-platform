@@ -35,7 +35,7 @@ export class ApiGatewayConstruct extends Construct {
     const {
       developerId,
       environment,
-      apiName = 'api',
+      apiName = 'api-test',
       vpcEndpointIds,
       crossAccountPrincipals,
       throttlingBurstLimit = 100,
