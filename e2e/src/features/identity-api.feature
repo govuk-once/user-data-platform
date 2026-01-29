@@ -5,7 +5,7 @@ Feature: identity Api
     And link records to a single udpId for a user
 
     Background:
-        Given I am authenticated as "flex"
+        Given I am authenticated
 
     Scenario: Successfully create initial app User
         When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'

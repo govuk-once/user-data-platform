@@ -5,7 +5,7 @@ Feature: User Data API
     So that i can retrieve it later
 
     Background:
-        Given I am authenticated as "flex"
+        Given I am authenticated
 
     Scenario: Create user for tests
         When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'
