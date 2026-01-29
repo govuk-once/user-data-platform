@@ -248,3 +248,119 @@ There is a pre-commit hook which will generate the openapi docs on pre-commit
 if you would like to run and see them locally you can generate and serve them with
 
 ``nx run @udp:openapi`
+
+### API Consumer Configuration
+
+External consumers are onboarded by adding configuratuin to `cdk/cdk.json` and deploying , the stack automatically provisions Cognito credentials and stores them in Secrets Manager, and grants the consumer's AWS account read access to the secret.
+
+#### 1. Add the conumer to `cdk/cdk.jdon`
+
+Under the appropriate envireonment key, add an entry with consumer name and their aws account id and scopes
+
+```json
+{
+  "context": {
+    "externalConsumers:dev": {
+      "partner-app": {
+        "accountId": "234234234234",
+        "description": "Partner application for data integration",
+        "scopes": ["udp/read"]
+      }
+    }
+  }
+}
+```
+
+#### 2. Deploy
+
+```bash
+npx nx run cdk:deploy:dev
+```
+
+this creates:
+
+- A cogntio M2M client with a `udp/read` scope
+- A secrets manager secret at `/udp/dev/consumers/partner-app/config`
+- OAuth2 client credentials
+- auth endpoint details
+- A resource policy granting `secretsmanager:GetSecretValue`
+
+#### 3. Share the secret ARN with the new consumer
+
+Share the `/udp/dev/consumers/partner-app/config` arn value with the consumer
+
+#### 4 Consumer integration example
+
+The consumer reads their secrets from Secret Manager, authenticated with cognito and calls the API
+
+```typescript
+import {
+  SecretManagerClient,
+  GetSecretValueCommand,
+} from '@aws-cdk/client-secrets-manager';
+
+interface ConsumerConfig {
+  privateLinkServiceName: string;
+  region: string;
+  apiAccountId: string;
+  availabilityZones: string;
+  cognitoTokenEndpoint: string;
+  cognitoUserPoolId: string;
+  cognitoClientId: string;
+  cognitoClientSecret: string;
+  apiUrl: string;
+}
+
+async function getConsumerConfig(secretArn: string): Promise<ConsumerConfig> {
+  const client = new SecretsManagerClient({});
+  const { secretString } = await client.send(
+    new GetSecretValueCommand({ secretId: secretArn }),
+  );
+}
+
+export async function getAccessToken(config: ConsumerConfig): Promise<string> {
+  const { tokenEndpoint } = config.cognito;
+
+  const credentials = Buffer.from(
+    `${clientConfig.clientId}:${clientConfig.clientSecret}`,
+  ).toString('base64');
+
+  const response = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientConfig.clientId,
+      scope: clientConfig.scopes.join(' '),
+    }),
+  });
+
+  if (!response.ok) {
+    // throw error
+  }
+
+  const { access_token } = (await response.json()) as { access_token: string };
+
+  return access_token;
+}
+
+const callApi = (url, config, token) => {
+  const result = fetch(`${config.apiUrl}/${url}`, {
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+    body: '*'
+  });
+};
+
+const config = getConsumerConfig(
+  'arn:aws:secretmanager:eu-west-2:*******************', // ARN provided by UDP
+);
+
+const token = await getAccessToken(config);
+const result = await callApi(config, token);
+```

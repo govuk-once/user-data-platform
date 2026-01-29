@@ -1,8 +1,8 @@
 import { AfterAll, setDefaultTimeout } from '@cucumber/cucumber';
-import { clearTokenCache } from './auth';
+import { clearConsumerConfig } from './secrets-manager';
 
 setDefaultTimeout(30000);
 
 AfterAll(async function () {
-  clearTokenCache();
+  clearConsumerConfig();
 });

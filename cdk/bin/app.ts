@@ -33,12 +33,60 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
+const enablePrivateLink =
+  app.node.tryGetContext('enablePrivateLink') === 'true' ||
+  app.node.tryGetContext('enablePrivateLink') === true;
+
+const externalConsumersFromContext: Record<
+  string,
+  {
+    accountId: string;
+    description?: string;
+    permissions: ('read' | 'write' | 'delete')[];
+    externalId: string;
+  }
+> = (() => {
+  const envSpecificKey = `externalConsumers:${environment}`;
+  const ctx =
+    app.node.tryGetContext(envSpecificKey) ||
+    app.node.tryGetContext('externalConsumers');
+  if (!ctx) return {};
+  if (typeof ctx === 'object' && !Array.isArray(ctx)) return ctx;
+  try {
+    return JSON.parse(ctx);
+  } catch {
+    return {};
+  }
+})();
+
+const externalConsumers: Record<
+  string,
+  {
+    accountId: string;
+    description?: string;
+    permissions: ('read' | 'write' | 'delete')[];
+    externalId: string;
+  }
+> = {
+  ...externalConsumersFromContext,
+};
+
+const privateLinkAllowedPrincipalArns: string[] = [
+  ...new Set([
+    ...Object.values(externalConsumers).map(
+      (c) => `arn:aws:iam::${c.accountId}:root`,
+    ),
+  ]),
+];
+
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
+  enablePrivateLink,
+  privateLinkAllowedPrincipalArns,
 });
 
 Aspects.of(app).add(new CheckovSuppressionAspect());
@@ -55,13 +103,10 @@ if (!skipMainStack) {
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
+    privateLinkServiceName: vpcStack.privateLinkServiceName,
+    availabilityZones: vpcStack.vpc.availabilityZones,
+    externalConsumers,
 
-    m2mClients: {
-      flex: {
-        scopes: ['udp/read', 'udp/write', 'udp/delete'],
-        accessTokenValidityMinutes: 60,
-      },
-    },
     ...repoMetaData,
   });
 
@@ -97,9 +142,8 @@ if (!skipMainStack) {
     codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     kmsKeyAlias,
     apiEndpoint: mainStack.api.url,
-    cognitoDomain: mainStack.cognitoDomain,
-    cognitoCient: mainStack.cognitoClient,
-    cognitoEndpoint: mainStack.cognitoEndpoint,
+    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+    apiId: mainStack.api.restApiId,
   });
 
   e2eStack.addDependency(mainStack);

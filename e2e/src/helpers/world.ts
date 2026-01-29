@@ -14,20 +14,16 @@ export class CustomWorld extends World<CustomWorldParams> {
 
   public context: Record<string, unknown> = {};
 
-  public currentClient: string;
-
   public authenticated: boolean = true;
 
   constructor(options: IWorldOptions<CustomWorldParams>) {
     super(options);
-    this.currentClient = config.cognito.defaultClient;
-    this.api = new ApiClient(config.apiBaseUrl, this.currentClient);
+    this.api = new ApiClient(config.apiBaseUrl);
   }
 
-  setClient(clietName: string): void {
-    this.currentClient = clietName;
+  setApiClient(roleArn?: string, externalId?: string): void {
     this.authenticated = true;
-    this.api = new ApiClient(config.apiBaseUrl, clietName);
+    this.api = new ApiClient(config.apiBaseUrl, roleArn, externalId);
   }
 
   disableAuth(): void {
