@@ -12,16 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  version:
-    name: Version
-    uses: ./.github/workflows/version.yml
-    permissions:
-      contents: write
-      id-token: write
-    secrets:
-      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
-      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
-
   destroy-stag:
     name: Deploy to Stag
     needs: version
@@ -56,7 +46,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
-          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: eu-west-2
 
       - name: Destroy CDK stack
