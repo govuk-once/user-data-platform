@@ -14,7 +14,6 @@
     ]
   },
   "context": {
-    "enablePrivateLink": true,
     "externalConsumers:dev": {},
     "externalConsumers:stag": {},
     "externalConsumers:prod": {},

@@ -20,8 +20,6 @@ export interface ConsumerConfigProps {
   readonly environment: string;
   readonly region: string;
   readonly accountId: string;
-  readonly privateLinkServiceName?: string;
-  readonly availabilityZones: string[];
   readonly consumerRoles: Map<string, Role>;
   readonly externalConsumers: Record<string, ExternalConsumerConfig>;
   readonly apiUrl: string;
@@ -38,8 +36,6 @@ export class ConsumerConfigConstruct extends Construct {
       environment,
       region,
       accountId,
-      privateLinkServiceName,
-      availabilityZones,
       consumerRoles,
       externalConsumers,
       apiUrl,
@@ -61,15 +57,9 @@ export class ConsumerConfigConstruct extends Construct {
       }
 
       const secretValue: Record<string, SecretValue> = {
-        privateLinkServiceName: SecretValue.unsafePlainText(
-          privateLinkServiceName ?? 'NOT_ENABLED',
-        ),
         region: SecretValue.unsafePlainText(region),
         apiAccountId: SecretValue.unsafePlainText(accountId),
         apiUrl: SecretValue.unsafePlainText(apiUrl),
-        availabilityZones: SecretValue.unsafePlainText(
-          JSON.stringify(availabilityZones),
-        ),
         consumerRoleArn: SecretValue.unsafePlainText(consumerRole.roleArn),
       };
 

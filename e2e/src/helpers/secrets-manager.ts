@@ -4,10 +4,8 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 
 export interface ConsumerConfig {
-  privateLinkServiceName: string;
   region: string;
   apiAccountId: string;
-  availabilityZones: string;
   apiUrl: string;
   consumerRoleArn: string;
   externalId?: string;

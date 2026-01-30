@@ -33,10 +33,6 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
-const enablePrivateLink =
-  app.node.tryGetContext('enablePrivateLink') === 'true' ||
-  app.node.tryGetContext('enablePrivateLink') === true;
-
 const externalConsumersFromContext: Record<
   string,
   {
@@ -44,6 +40,7 @@ const externalConsumersFromContext: Record<
     description?: string;
     permissions: ('read' | 'write' | 'delete')[];
     externalId: string;
+    vpcEndpointId: string;
   }
 > = (() => {
   const envSpecificKey = `externalConsumers:${environment}`;
@@ -66,18 +63,15 @@ const externalConsumers: Record<
     description?: string;
     permissions: ('read' | 'write' | 'delete')[];
     externalId: string;
+    vpcEndpointId: string;
   }
 > = {
   ...externalConsumersFromContext,
 };
 
-const privateLinkAllowedPrincipalArns: string[] = [
-  ...new Set([
-    ...Object.values(externalConsumers).map(
-      (c) => `arn:aws:iam::${c.accountId}:root`,
-    ),
-  ]),
-];
+const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
+  .map((c) => c.vpcEndpointId)
+  .filter((id) => !!id);
 
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
@@ -85,8 +79,6 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
-  enablePrivateLink,
-  privateLinkAllowedPrincipalArns,
 });
 
 Aspects.of(app).add(new CheckovSuppressionAspect());
@@ -103,9 +95,9 @@ if (!skipMainStack) {
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
-    privateLinkServiceName: vpcStack.privateLinkServiceName,
     availabilityZones: vpcStack.vpc.availabilityZones,
     externalConsumers,
+    consumerVpcEndpointIds,
 
     ...repoMetaData,
   });

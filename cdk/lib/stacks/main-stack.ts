@@ -45,9 +45,9 @@ export interface MainStackProps extends StackProps {
   vpc?: ec2.IVpc;
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
-  privateLinkServiceName?: string;
   availabilityZones?: string[];
   externalConsumers?: Record<string, ExternalConsumerConfig>;
+  consumerVpcEndpointIds?: string[];
 }
 
 export class MainStack extends Stack {
@@ -75,8 +75,7 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
-      privateLinkServiceName,
-      availabilityZones = [],
+      consumerVpcEndpointIds = [],
       externalConsumers = {},
     } = props;
 
@@ -132,7 +131,9 @@ export class MainStack extends Stack {
       developerId,
       environment,
       apiName: 'api',
-      vpcEndpointIds: vpcEndpointId ? [vpcEndpointId] : [],
+      vpcEndpointIds: vpcEndpointId
+        ? [vpcEndpointId, ...consumerVpcEndpointIds]
+        : [],
       crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
       cachingEnabled: environment !== 'dev' ? true : false,
@@ -214,8 +215,6 @@ export class MainStack extends Stack {
           environment,
           region: this.region,
           accountId: this.account,
-          privateLinkServiceName,
-          availabilityZones,
           consumerRoles: iamConsumers.consumerRoles,
           externalConsumers,
           apiUrl: this.api.url,

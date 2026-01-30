@@ -8,10 +8,8 @@ Feature: Consumer Config Api Access
         Given the consumer secret is available
 
     Scenario: consumer config secret contains all required fields
-        Then the consumer config should contain "privateLinkServiceName"
         And the consumer config should contain "region"
         And the consumer config should contain "apiAccountId"
-        And the consumer config should contain "availabilityZones"
         And the consumer config should contain "consumerRoleArn"
 
     Scenario: Consumer can access the API using config credentials
