@@ -43,6 +43,14 @@ Feature: identity Api
         Then I should recieve a successful response
         Then The response body contain body '{"serviceId":"321", "serviceName": "service2", "accessToken":"token_updated", "idToken":"test", "refreshToken":"test"}'
 
+    Scenario: Successfully Delete linked Record
+        When i send a delete to '/identity/321'
+        Then I should recieve a successful response
+
+    Scenario: Successfully Delete identity Record
+        When i send a delete to '/identity/123'
+        Then I should recieve a successful response
+
     Scenario: Returns a 404 if not found
         When i send a get to '/identity/unknown'
         Then the response status should be 404

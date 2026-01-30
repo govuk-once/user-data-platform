@@ -25,3 +25,7 @@ Feature: User Data API
     Scenario: Successfully delete data
         When i send a delete to '/identity/123/topics'
         Then I should recieve a successful response
+
+    Scenario: Successfully Delete identity Record
+        When i send a delete to '/identity/123'
+        Then I should recieve a successful response
