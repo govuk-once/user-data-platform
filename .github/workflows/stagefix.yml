@@ -1,4 +1,4 @@
-name: Stage fix
+name: Stage destroy
 
 on:
   workflow_dispatch:
