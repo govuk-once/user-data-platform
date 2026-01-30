@@ -1,0 +1,63 @@
+name: Stage fix
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+  NODE_VERSION: '20'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  version:
+    name: Version
+    uses: ./.github/workflows/version.yml
+    permissions:
+      contents: write
+      id-token: write
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
+
+  destroy-stag:
+    name: Deploy to Stag
+    needs: version
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
+      source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
+      source-path: ${{ steps.get-outputs.outputs.source-path }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm@latest-10
+          pnpm install
+
+      - name: Setup NODE_VERSION
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: eu-west-2
+
+      - name: Destroy CDK stack
+        run: npx nx run cdk:destroy:stag

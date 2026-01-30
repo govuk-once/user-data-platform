@@ -47,6 +47,15 @@
         "cwd": "cdk"
       }
     },
+    
+     "destroy:stag": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npx cdk destroy --all -c env=stag --require-approval never",
+        "cwd": "cdk"
+      }
+    },
 
     "deploy:prod": {
       "executor": "nx:run-commands",
