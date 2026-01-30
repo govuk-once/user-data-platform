@@ -14,20 +14,12 @@ permissions:
 jobs:
   destroy-stag:
     name: Deploy to Stag
-    needs: version
     runs-on: ubuntu-latest
-    environment: dev
-    outputs:
-      codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
-      source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
-      source-path: ${{ steps.get-outputs.outputs.source-path }}
+    environment: stag
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
 
       - name: Setup pnpm
         run: |
