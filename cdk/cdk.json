@@ -23,7 +23,7 @@
       }
     },
     "externalConsumers:stag": {
-       "flex": {
+      "flex": {
         "accountId": "831869585824",
         "permissions": ["read", "write", "delete"],
         "description": "Flex integration",
