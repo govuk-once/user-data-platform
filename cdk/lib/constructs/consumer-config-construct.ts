@@ -69,7 +69,7 @@ export class ConsumerConfigConstruct extends Construct {
         );
       }
 
-      const secret = new Secret(this, `secret-${consumerName}`, {
+      const secret = new Secret(this, `Secret${consumerName.toUpperCase()}`, {
         secretName: `${secretPathPrefix}/consumers/${consumerName}/config`,
         description: `Api configuration for external consumer ${consumerName}`,
         secretObjectValue: secretValue,
@@ -77,7 +77,7 @@ export class ConsumerConfigConstruct extends Construct {
 
       secret.addToResourcePolicy(
         new PolicyStatement({
-          sid: `AllowCrossAccountRead-${consumerName}`,
+          sid: `AllowCrossAccountRead${consumerName.toUpperCase()}`,
           effect: Effect.ALLOW,
           principals: [new AccountPrincipal(consumerConfig.accountId)],
           actions: ['secretsmanager:GetSecretValue'],

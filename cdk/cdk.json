@@ -14,8 +14,22 @@
     ]
   },
   "context": {
-    "externalConsumers:dev": {},
-    "externalConsumers:stag": {},
+    "externalConsumers:dev": {
+      "flex": {
+        "accountId": "308036881389",
+        "permissions": ["read", "write", "delete"],
+        "description": "Flex integration",
+        "vpcEndpointId": "vpce-064cf789103701b2d"
+      }
+    },
+    "externalConsumers:stag": {
+      "flex": {
+        "accountId": "831869585824",
+        "permissions": ["read", "write", "delete"],
+        "description": "Flex integration",
+        "vpcEndpointId": "vpce-094ef6454270767a0"
+      }
+    },
     "externalConsumers:prod": {},
     "@aws-cdk/aws-signer:signingProfileNamePassedToCfn": true,
     "@aws-cdk/aws-ecs-patterns:secGroupsDisablesImplicitOpenListener": true,
