@@ -24,7 +24,7 @@ const logger = getLogger({
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 

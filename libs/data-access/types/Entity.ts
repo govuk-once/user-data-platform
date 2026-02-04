@@ -148,8 +148,13 @@ export interface IdentityRecordEntity {
 }
 
 export interface DataInput {
-  ttl?: number;
-  [key: string]: unknown;
+  configuration?: {
+    expiryMechanism?: 'DELETE',
+    expiresAt?: number;
+  };
+  data: {
+    [key: string]: unknown;
+  }
 }
 
 export interface DynamoDBDataEntity {

@@ -36,7 +36,6 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       identityTableName: IDENTITY_TABLE_NAME,
-
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -47,13 +46,14 @@ function getFactory() {
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
+    
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.identifier);
+      .getById(event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
 
     await getFactory()
       .getService('data')
-      .deleteByKey(identity, event.pathParameters.proxy);
+      .deleteByKey(identity, event.pathParameters.resourcePath);
 
     return {
       statusCode: 200,
@@ -77,7 +77,7 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: routes.deleteData.params }))
+  .use(zodValidator({ pathParameters: routes.readData.params, headers: routes.readData.headers }))
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

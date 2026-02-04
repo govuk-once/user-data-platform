@@ -25,7 +25,7 @@ const logger = getLogger({
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 
@@ -52,12 +52,16 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       throw createHttpError.BadRequest();
     }
 
+    const {IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID} = getEnv();
+
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.identifier);
+      .getById(event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+
     await getFactory()
       .getService('data')
-      .save(identity, event.pathParameters.proxy, event.body);
+      .save(identity, event.pathParameters.resourcePath, event.body);
+
     tracer.putAnnotation('putEntitySuccess', true);
     return {
       statusCode: 201,
@@ -82,12 +86,14 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
+  .use(jsonBodyParser())
   .use(
     zodValidator({
       pathParameters: routes.createData.params,
+      headers: routes.createData.headers,
+      body: routes.createData.body,
     }),
   )
-  .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

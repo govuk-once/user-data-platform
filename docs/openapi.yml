@@ -497,12 +497,26 @@ paths:
             schema:
               type: object
               properties:
-                ttl:
-                  type: number
-                  description: The Time to live for the automatic deletion/expiry of data
-                  example: 100
-              additionalProperties:
-                nullable: true
+                configuration:
+                  type: object
+                  properties:
+                    expiryMechanism:
+                      type: string
+                      enum:
+                        - DELETE
+                      description: The UDP mechanism to execute at expiry
+                      example: DELETE
+                    expiresAt:
+                      type: number
+                      description: The expiry time for the data in EPOCH Timestamp no MS
+                      example: 1738671000
+                data:
+                  type: object
+                  properties: {}
+                  additionalProperties:
+                    nullable: true
+              required:
+                - data
       responses:
         '200':
           description: OK

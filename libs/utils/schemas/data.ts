@@ -18,16 +18,28 @@ export const DataHeaderSchema = z.object({
     description: 'The user identifier used by the requesting service when linking the user to the app',
     example: '277b3076-1485-494d-8dbd-095ea0d7edab'
   })
-})
+}).loose()
 
 export const CreateDataRequestSchema = z
   .object({
-    ttl: z.number().optional().openapi({
-      description: 'The Time to live for the automatic deletion/expiry of data',
-      example: 100,
-    }),
+    configuration: z.object({
+      expiryMechanism: z.enum(['DELETE']).optional().openapi({
+        description: 'The UDP mechanism to execute at expiry',
+        example: 'DELETE'
+      }),
+      expiresAt: z.number().optional().openapi({
+        description: 'The expiry time for the data in EPOCH Timestamp no MS',
+        example: 1738671000,
+      })
+    }).optional(),
+    data: z.object().required().openapi({
+      description: 'The free form JSON data to store on your key',
+      example: {
+        isEnabled: true,
+        identifier: 'abc123'
+      }
+    }).loose()
   })
-  .passthrough();
 
 export const CreateDataResponseSchema = z.object({
   statusCode: z.number().openapi({
