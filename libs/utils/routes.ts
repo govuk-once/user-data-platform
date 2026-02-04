@@ -1,6 +1,7 @@
 import {
   CreateDataRequestSchema,
   CreateDataResponseSchema,
+  DataHeaderSchema,
   DataPathSchema,
   DataResponseSchema,
   DeleteDataResponseSchema,
@@ -119,11 +120,12 @@ export const routes: Record<string, RouteConfig> = {
     dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/write'],
     method: 'POST',
-    path: '/identity/{identifier}/{proxy+}',
+    path: '/v1/{resourcePath+}',
     summary: 'Create Resource path data Record',
     description: 'Create Resource path data Record',
     tags: ['data'],
     params: DataPathSchema,
+    headers: DataHeaderSchema,
     body: CreateDataRequestSchema,
     response: CreateDataResponseSchema,
     successResponses: [
@@ -138,11 +140,12 @@ export const routes: Record<string, RouteConfig> = {
     dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/read'],
     method: 'GET',
-    path: '/identity/{identifier}/{proxy+}',
+    path: '/v1/{resourcePath+}',
     summary: 'Read resource path data Record',
     description: 'Read resource path data Record',
     tags: ['data'],
     params: DataPathSchema,
+    headers: DataHeaderSchema,
     response: DataResponseSchema,
     successResponses: [
       {
@@ -156,11 +159,12 @@ export const routes: Record<string, RouteConfig> = {
     dynamoDbActions: ['dynamodb:DeleteItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/delete'],
     method: 'DELETE',
-    path: '/identity/{identifier}/{proxy+}',
+    path: '/v1/{resourcePath+}',
     summary: 'Delete resource path Record',
     description: 'Delete resource path Record',
     tags: ['data'],
     params: DataPathSchema,
+    headers: DataHeaderSchema,
     response: DeleteDataResponseSchema,
     successResponses: [
       {

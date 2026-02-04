@@ -9,6 +9,7 @@ export interface SuccessResponse<T> {
 
 export interface RouteConfig<
   TParams extends z.ZodTypeAny = z.ZodTypeAny,
+  THeaders extends z.ZodTypeAny = z.ZodTypeAny,
   TBody extends z.ZodTypeAny = z.ZodTypeAny,
   TQuery extends z.ZodTypeAny = z.ZodTypeAny,
   TResponse extends z.ZodTypeAny = z.ZodTypeAny,
@@ -24,6 +25,7 @@ export interface RouteConfig<
   description?: string;
   tags: string[];
   params?: TParams;
+  headers?: THeaders;
   body?: TBody;
   query?: TQuery;
   response: TResponse;

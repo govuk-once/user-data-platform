@@ -3,15 +3,22 @@ import { z } from 'zod';
 extendZodWithOpenApi(z);
 
 export const DataPathSchema = z.object({
-  identifier: z.string('is required').min(1).openapi({
-    description: 'The One login',
-    example: '123',
-  }),
-  proxy: z.string('is required').min(1).openapi({
-    description: 'The resource path',
+  resourcePath: z.string('is required').min(1).openapi({
+    description: 'The resource path that the data is held under',
     example: 'topics',
   }),
 });
+
+export const DataHeaderSchema = z.object({
+  "requesting-service": z.string('is required').min(1).openapi({
+    description: 'The name of the requesting service - often the One Login relying-party name',
+    example: 'GOVUKAPP'
+  }),
+  "requesting-service-user-id": z.string('is required').min(1).openapi({
+    description: 'The user identifier used by the requesting service when linking the user to the app',
+    example: '277b3076-1485-494d-8dbd-095ea0d7edab'
+  })
+})
 
 export const CreateDataRequestSchema = z
   .object({

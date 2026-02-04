@@ -21,8 +21,8 @@ registry.registerComponent('securitySchemes', 'bearerAuth', {
 
 function registerRoute(route: RouteConfig) {
   const params = route.params as unknown as RouteParameter;
-
   const query = route.query as unknown as RouteParameter;
+  const headers = route.headers as unknown as RouteParameter;
 
   const errorCodes = getDefaultErrorCodes({
     hasBody: !!route.body,
@@ -44,6 +44,7 @@ function registerRoute(route: RouteConfig) {
     request: {
       params,
       query,
+      headers: headers,
       body: route.body
         ? {
             content: { 'application/json': { schema: route.body } },
