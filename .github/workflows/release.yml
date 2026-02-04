@@ -32,7 +32,6 @@ jobs:
     name: Deploy to dev
     needs: version
     runs-on: ubuntu-latest
-    environment: dev
     outputs:
       codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
       source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
@@ -177,7 +176,6 @@ jobs:
     name: Deploy to staging
     needs: e2e-dev
     runs-on: ubuntu-latest
-    environment: staging
     outputs:
       codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
       source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
@@ -323,7 +321,6 @@ jobs:
   #   name: Deploy to production
   #   needs: e2e-staging
   #   runs-on: ubuntu-latest
-  #   environment: production
 
   #   steps:
   #     - name: Checkout
