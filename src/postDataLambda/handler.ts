@@ -12,6 +12,7 @@ import {
   routes,
   zodValidator,
   createEnvValidator,
+  generateErrorResponseFromHttpError
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
@@ -69,11 +70,18 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     };
   } catch (error) {
     tracer.putAnnotation('putEntitySuccess', false);
-    if (createError.isHttpError(error)) {
-      throw error;
+    let response = {
+      statusCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error'
     }
-
-    throw new createError.InternalServerError();
+    if (createError.isHttpError(error)) {
+      response = generateErrorResponseFromHttpError(error);
+    }
+    return {
+      statusCode: response.statusCode,
+      body: response
+    };
   }
 };
 

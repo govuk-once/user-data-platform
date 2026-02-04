@@ -1,8 +1,8 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
+import createError, { HttpError } from 'http-errors';
 import {
   createEnvValidator,
   responseSanitiser,
@@ -12,6 +12,7 @@ import {
   captureLambdaHandler,
   injectLambdaContext,
   routes,
+  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -46,6 +47,9 @@ function getFactory() {
   return factory;
 }
 
+function processError(error: HttpError) {
+}
+
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const {IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID} = getEnv();
@@ -63,13 +67,20 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       body: entity,
     };
   } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
+    let response = {
+      statusCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error'
     }
-
-    throw new createError.InternalServerError();
+    if (createError.isHttpError(error)) {
+      response = generateErrorResponseFromHttpError(error);
+    }
+    return {
+      statusCode: response.statusCode,
+      body: response
+    };
   }
-};
+}
 
 export const handler = middy()
   .use(envMiddleware)

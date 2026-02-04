@@ -252,7 +252,7 @@ describe('postDataLambda handler', () => {
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(500);
-      expect(result.body).toBe(undefined);
+      expect(result.body).toBe(JSON.stringify({statusCode: 500, errorType: 'INTERNAL_SERVER_ERROR', errorMessage: 'Internal Server Error'}));
     });
 
     it('should handle missing required', async () => {

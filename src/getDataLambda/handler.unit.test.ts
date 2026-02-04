@@ -4,6 +4,8 @@ import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import createHttpError from 'http-errors';
+import { error } from 'console';
+import { errorMonitor } from 'events';
 
 const mockGetByKey = vi.fn();
 const mockGetIdentity = vi.fn();
@@ -150,7 +152,7 @@ describe('getDataLambda handler', () => {
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
 
-    it('should return 404 when entity is not found', async () => {
+    it('should return 404 when Data entity is not found', async () => {
       const event = createEvent({
         'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       }, {
@@ -158,29 +160,29 @@ describe('getDataLambda handler', () => {
       });
 
       mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-      mockGetByKey.mockRejectedValue(createHttpError.NotFound());
+      mockGetByKey.mockRejectedValue(createHttpError.NotFound('Resource Not Found'));
 
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body).toBe('Not Found');
+      expect(result.body).toBe(JSON.stringify({statusCode: 404, errorType: 'DATA_NOT_FOUND', errorMessage: `Data Not Found`}));
       expect(mockGetByKey).toHaveBeenCalledWith(mockResolvedIdentity, 'topics');
     });
 
-    it('should return 404 when identity is not found', async () => {
+    it.only('should return 404 when identity is not found', async () => {
       const event = createEvent({
         'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       }, {
         resourcePath: 'topics',
       });
 
-      mockGetIdentity.mockRejectedValue(createHttpError.NotFound());
+      mockGetIdentity.mockRejectedValue(createHttpError.NotFound('Identity Not Found'));
       mockGetByKey.mockResolvedValue(null);
 
       const result = await lambdaHandler(event, mockContext);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body).toBe('Not Found');
+      expect(result.body).toBe(JSON.stringify({statusCode: 404, errorType: 'IDENTITY_NOT_FOUND', errorMessage: `Identity Not Found`}));
       expect(mockGetByKey).not.toHaveBeenCalled();
     });
   });

@@ -12,6 +12,7 @@ import {
   injectLambdaContext,
   getTracer,
   captureLambdaHandler,
+  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 
 const serviceName = 'udpDeleteData';
@@ -60,11 +61,18 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       body: { message: 'Entity deleted successfully' },
     };
   } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
+    let response = {
+      statusCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error'
     }
-
-    throw new createError.InternalServerError();
+    if (createError.isHttpError(error)) {
+      response = generateErrorResponseFromHttpError(error);
+    }
+    return {
+      statusCode: response.statusCode,
+      body: response
+    };
   }
 };
 

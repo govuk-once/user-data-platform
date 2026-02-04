@@ -4,6 +4,7 @@ import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import createHttpError from 'http-errors';
+import { error } from 'console';
 
 const mockDeleteByKey = vi.fn();
 
@@ -200,7 +201,7 @@ describe('deleteDataLambda handler', () => {
 
       const result = await lambdaHandler(event, mockContext);
       expect(result.statusCode).toBe(401);
-      expect(result.body).toBe('Unauthorized');
+      expect(result.body).toBe(JSON.stringify({statusCode: 401, errorType: 'UnauthorizedError', errorMessage: 'Unauthorized'}));
       expect(mockDeleteByKey).toHaveBeenCalledWith(
         mockResolvedIdentity,
         'topics',
