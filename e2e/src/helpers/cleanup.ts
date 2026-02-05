@@ -26,7 +26,7 @@ export async function cleanupCreatedUsers(): Promise<void> {
       const result = await client.send(
         new QueryCommand({
           TableName: config.identityTableName,
-          KeyConditionExpression: `pk - :pk`,
+          KeyConditionExpression: `pk = :pk`,
           ExpressionAttributeValues: { ':pk': pk },
         }),
       );
