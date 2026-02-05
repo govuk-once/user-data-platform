@@ -53,11 +53,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       throw createHttpError.BadRequest();
     }
 
-    const {IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID} = getEnv();
-
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+      .getByServiceId(event.headers['requesting-service'], event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
 
     await getFactory()
       .getService('data')

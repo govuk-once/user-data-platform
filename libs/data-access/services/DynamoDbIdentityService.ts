@@ -27,7 +27,7 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     this.logger = logger;
   }
 
-  public async link(input: IdentityInput) {
+  public async linkIdentity(input: IdentityInput) {
     if (input.appId === input.serviceId) {
       throw createHttpError.BadRequest(
         'AppId and serviceId should not be the same',
@@ -46,8 +46,6 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     this.logger?.debug('checking is user exists', { pk });
 
     const exists = await this.repository.getByPk(pk);
-
-    console.log({ exists });
 
     if (exists) {
       this.logger?.debug('User already exists', { pk });
@@ -82,15 +80,28 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     return { udpId, created: true };
   }
 
-  public async create(input: IdentityInput) {
-    const result = await this.getById(input.appId, false);
-    if (result) return;
+  public async getByServiceId(
+    serviceName: string,
+    serviceId: string,
+    throwNotFound = true,
+  ) {
+    const pk = `${serviceName.toLowerCase()}#${serviceId}`;
 
-    const entity = await this.createFromInput({
-      ...input,
-    });
-    this.validateEntity(entity);
-    await this.repository.save(entity);
+    this.logger?.debug('Getting service user', { pk });
+
+    const user = await this.repository.getByPk(pk);
+
+    if (throwNotFound && !user) {
+      throw createHttpError.NotFound(
+        serviceName === 'app'
+          ? `User not found`
+          : `Service not found ${serviceName} ${serviceId}`,
+      );
+    }
+
+    if (user) {
+      return user;
+    }
   }
 
   public async getById(serviceId: string, throwNotFound = true) {
@@ -140,31 +151,15 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
         'Missing required field serviceId or appId',
       );
     }
-    if (input.appId === input.serviceId) {
-      // Assume this is the first record of type
-      const udpId = uuidv4();
-      return {
-        pk: PK_CONSTANT,
-        sk: `${input.serviceId}/${udpId}`,
-        lsi_1: `${udpId}/${input.serviceId}`,
-        udpId: uuidv4(),
-        ...(input.ttl ? { ttl: input.ttl } : {}),
-      } as T;
-    }
-
     // look up the udp id by app id
-    const appIdentifier = await this.getById(input.appId);
+    const appIdentifier = await this.getByServiceId('app', input.appId);
 
     return {
-      pk: PK_CONSTANT,
-      sk: `${input.serviceId}/${appIdentifier.udpId}`,
-      lsi_1: `${appIdentifier.udpId}/${input.serviceId}`,
+      pk: `${input.serviceName}#${input.serviceId}`,
+      sk: `${appIdentifier.udpId}`,
       serviceName: input.serviceName,
       serviceId: input.serviceId,
       udpId: appIdentifier.udpId,
-      accessToken: input.accessToken,
-      idToken: input.idToken,
-      refreshToken: input.refreshToken,
       ...(input.ttl ? { ttl: input.ttl } : {}),
     } as T;
   }

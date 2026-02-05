@@ -105,10 +105,6 @@ export interface IdentityRecordEntity {
   sk: string;
 
   /**
-   * local secondary index UDP.ID/SERVICE.ID.
-   */
-  lsi_1?: string;
-  /**
    * unique UUIDv4 for UDP.ID.
    */
   udpId: string;
@@ -130,21 +126,6 @@ export interface IdentityRecordEntity {
    * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.
    */
   ttl?: number;
-
-  /**
-   * Access Token for the service
-   */
-  accessToken?: string;
-
-  /**
-   * Id Token for the service
-   */
-  idToken?: string;
-
-  /**
-   * Refresh Token for the service
-   */
-  refreshToken?: string;
 }
 
 export interface DataInput {

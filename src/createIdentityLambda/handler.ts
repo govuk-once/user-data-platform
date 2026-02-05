@@ -56,7 +56,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       serviceId: event.pathParameters.identifier,
     } as unknown as IdentityInput;
 
-    await getFactory().getService('identity').link(input);
+    await getFactory().getService('identity').linkIdentity(input);
 
     return {
       statusCode: 201,

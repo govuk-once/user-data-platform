@@ -38,7 +38,6 @@ function getFactory() {
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
       identityTableName: IDENTITY_TABLE_NAME,
-
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -52,11 +51,10 @@ function processError(error: HttpError) {
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
-    const {IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID} = getEnv();
     
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+      .getByServiceId(event.headers['requesting-service'], event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
 
     const entity = await getFactory()
       .getService('data')

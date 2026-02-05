@@ -50,7 +50,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+      .getByServiceId(event.headers['requesting-service'], event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
 
     await getFactory()
       .getService('data')
