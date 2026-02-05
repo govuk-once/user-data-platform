@@ -112,6 +112,7 @@ export class MainStack extends Stack {
         {
           indexName: 'sk-index',
           partitionKeyName: 'sk',
+          sortKeyName: 'pk'
         },
       ],
       ttlAttributeName: 'ttl',
