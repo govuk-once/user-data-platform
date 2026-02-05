@@ -96,7 +96,7 @@ export class MainStack extends Stack {
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
       environment,
-      tableName: 'dup-data',
+      tableName: 'udp-data',
       kmsKey: kmsConstruct.key,
       ttlAttributeName: 'ttl',
     });
