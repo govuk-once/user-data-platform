@@ -177,3 +177,22 @@ export interface UserDataInput {
   ttl?: number;
   [key: string]: unknown;
 }
+
+export interface NewIdentityEntity {
+  pk: string;
+  sk: string;
+  udpId: string;
+  serviceId: string;
+  serviceName: string;
+  ttl?: number;
+}
+
+export interface CreateUserInput {
+  appId: string;
+  ttl?: number;
+}
+
+export interface CreateUserResult {
+  udpId: string;
+  created: boolean;
+}

@@ -2,11 +2,7 @@ import {
   OpenApiGeneratorV3,
   OpenAPIRegistry,
 } from '@asteasolutions/zod-to-openapi';
-import {
-  getDefaultErrorCodes,
-  getErrorResponses,
-  SuccessResponseSchema,
-} from './';
+import { getDefaultErrorCodes, getErrorResponses } from './';
 import type { RouteConfig } from '../types';
 import { routes } from '../routes';
 import { OpenAPIObject } from '@asteasolutions/zod-to-openapi/dist/types';
@@ -55,14 +51,19 @@ function registerRoute(route: RouteConfig) {
         : undefined,
     },
     responses: {
-      [route.successStatus]: {
-        description: 'Sucesss',
-        content: {
-          'application/json': {
-            schema: route.response || SuccessResponseSchema,
+      ...Object.fromEntries(
+        route.successResponses.map((resp) => [
+          resp.status,
+          {
+            description: 'Sucesss',
+            content: {
+              'application/json': {
+                schema: resp.schema,
+              },
+            },
           },
-        },
-      },
+        ]),
+      ),
       ...getErrorResponses(errorCodes),
     },
   });

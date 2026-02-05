@@ -5,6 +5,7 @@ import { handler } from './handler';
 import { beforeEach } from 'node:test';
 
 process.env['TABLE_NAME'] = 'test-table';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-test-table';
 
 const mockSave = vi.fn();
 const mockGet = vi.fn();
@@ -15,6 +16,7 @@ vi.mock('@libs/data-access', () => ({
     getService() {
       return {
         create: mockSave,
+        createAppUser: mockSave,
         getById: mockGet,
       };
     }
@@ -85,7 +87,7 @@ describe('createItentityHandler', () => {
         }) as any,
       };
 
-      mockSave.mockResolvedValue(undefined);
+      mockSave.mockResolvedValue({ created: true });
 
       const result = await handler(event, mockContext);
 

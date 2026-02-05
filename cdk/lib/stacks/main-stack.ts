@@ -1,10 +1,7 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import {
-  CognitoConstruct,
-  M2MClientConfig,
-} from '../constructs/cognito-construct';
+
 import { KmsConstruct } from '../constructs/kms-construct';
 import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
 import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
@@ -18,8 +15,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
-import { LambdaAuthorizerConstuct } from '../constructs/lambda-authorizer-construct';
-import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
+
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
@@ -34,7 +30,6 @@ import {
 export interface MainStackProps extends StackProps {
   developerId?: string;
   environment: string;
-  m2mClients?: Record<string, M2MClientConfig>;
   serviceName: string;
   teamName: string;
   repositoryUrl: string;
@@ -52,6 +47,7 @@ export interface MainStackProps extends StackProps {
 
 export class MainStack extends Stack {
   public readonly table: dynamodb.Table;
+  public readonly identityTable: dynamodb.Table;
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
@@ -100,18 +96,28 @@ export class MainStack extends Stack {
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
       environment,
-      tableName: 'user-data-store',
+      tableName: 'dup-data',
       kmsKey: kmsConstruct.key,
-      localSecondaryIndexes: [
+      ttlAttributeName: 'ttl',
+    });
+
+    this.table = db.table;
+
+    const identityDb = new DynamoDBConstruct(this, 'IdentityDynamoDb', {
+      developerId,
+      environment,
+      tableName: 'udp-identity',
+      kmsKey: kmsConstruct.key,
+      globalSecondaryIndexes: [
         {
-          indexName: 'lsi-index',
-          sortKeyName: 'lsi',
+          indexName: 'sk-index',
+          partitionKeyName: 'sk',
         },
       ],
       ttlAttributeName: 'ttl',
     });
 
-    this.table = db.table;
+    this.identityTable = identityDb.table;
 
     const featureFlags =
       featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
@@ -162,7 +168,13 @@ export class MainStack extends Stack {
         kmsKey: kmsConstruct.key,
         dbKmsKey: dbKms.key,
         dynamoDBtable: db.table,
-        dynamoDbActions: route.dynamoDbActions ? route.dynamoDbActions : [],
+        identityDbTable: identityDb.table,
+        identityDbActions: route.identityTableActions
+          ? route.identityTableActions
+          : ['dynamodb:GetItem'],
+        dynamoDbActions: route.dynamoDbActions
+          ? route.dynamoDbActions
+          : ['dynamodb:GetItem'],
         api: apiGateway.api,
         httpMethod: route.method,
         routePath: route.path,
@@ -234,6 +246,12 @@ export class MainStack extends Stack {
       value: db.table.tableName,
       description: 'DynamoTableName',
       exportName: `${id}-TableName`,
+    });
+
+    new CfnOutput(this, 'IdentityTableName', {
+      value: identityDb.table.tableName,
+      description: 'Identity DynamoTableName',
+      exportName: `${id}-IdentityTableName`,
     });
 
     new CfnOutput(this, 'AwsRegion', {

@@ -33,9 +33,11 @@ let factory;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
+      identityTableName: IDENTITY_TABLE_NAME,
+
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });

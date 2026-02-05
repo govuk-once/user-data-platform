@@ -105,6 +105,50 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     }
   }
 
+  async getByPk(pk: string): Promise<T | null> {
+    this.logger?.debug('Checking existence by pk', {
+      pk,
+      tableName: this.tableName,
+      operation: 'getByPk',
+    });
+
+    try {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
+        ProjectionExpression: 'pk',
+      });
+
+      const response = await this.client.send(command);
+
+      if (!response.Items || response.Items.length === 0) {
+        this.logger?.debug('Item not found', { pk });
+        return null;
+      }
+
+      const item = response.Items[0];
+
+      return this.encryption
+        ? ((await this.encryption.service.encryptFields(
+            item as Record<string, unknown> & EncryptedData,
+            this.encryption.dataFields,
+          )) as T)
+        : (item as T);
+    } catch (error) {
+      this.logger?.error('Failed to get item by pk from DynamoDb', {
+        tableName: this.tableName,
+        operation: 'getByPk',
+        pk,
+      });
+
+      throw new GetError('item', pk, error as Error);
+    }
+  }
+
   /**
    * Retrieves an entity by its key(s) from DynamoDB.
    * @param keys - Partial entity containing the key properties needed to identify the entity

@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface SuccessResponse<T> {
+  status: number;
+  schema: T;
+}
+
 export interface RouteConfig<
   TParams extends z.ZodTypeAny = z.ZodTypeAny,
   TBody extends z.ZodTypeAny = z.ZodTypeAny,
@@ -10,9 +15,9 @@ export interface RouteConfig<
 > {
   name: string;
   dynamoDbActions?: string[];
+  identityTableActions?: string[];
   environmentVariables?: Record<string, string>;
   authorizationScopes?: string[];
-  successStatus: number;
   method: HttpMethod;
   path: string;
   summary: string;
@@ -22,6 +27,7 @@ export interface RouteConfig<
   body?: TBody;
   query?: TQuery;
   response: TResponse;
+  successResponses: SuccessResponse<TResponse>[];
 }
 
 export type RouteParams<T extends RouteConfig> = T['params'] extends z.ZodAny

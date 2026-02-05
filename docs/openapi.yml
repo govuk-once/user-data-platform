@@ -6,7 +6,7 @@
 openapi: 3.0.3
 info:
   title: User Data platform API
-  version: 1.7.0
+  version: 1.8.0
   description: Private Api for the User data Platform
 tags:
   - name: identity
@@ -42,18 +42,6 @@ paths:
                   minLength: 1
                   description: The Pairwise ID
                   example: 123456-789910-11121314-15
-                accessToken:
-                  type: string
-                  description: The User access token
-                  example: 239h3h23h283h23928EHD283DH23D23D32D23D23D32
-                refreshToken:
-                  type: string
-                  description: The User access token
-                  example: 239R203IE23DIJWODJFOISDJFIODSJFIOSDJFOISDJFDF
-                idToken:
-                  type: string
-                  description: The User access token
-                  example: 3280DJ23DJ02J3D92EUFSDJFKEJFKJDFLWFSHDLFSDF
               required:
                 - appId
       responses:

@@ -1,4 +1,9 @@
-import { IdentityInput, IdentityRecordEntity } from '../types/Entity';
+import {
+  CreateUserInput,
+  CreateUserResult,
+  IdentityInput,
+  IdentityRecordEntity,
+} from '../types/Entity';
 import { Logger } from '@libs/utils';
 import { Repository } from '../repositories/Repository';
 import createHttpError from 'http-errors';
@@ -33,13 +38,56 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     await this.repository.save(entity);
   }
 
+  public async createAppUser(
+    input: CreateUserInput,
+  ): Promise<CreateUserResult> {
+    const pk = `app#${input.appId}`;
+
+    this.logger?.debug('checking is user exists', { pk });
+
+    const exists = await this.repository.getByPk(pk);
+
+    console.log({ exists });
+
+    if (exists) {
+      this.logger?.debug('User already exists', { pk });
+      return { udpId: '', created: false };
+    }
+
+    const udpId = uuidv4();
+
+    const entity = {
+      pk,
+      sk: udpId,
+      udpId,
+      serviceId: input.appId,
+      serviceName: 'app',
+      ...(input.ttl !== undefined ? { ttl: input.ttl } : {}),
+    } as unknown as T;
+
+    this.logger?.debug('Creating new app user', {
+      pk,
+      sk: udpId,
+      appId: input.appId,
+    });
+
+    await this.repository.save(entity);
+
+    this.logger?.debug('User successfully created', {
+      pk,
+      sk: udpId,
+      appId: input.appId,
+    });
+
+    return { udpId, created: true };
+  }
+
   public async create(input: IdentityInput) {
     const result = await this.getById(input.appId, false);
     if (result) return;
 
     const entity = await this.createFromInput({
       ...input,
-      serviceId: input.appId,
     });
     this.validateEntity(entity);
     await this.repository.save(entity);

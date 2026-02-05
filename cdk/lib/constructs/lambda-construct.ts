@@ -24,6 +24,8 @@ export interface LambdaApiConstructProps {
   readonly dbKmsKey?: kms.IKey;
   readonly dynamoDBtable?: dynamodb.Table;
   readonly dynamoDbActions?: string[];
+  readonly identityDbTable?: dynamodb.Table;
+  readonly identityDbActions?: string[];
   readonly api?: apigateway.RestApi;
   readonly httpMethod: string;
   readonly routePath: string;
@@ -55,6 +57,8 @@ export class LambdaApiConstruct extends Construct {
       dbKmsKey,
       dynamoDBtable,
       dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
+      identityDbTable,
+      identityDbActions = ['dynamodb:GetItem'],
       api,
       httpMethod,
       logRetentionDays = logs.RetentionDays.ONE_MONTH,
@@ -83,6 +87,10 @@ export class LambdaApiConstruct extends Construct {
 
     if (dynamoDBtable) {
       envVars['TABLE_NAME'] = dynamoDBtable.tableName;
+    }
+
+    if (identityDbTable) {
+      envVars['IDENTITY_TABLE_NAME'] = identityDbTable.tableName;
     }
 
     if (dbKmsKey) {
@@ -126,6 +134,18 @@ export class LambdaApiConstruct extends Construct {
           resources: [
             dynamoDBtable.tableArn,
             `${dynamoDBtable.tableArn}/index/*`,
+          ],
+        }),
+      );
+    }
+
+    if (identityDbTable) {
+      this.function.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: identityDbActions,
+          resources: [
+            identityDbTable.tableArn,
+            `${identityDbTable.tableArn}/index/*`,
           ],
         }),
       );
