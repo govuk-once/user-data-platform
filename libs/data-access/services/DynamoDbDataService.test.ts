@@ -34,7 +34,7 @@ describe('DynamoDb Data Service', () => {
   describe('Save', () => {
     it('should successfully save a valid entity', async () => {
       const input: DataInput = {
-        data: {test: 'value'},
+        data: { test: 'value' },
       };
 
       vi.mocked(mockRepository.save).mockResolvedValue(undefined);
@@ -52,8 +52,8 @@ describe('DynamoDb Data Service', () => {
     it('should save entity with ttl', async () => {
       const ttl = Math.floor(Date.now() / 1000) + 3600;
       const input: DataInput = {
-        data: {test: 'value'},
-        configuration: {expiresAt: ttl},
+        data: { test: 'value' },
+        configuration: { expiresAt: ttl },
       };
 
       vi.mocked(mockRepository.save).mockResolvedValue(undefined);
@@ -71,7 +71,7 @@ describe('DynamoDb Data Service', () => {
 
     it('should throw a bad request if the identity has no UdpId', async () => {
       const input: DataInput = {
-        data: {test: 'value'},
+        data: { test: 'value' },
       };
 
       vi.mocked(mockRepository.save).mockResolvedValue(undefined);
@@ -83,7 +83,7 @@ describe('DynamoDb Data Service', () => {
 
     it('should throw a bad request if the resource path is not set', async () => {
       const input: DataInput = {
-        data: {test: 'value'},
+        data: { test: 'value' },
       };
 
       vi.mocked(mockRepository.save).mockResolvedValue(undefined);
@@ -95,7 +95,7 @@ describe('DynamoDb Data Service', () => {
 
     it('should throw an error save fails', async () => {
       const input: DataInput = {
-        data: {test: 'value'},
+        data: { test: 'value' },
       };
 
       vi.mocked(mockRepository.save).mockRejectedValue(new Error('Unknown'));
@@ -107,8 +107,8 @@ describe('DynamoDb Data Service', () => {
 
     it('should throw error when ttl is negative', async () => {
       const input: DataInput = {
-        configuration: {expiresAt: -100},
-        data: {status: 'active'},
+        configuration: { expiresAt: -100 },
+        data: { status: 'active' },
       };
 
       await expect(
@@ -122,8 +122,8 @@ describe('DynamoDb Data Service', () => {
     it('should throw error when ttl is a past timestamp', async () => {
       const pastTimestamp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
       const input: DataInput = {
-        configuration: {expiresAt: pastTimestamp},
-        data: {status: 'active'},
+        configuration: { expiresAt: pastTimestamp },
+        data: { status: 'active' },
       };
 
       await expect(
@@ -137,8 +137,8 @@ describe('DynamoDb Data Service', () => {
     it('should throw error when ttl is current timestamp', async () => {
       const nowInSeconds = Math.floor(Date.now() / 1000);
       const input: DataInput = {
-        configuration: {expiresAt: nowInSeconds},
-        data: {status: 'active'},
+        configuration: { expiresAt: nowInSeconds },
+        data: { status: 'active' },
       };
 
       await expect(
@@ -151,8 +151,8 @@ describe('DynamoDb Data Service', () => {
 
     it('should throw error when ttl is epoch (January 1, 1970)', async () => {
       const input: DataInput = {
-        configuration: {expiresAt: 1},
-        data: {status: 'active'},
+        configuration: { expiresAt: 1 },
+        data: { status: 'active' },
       };
 
       await expect(

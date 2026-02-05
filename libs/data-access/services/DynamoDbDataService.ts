@@ -76,7 +76,9 @@ export class DynamoDbDataService {
     input: DataInput,
   ): DynamoDBDataEntity {
     const data = input.data;
-    const ttl = input.configuration ? input.configuration.expiresAt ?? undefined : undefined;
+    const ttl = input.configuration
+      ? (input.configuration.expiresAt ?? undefined)
+      : undefined;
     return {
       pk: identity.udpId,
       sk: resourcePath,

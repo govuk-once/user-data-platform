@@ -9,37 +9,46 @@ export const DataPathSchema = z.object({
   }),
 });
 
-export const DataHeaderSchema = z.object({
-  "requesting-service": z.string('is required').min(1).openapi({
-    description: 'The name of the requesting service - often the One Login relying-party name',
-    example: 'GOVUKAPP'
-  }),
-  "requesting-service-user-id": z.string('is required').min(1).openapi({
-    description: 'The user identifier used by the requesting service when linking the user to the app',
-    example: '277b3076-1485-494d-8dbd-095ea0d7edab'
-  })
-}).loose()
-
-export const CreateDataRequestSchema = z
+export const DataHeaderSchema = z
   .object({
-    configuration: z.object({
+    'requesting-service': z.string('is required').min(1).openapi({
+      description:
+        'The name of the requesting service - often the One Login relying-party name',
+      example: 'GOVUKAPP',
+    }),
+    'requesting-service-user-id': z.string('is required').min(1).openapi({
+      description:
+        'The user identifier used by the requesting service when linking the user to the app',
+      example: '277b3076-1485-494d-8dbd-095ea0d7edab',
+    }),
+  })
+  .loose();
+
+export const CreateDataRequestSchema = z.object({
+  configuration: z
+    .object({
       expiryMechanism: z.enum(['DELETE']).optional().openapi({
         description: 'The UDP mechanism to execute at expiry',
-        example: 'DELETE'
+        example: 'DELETE',
       }),
       expiresAt: z.number().optional().openapi({
         description: 'The expiry time for the data in EPOCH Timestamp no MS',
         example: 1738671000,
-      })
-    }).optional(),
-    data: z.object().required().openapi({
+      }),
+    })
+    .optional(),
+  data: z
+    .object()
+    .required()
+    .openapi({
       description: 'The free form JSON data to store on your key',
       example: {
         isEnabled: true,
-        identifier: 'abc123'
-      }
-    }).loose()
-  })
+        identifier: 'abc123',
+      },
+    })
+    .loose(),
+});
 
 export const CreateDataResponseSchema = z.object({
   statusCode: z.number().openapi({

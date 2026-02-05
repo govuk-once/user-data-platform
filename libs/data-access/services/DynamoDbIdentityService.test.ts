@@ -117,7 +117,6 @@ describe('Identity Service', () => {
         'User not found',
       );
     });
-
   });
 
   describe('Get Identity Record', () => {

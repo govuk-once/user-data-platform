@@ -34,7 +34,9 @@ export function zodValidator<
           ) as Record<string, string | undefined>;
         }
         if (schemas.headers) {
-          request.event.headers = schemas.headers.parse(request.event.headers) as Record<string, string | undefined>;
+          request.event.headers = schemas.headers.parse(
+            request.event.headers,
+          ) as Record<string, string | undefined>;
         }
         if (schemas.body) {
           request.event.body = schemas.body.parse(request.event.body) as string;

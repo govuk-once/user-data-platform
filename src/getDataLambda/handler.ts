@@ -1,7 +1,10 @@
 import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
+import type {
+  APIGatewayProxyEventV2,
+  APIGatewayProxyStructuredResultV2,
+} from 'aws-lambda';
 import createError, { HttpError } from 'http-errors';
 import {
   createEnvValidator,
@@ -46,15 +49,16 @@ function getFactory() {
   return factory;
 }
 
-function processError(error: HttpError) {
-}
+function processError(error: HttpError) {}
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
-    
     const identity = await getFactory()
       .getService('identity')
-      .getByServiceId(event.headers['requesting-service'], event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+      .getByServiceId(
+        event.headers['requesting-service'],
+        event.headers['requesting-service-user-id'],
+      ); //TODO: Refactor Identity service for service name usage.
 
     const entity = await getFactory()
       .getService('data')
@@ -68,17 +72,17 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     let response = {
       statusCode: 500,
       errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error'
-    }
+      errorMessage: 'Internal Server Error',
+    };
     if (createError.isHttpError(error)) {
       response = generateErrorResponseFromHttpError(error);
     }
     return {
       statusCode: response.statusCode,
-      body: response
+      body: response,
     };
   }
-}
+};
 
 export const handler = middy()
   .use(envMiddleware)
@@ -89,7 +93,12 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: routes.readData.params, headers: routes.readData.headers }))
+  .use(
+    zodValidator({
+      pathParameters: routes.readData.params,
+      headers: routes.readData.headers,
+    }),
+  )
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

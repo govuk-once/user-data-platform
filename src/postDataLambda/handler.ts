@@ -12,7 +12,7 @@ import {
   routes,
   zodValidator,
   createEnvValidator,
-  generateErrorResponseFromHttpError
+  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
@@ -55,7 +55,10 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     const identity = await getFactory()
       .getService('identity')
-      .getByServiceId(event.headers['requesting-service'], event.headers['requesting-service-user-id']); //TODO: Refactor Identity service for service name usage.
+      .getByServiceId(
+        event.headers['requesting-service'],
+        event.headers['requesting-service-user-id'],
+      ); //TODO: Refactor Identity service for service name usage.
 
     await getFactory()
       .getService('data')
@@ -71,14 +74,14 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     let response = {
       statusCode: 500,
       errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error'
-    }
+      errorMessage: 'Internal Server Error',
+    };
     if (createError.isHttpError(error)) {
       response = generateErrorResponseFromHttpError(error);
     }
     return {
       statusCode: response.statusCode,
-      body: response
+      body: response,
     };
   }
 };

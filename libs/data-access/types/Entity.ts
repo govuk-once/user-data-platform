@@ -130,12 +130,12 @@ export interface IdentityRecordEntity {
 
 export interface DataInput {
   configuration?: {
-    expiryMechanism?: 'DELETE',
+    expiryMechanism?: 'DELETE';
     expiresAt?: number;
   };
   data: {
     [key: string]: unknown;
-  }
+  };
 }
 
 export interface DynamoDBDataEntity {
