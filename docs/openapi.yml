@@ -140,6 +140,11 @@ paths:
             schema:
               type: object
               properties:
+                appId:
+                  type: string
+                  minLength: 1
+                  description: The AppId from the app
+                  example: '123'
                 serviceName:
                   type: string
                   minLength: 1
@@ -162,6 +167,7 @@ paths:
                   description: The Time to live to handle auto expiry/deletion of data
                   example: flex
               required:
+                - appId
                 - serviceName
       responses:
         '201':

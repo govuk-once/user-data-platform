@@ -3,6 +3,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 
+
+
 const mockSave = vi.fn();
 const mockGetIdentity = vi.fn();
 
@@ -13,7 +15,7 @@ vi.mock('@libs/data-access', () => ({
       switch (type) {
         case 'identity':
           return {
-            getById: mockGetIdentity,
+            getByServiceId: mockGetIdentity,
           };
         case 'data':
           return {
@@ -44,6 +46,7 @@ const mockResolvedIdentity: IdentityRecordEntity = {
 const { handler: lambdaHandler } = await import('./handler');
 
 process.env['TABLE_NAME'] = 'dynamo';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table'
 
 describe('postDataLambda handler', () => {
   const mockContext: Context = {

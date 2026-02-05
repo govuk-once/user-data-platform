@@ -17,6 +17,10 @@ export const IdentityPathSchema = z.object({
 });
 
 export const CreateIdentityRequestSchema = z.object({
+  appId: z.string('is required').min(1).openapi({
+    description: 'The AppId from the app',
+    example: '123',
+  }),
   serviceName: z.string('is required').min(1).openapi({
     description: 'The service name of the identity record',
     example: 'flex',

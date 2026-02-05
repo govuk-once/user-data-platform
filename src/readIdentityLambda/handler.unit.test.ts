@@ -6,6 +6,7 @@ import { beforeEach } from 'node:test';
 import createHttpError from 'http-errors';
 
 process.env['TABLE_NAME'] = 'test-table';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table'
 
 const mockGet = vi.fn();
 

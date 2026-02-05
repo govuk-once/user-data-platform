@@ -4,8 +4,7 @@ import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import createHttpError from 'http-errors';
-import { error } from 'console';
-import { errorMonitor } from 'events';
+
 
 const mockGetByKey = vi.fn();
 const mockGetIdentity = vi.fn();
@@ -16,7 +15,7 @@ vi.mock('@libs/data-access', () => ({
       switch (type) {
         case 'identity':
           return {
-            getById: mockGetIdentity,
+            getByServiceId: mockGetIdentity,
           };
         case 'data':
           return {
@@ -36,6 +35,7 @@ vi.mock('@libs/data-access', () => ({
 }));
 
 process.env['TABLE_NAME'] = 'dynamo';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table'
 
 // Import after mocks
 const { handler: lambdaHandler } = await import('./handler');

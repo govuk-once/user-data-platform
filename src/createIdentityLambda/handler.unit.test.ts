@@ -16,7 +16,7 @@ vi.mock('@libs/data-access', () => ({
   ServiceFactory: class {
     getService() {
       return {
-        link: mockLink,
+        linkIdentity: mockLink,
         create: mockSave,
         getById: mockGet,
       };
