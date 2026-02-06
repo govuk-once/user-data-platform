@@ -1,0 +1,10 @@
+name: Test SonarQube Connection
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test connection
+        run: |
+          curl -u ${{ secrets.SONAR_TOKEN }}: ${{ secrets.SONAR_HOST_URL }}/api/system/status
