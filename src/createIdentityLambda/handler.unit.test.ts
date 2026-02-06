@@ -6,6 +6,7 @@ import { beforeEach } from 'node:test';
 import createHttpError from 'http-errors';
 
 process.env['TABLE_NAME'] = 'test-table';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
 
 const mockSave = vi.fn();
 const mockLink = vi.fn();
@@ -16,7 +17,7 @@ vi.mock('@libs/data-access', () => ({
   ServiceFactory: class {
     getService() {
       return {
-        link: mockLink,
+        linkIdentity: mockLink,
         create: mockSave,
         getById: mockGet,
       };
@@ -70,7 +71,9 @@ describe('createItentityHandler', () => {
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed identifier: is required');
+      expect(result.body).toBe(
+        'Validation Failed identifier: is required,serviceName: is required',
+      );
     });
 
     it('Should throw a bad request if the appId is not set in the body', async () => {
@@ -83,6 +86,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'service1',
         },
         rawQueryString: '',
         version: '2.0',
@@ -122,33 +126,6 @@ describe('createItentityHandler', () => {
       expect(result.statusCode).toBe(400);
       expect(result.body).toBe('Validation Failed serviceName: is required');
     });
-
-    it('Should throw a bad request if the both appId and serviceName is not set in the body', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        pathParameters: {
-          identifier: 'test-user-id',
-        },
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-        body: JSON.stringify({
-          unknoen: 'test',
-        }),
-      };
-
-      const result = await handler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed appId: is required,serviceName: is required',
-      );
-    });
   });
 
   describe('Create', () => {
@@ -162,6 +139,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
@@ -191,6 +169,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
@@ -220,6 +199,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
@@ -247,6 +227,7 @@ describe('createItentityHandler', () => {
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'service1',
         },
         rawQueryString: '',
         version: '2.0',

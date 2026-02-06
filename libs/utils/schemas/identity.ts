@@ -7,18 +7,6 @@ export const CreateUserSchema = z.object({
     description: 'The Pairwise ID',
     example: '123456-789910-11121314-15',
   }),
-  accessToken: z.string().optional().openapi({
-    description: 'The User access token',
-    example: '239h3h23h283h23928EHD283DH23D23D32D23D23D32',
-  }),
-  refreshToken: z.string().optional().openapi({
-    description: 'The User access token',
-    example: '239R203IE23DIJWODJFOISDJFIODSJFIOSDJFOISDJFDF',
-  }),
-  idToken: z.string().optional().openapi({
-    description: 'The User access token',
-    example: '3280DJ23DJ02J3D92EUFSDJFKEJFKJDFLWFSHDLFSDF',
-  }),
 });
 
 export const IdentityPathSchema = z.object({
@@ -26,16 +14,16 @@ export const IdentityPathSchema = z.object({
     description: 'The One login',
     example: '123',
   }),
+  serviceName: z.string('is required').min(1).openapi({
+    description: 'The name of the service for which the id belongs',
+    example: 'app',
+  }),
 });
 
 export const CreateIdentityRequestSchema = z.object({
   appId: z.string('is required').min(1).openapi({
     description: 'The AppId from the app',
     example: '123',
-  }),
-  serviceName: z.string('is required').min(1).openapi({
-    description: 'The service name of the identity record',
-    example: 'flex',
   }),
   accessToken: z.string().optional().openapi({
     description: 'The access token for the service from one login',
@@ -74,6 +62,17 @@ export const CreateUserResponseSchema = z.object({
   body: z.string('is required').min(1).openapi({
     description: 'message',
     example: 'User Successfully Created',
+  }),
+});
+
+export const CreateUserExistsResponseSchema = z.object({
+  statusCode: z.number().openapi({
+    description: 'The status code of the response',
+    example: 200,
+  }),
+  body: z.string('is required').min(1).openapi({
+    description: 'message',
+    example: 'User already exists',
   }),
 });
 

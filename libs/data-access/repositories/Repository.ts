@@ -13,6 +13,15 @@ export interface Repository<T extends Entity> {
   get(keys: Partial<T>): Promise<T | null>;
 
   /**
+   * Retrives an entry where the pk is {pk}
+   * @param pk - the Pk we want to fetch the record by
+   * @returns A promise that resolves to the entity if found, or null if not found
+   */
+  getByPk(pk: string): Promise<T | null>;
+
+  /**
+
+  /**
    * Retrives an entry where the sk begins with.
    * @param keys - Partial entity containing the key properties needed to identify the entity
    * @returns A promise that resolves to the entity if found, or null if not found

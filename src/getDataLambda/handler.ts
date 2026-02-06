@@ -12,6 +12,7 @@ import {
   captureLambdaHandler,
   injectLambdaContext,
   routes,
+  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -24,7 +25,7 @@ const logger = getLogger({
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
   logger,
 });
@@ -33,9 +34,10 @@ let factory;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
+      identityTableName: IDENTITY_TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -48,22 +50,32 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.identifier);
+      .getByServiceId(
+        event.headers['requesting-service'],
+        event.headers['requesting-service-user-id'],
+      );
 
     const entity = await getFactory()
       .getService('data')
-      .getByKey(identity, event.pathParameters.proxy);
+      .getByKey(identity, event.pathParameters.resourcePath);
 
     return {
       statusCode: 200,
       body: entity,
     };
   } catch (error) {
+    let response = {
+      statusCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error',
+    };
     if (createError.isHttpError(error)) {
-      throw error;
+      response = generateErrorResponseFromHttpError(error);
     }
-
-    throw new createError.InternalServerError();
+    return {
+      statusCode: response.statusCode,
+      body: response,
+    };
   }
 };
 
@@ -76,7 +88,12 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(zodValidator({ pathParameters: routes.readData.params }))
+  .use(
+    zodValidator({
+      pathParameters: routes.readData.params,
+      headers: routes.readData.headers,
+    }),
+  )
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

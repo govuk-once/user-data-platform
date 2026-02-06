@@ -36,6 +36,7 @@ export interface CodeBuildE2eConstructProps {
   readonly consumerConfigSecret?: ISecret;
   readonly apiId: string;
   readonly e2eTestConsumerRole?: IRole;
+  readonly identityTableName: string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -57,6 +58,7 @@ export class CodeBuildE2eConstruct extends Construct {
       consumerConfigSecret,
       apiId,
       e2eTestConsumerRole,
+      identityTableName,
     } = props;
 
     const stack = Stack.of(this);
@@ -130,6 +132,18 @@ export class CodeBuildE2eConstruct extends Construct {
         ],
       }),
     );
+
+    if (identityTableName) {
+      codebuildRole.addToPolicy(
+        new PolicyStatement({
+          sid: 'DynamoDBCleanup',
+          actions: ['dynamodb:Query', 'dynamodb:DeleteItem'],
+          resources: [
+            `arn:aws:dynamodb:${awsRegion}:${stack.account}:table/${identityTableName}`,
+          ],
+        }),
+      );
+    }
 
     if (e2eTestConsumerRole) {
       codebuildRole.addToPolicy(
@@ -230,6 +244,7 @@ export class CodeBuildE2eConstruct extends Construct {
     > = {
       API_BASE_URL: { value: apiEndpoint },
       AWS_REGION: { value: awsRegion },
+      IDENTITY_TABLE_NAME: { value: identityTableName },
       DEBUG: { value: 'false' },
     };
 

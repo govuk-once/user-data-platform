@@ -11,7 +11,7 @@ phases:
   pre_build:
     commands:
       - echo "Setting up E2E environment ..",
-      - mkdir - e2e/reports
+      - mkdir -p e2e/reports
       - |
         cat > e2e/.env << EOF
         API_BASE_URL=${API_BASE_URL}
@@ -34,14 +34,14 @@ phases:
   post_build:
     commands:
       - echo "E2E test run completed"
-      - cp -r e2e/reports $CODEBUILD_SRC_DIR/e2e/ 2>dev/null || true
+      - cp -r e2e/reports $CODEBUILD_SRC_DIR/e2e/ 2>/dev/null || true
 
 reports:
   cucumber-reports:
     files:
       - 'e2e/reports/cucumber-report.json'
     base-directory: /workspace
-    file-format: CUSUMBERJSON
+    file-format: CUCUMBERJSON
 
 artifacts:
   files:

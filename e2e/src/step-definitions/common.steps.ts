@@ -1,6 +1,7 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { CustomWorld } from '../helpers/world.js';
 import { expect } from 'vitest';
+import { registerCreateUser } from 'src/helpers/cleanup.js';
 
 Given('I am authenticated', async function (this: CustomWorld) {
   this.enableAuth();
@@ -10,14 +11,26 @@ Given('I am not authenticated', async function (this: CustomWorld) {
   this.disableAuth();
 });
 
+Given(
+  'I set header {string} to {string}',
+  async function (this: CustomWorld, name: string, value: string) {
+    this.setHeader(name, value);
+  },
+);
+
 When(
   'I send a post to {string} with the body {string}',
   async function (this: CustomWorld, path: string, json: string) {
     const data = JSON.parse(json);
     const response = await this.api.post(path, data, {
       authenticated: this.authenticated,
+      headers: this.headers,
     });
     this.storeResponse(response);
+
+    if (path === '/user' && response.ok && data.appId) {
+      registerCreateUser(data.appId);
+    }
   },
 );
 
@@ -26,6 +39,7 @@ When(
   async function (this: CustomWorld, path: string) {
     const response = await this.api.get(path, {
       authenticated: this.authenticated,
+      headers: this.headers,
     });
     this.storeResponse(response);
   },
@@ -36,6 +50,7 @@ When(
   async function (this: CustomWorld, path: string) {
     const response = await this.api.delete(path, {
       authenticated: this.authenticated,
+      headers: this.headers,
     });
     this.storeResponse(response);
   },
