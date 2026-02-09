@@ -5,6 +5,7 @@ import {
   PolicyStatement,
   Role,
 } from 'aws-cdk-lib/aws-iam';
+import { Key } from 'aws-cdk-lib/aws-kms';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
@@ -45,6 +46,25 @@ export class ConsumerConfigConstruct extends Construct {
       ? `/udp/${developerId}/${environment}`
       : `/udp/${environment}`;
 
+    const key = new Key(this, 'ConsumerConfigKey', {
+      alias: 'alias/udp-consumer-config',
+      enableKeyRotation: true,
+    });
+
+    // Allow all external consumer accounts to use the key
+    for (const [consumerName, consumerConfig] of Object.entries(
+      externalConsumers,
+    )) {
+      key.addToResourcePolicy(
+        new PolicyStatement({
+          sid: `AllowDecryptFor${consumerName.toUpperCase()}`,
+          principals: [new AccountPrincipal(consumerConfig.accountId)],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
+          resources: ['*'],
+        }),
+      );
+    }
+
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
@@ -73,6 +93,7 @@ export class ConsumerConfigConstruct extends Construct {
         secretName: `${secretPathPrefix}/consumers/${consumerName}/config`,
         description: `Api configuration for external consumer ${consumerName}`,
         secretObjectValue: secretValue,
+        encryptionKey: key,
       });
 
       secret.addToResourcePolicy(
