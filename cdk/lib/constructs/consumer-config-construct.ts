@@ -47,7 +47,7 @@ export class ConsumerConfigConstruct extends Construct {
       : `/udp/${environment}`;
 
     const key = new Key(this, 'ConsumerConfigKey', {
-      alias: `alias/${secretPathPrefix.replace('/', '-')}-consumer-config`,
+      alias: `alias/${secretPathPrefix.slice(1).replace(/\//g, '-')}-consumer-config`,
       enableKeyRotation: true,
     });
 
