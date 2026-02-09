@@ -178,7 +178,7 @@ export class LambdaApiConstruct extends Construct {
         if (existingResource) {
           resource = existingResource;
         } else {
-          resource = resource.addResource(part);
+          resource = resource.addResource(resourceName);
         }
       }
 
