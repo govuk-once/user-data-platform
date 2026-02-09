@@ -47,7 +47,7 @@ export class ConsumerConfigConstruct extends Construct {
       : `/udp/${environment}`;
 
     const key = new Key(this, 'ConsumerConfigKey', {
-      alias: 'alias/udp-consumer-config',
+      alias: `alias/${secretPathPrefix}-consumer-config`,
       enableKeyRotation: true,
     });
 
@@ -67,7 +67,7 @@ export class ConsumerConfigConstruct extends Construct {
 
       if (!consumerRole) {
         throw new Error(
-          `External conumer ${consumerName} does not have a matching IAM Consumer Role`,
+          `External consumer ${consumerName} does not have a matching IAM Consumer Role`,
         );
       }
 
