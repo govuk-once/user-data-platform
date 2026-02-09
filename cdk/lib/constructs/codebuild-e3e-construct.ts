@@ -37,6 +37,7 @@ export interface CodeBuildE2eConstructProps {
   readonly apiId: string;
   readonly e2eTestConsumerRole?: IRole;
   readonly identityTableName: string;
+  readonly kmsKeyArn?: string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -59,6 +60,7 @@ export class CodeBuildE2eConstruct extends Construct {
       apiId,
       e2eTestConsumerRole,
       identityTableName,
+      kmsKeyArn,
     } = props;
 
     const stack = Stack.of(this);
@@ -181,6 +183,16 @@ export class CodeBuildE2eConstruct extends Construct {
       }),
     );
 
+    if (kmsKeyArn) {
+      codebuildRole.addToPolicy(
+        new PolicyStatement({
+          sid: 'KMSRotateKey',
+          actions: ['kms:RotateKeyOnDemand'],
+          resources: [kmsKeyArn],
+        }),
+      );
+    }
+
     codebuildRole.addToPolicy(
       new PolicyStatement({
         sid: 'ECRAuth',
@@ -251,6 +263,12 @@ export class CodeBuildE2eConstruct extends Construct {
     if (consumerConfigSecret) {
       environmentVariables.CONSUMER_CONFIG_SECRET_ARN = {
         value: consumerConfigSecret.secretArn,
+      };
+    }
+
+    if (kmsKeyArn) {
+      environmentVariables.KMS_KEY_ARN = {
+        value: kmsKeyArn,
       };
     }
 
