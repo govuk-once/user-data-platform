@@ -91,8 +91,6 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
     const user = await this.repository.getByPk(pk);
 
-    console.log({ user });
-
     if (throwNotFound && !user) {
       throw createHttpError.NotFound(
         serviceName === 'app'
@@ -159,8 +157,6 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     }
     // look up the udp id by app id
     const appIdentifier = await this.getByServiceId('app', input.appId);
-
-    console.log({ appIdentifier });
 
     return {
       pk: `${input.serviceName}#${input.serviceId}`,

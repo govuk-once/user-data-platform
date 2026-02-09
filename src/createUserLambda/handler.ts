@@ -59,8 +59,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       .getService('identity')
       .createAppUser(input);
 
-    console.log({ result });
-
     if (result.created) {
       return {
         statusCode: 201,
@@ -76,7 +74,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     if (createError.isHttpError(error)) {
       throw error;
     }
-    console.log({ error });
     throw new createError.InternalServerError();
   }
 };

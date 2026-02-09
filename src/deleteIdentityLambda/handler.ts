@@ -60,7 +60,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       body: 'Successfully Deleted Identity',
     };
   } catch (error) {
-    console.log({ error });
     if (createError.isHttpError(error)) {
       throw error;
     }
