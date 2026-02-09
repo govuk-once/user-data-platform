@@ -62,7 +62,7 @@ export class ConsumerConfigConstruct extends Construct {
           resources: ['*'],
         }),
       );
-      
+
       const consumerRole = consumerRoles.get(consumerName);
 
       if (!consumerRole) {
