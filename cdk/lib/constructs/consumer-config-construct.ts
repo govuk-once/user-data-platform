@@ -51,7 +51,6 @@ export class ConsumerConfigConstruct extends Construct {
       enableKeyRotation: true,
     });
 
-    // Allow all external consumer accounts to use the key
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
@@ -63,11 +62,7 @@ export class ConsumerConfigConstruct extends Construct {
           resources: ['*'],
         }),
       );
-    }
-
-    for (const [consumerName, consumerConfig] of Object.entries(
-      externalConsumers,
-    )) {
+      
       const consumerRole = consumerRoles.get(consumerName);
 
       if (!consumerRole) {
