@@ -125,7 +125,7 @@ jobs:
           echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
 
           # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --environment-variables-overide name=E2E_TARGET, value=pr type=PLAINTEXT --query 'build.id' --output text)
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --environment-variables-overide name=E2E_TARGET, value=pr, type=PLAINTEXT --query 'build.id' --output text)
 
           echo "Build started ${BUILD_ID}"
           echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
