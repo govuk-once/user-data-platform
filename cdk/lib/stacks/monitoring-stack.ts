@@ -58,7 +58,7 @@ export class MonitoringStack extends Stack {
       masterKey: kmsKey,
     });
 
-     this.warningTopic = new sns.Topic(this, 'WarningTopic', {
+    this.warningTopic = new sns.Topic(this, 'WarningTopic', {
       topicName: `${resourcePrefix}-warning-alarms`,
       displayName: `${resourcePrefix} Warning Alerts`,
       masterKey: kmsKey,
