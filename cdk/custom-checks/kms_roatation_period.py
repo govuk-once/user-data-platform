@@ -8,19 +8,19 @@ class KmsRotationPeriod(BaseResourceCheck):
         supported_resources = ["AWS::KMS::Key"]
         categories = [CheckCategories.ENCRYPTION]
         super().__init__(name=name, id=id, categories=categories,supported_resources=supported_resources)
-        
+
     def scan_resource_conf(self, conf):
         enable_rotation = conf.get("Properties", {}).get("EnableKeyRotation", false)
         if not enable_rotation
             return CheckResult.FAILED
-        
+
         rotation_period = conf.get("Properties", {}).get("RotationPeriodInDays")
         if rotation_period is None:
             return CheckResult.FAILED
-        
+
         if int(rotation_period) <= 90
             return CheckResult.PASSED
-        
+
         return CheckResult.FAILED
-    
+
 check = KmsRotationPeriod()
