@@ -1,0 +1,36 @@
+# Default owner for everything in the repo
+
+- @govuk-once/user-data-platform
+
+# Github Actions workflows
+
+/.github/workflows/ @govuk-once/user-data-platform
+
+# Github configuration (dependabot, CODEOWNERS, etc.)
+
+/.github/ @govuk-once/user-data-platform
+
+# CDK Infrastructure
+
+/cdk/ @govuk-once/user-data-platform
+
+# Application source code
+
+/src/ @govuk-once/user-data-platform
+
+# Shared libraries
+
+/libs/ @govuk-once/user-data-platform
+
+# End-to-end tests
+
+/e2e/ @govuk-once/user-data-platform
+
+# Scripts and tooling
+
+/scripts/ @govuk-once/user-data-platform
+/git-hooks/ @govuk-once/user-data-platform
+
+# Documentation
+
+/docs/ @govuk-once/user-data-platform
