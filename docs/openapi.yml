@@ -42,18 +42,6 @@ paths:
                   minLength: 1
                   description: The Pairwise ID
                   example: 123456-789910-11121314-15
-                accessToken:
-                  type: string
-                  description: The User access token
-                  example: 239h3h23h283h23928EHD283DH23D23D32D23D23D32
-                refreshToken:
-                  type: string
-                  description: The User access token
-                  example: 239R203IE23DIJWODJFOISDJFIODSJFIOSDJFOISDJFDF
-                idToken:
-                  type: string
-                  description: The User access token
-                  example: 3280DJ23DJ02J3D92EUFSDJFKEJFKJDFLWFSHDLFSDF
               required:
                 - appId
       responses:
@@ -128,7 +116,7 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-  /identity/{identifier}:
+  /identity/{serviceName}/{identifier}:
     post:
       summary: Create Identity Record
       description: Create Identity Record
@@ -146,6 +134,15 @@ paths:
           description: The One login
           name: identifier
           in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the service for which the id belongs
+            example: app
+          required: true
+          description: The name of the service for which the id belongs
+          name: serviceName
+          in: path
       requestBody:
         content:
           application/json:
@@ -157,11 +154,6 @@ paths:
                   minLength: 1
                   description: The AppId from the app
                   example: '123'
-                serviceName:
-                  type: string
-                  minLength: 1
-                  description: The service name of the identity record
-                  example: flex
                 accessToken:
                   type: string
                   description: The access token for the service from one login
@@ -180,7 +172,6 @@ paths:
                   example: flex
               required:
                 - appId
-                - serviceName
       responses:
         '201':
           description: Sucesss
@@ -282,6 +273,15 @@ paths:
           required: true
           description: The One login
           name: identifier
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the service for which the id belongs
+            example: app
+          required: true
+          description: The name of the service for which the id belongs
+          name: serviceName
           in: path
       responses:
         '200':
@@ -395,6 +395,15 @@ paths:
           description: The One login
           name: identifier
           in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the service for which the id belongs
+            example: app
+          required: true
+          description: The name of the service for which the id belongs
+          name: serviceName
+          in: path
       responses:
         '200':
           description: Sucesss
@@ -467,7 +476,7 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-  /identity/{identifier}/{proxy+}:
+  /v1/{resourcePath+}:
     post:
       summary: Create Resource path data Record
       description: Create Resource path data Record
@@ -479,33 +488,56 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The resource path that the data is held under
+            example: topics
           required: true
-          description: The One login
-          name: identifier
+          description: The resource path that the data is held under
+          name: resourcePath
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The resource path
-            example: topics
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
           required: true
-          description: The resource path
-          name: proxy
-          in: path
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                ttl:
-                  type: number
-                  description: The Time to live for the automatic deletion/expiry of data
-                  example: 100
-              additionalProperties:
-                nullable: true
+                configuration:
+                  type: object
+                  properties:
+                    expiryMechanism:
+                      type: string
+                      enum:
+                        - DELETE
+                      description: The UDP mechanism to execute at expiry
+                      example: DELETE
+                    expiresAt:
+                      type: number
+                      description: The expiry time for the data in EPOCH Timestamp no MS
+                      example: 1738671000
+                data:
+                  type: object
+                  properties: {}
+                  additionalProperties:
+                    nullable: true
+              required:
+                - data
       responses:
         '201':
           description: Sucesss
@@ -602,21 +634,30 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The resource path that the data is held under
+            example: topics
           required: true
-          description: The One login
-          name: identifier
+          description: The resource path that the data is held under
+          name: resourcePath
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The resource path
-            example: topics
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
           required: true
-          description: The resource path
-          name: proxy
-          in: path
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
       responses:
         '200':
           description: Sucesss
@@ -708,21 +749,30 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The resource path that the data is held under
+            example: topics
           required: true
-          description: The One login
-          name: identifier
+          description: The resource path that the data is held under
+          name: resourcePath
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The resource path
-            example: topics
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
           required: true
-          description: The resource path
-          name: proxy
-          in: path
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
       responses:
         '200':
           description: Sucesss

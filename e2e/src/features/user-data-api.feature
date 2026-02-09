@@ -13,19 +13,25 @@ Feature: User Data API
         Then the response status should be 201
 
     Scenario: Successfully add data
-        When I send a post to '/identity/123/topics' with the body '{"test":"data"}'
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to '123'
+        When I send a post to '/v1/topics' with the body '{"data": {"test":"data"} }'
         Then I should recieve a successful response
         Then The response will contain message 'Entity saved successfully'
 
     Scenario: Successfully Retrive data
-        When i send a get to '/identity/123/topics'
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to '123'
+        When i send a get to '/v1/topics'
         Then I should recieve a successful response
         Then The response body contain body '{"data":{"test":"data"}}'
 
     Scenario: Successfully delete data
-        When i send a delete to '/identity/123/topics'
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to '123'
+        When i send a delete to '/v1/topics'
         Then I should recieve a successful response
 
     Scenario: Successfully Delete identity Record
-        When i send a delete to '/identity/123'
+        When i send a delete to '/identity/app/123'
         Then I should recieve a successful response

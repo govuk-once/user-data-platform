@@ -12,6 +12,16 @@ export interface LocalSecondaryIndexeConfig {
   readonly nonKeyAttributes?: string[];
 }
 
+export interface GlobalSecondaryIndexeConfig {
+  readonly indexName: string;
+  readonly partitionKeyName: string;
+  readonly partitionKeyType?: dynamodb.AttributeType;
+  readonly sortKeyName?: string;
+  readonly sortKeyType?: dynamodb.AttributeType;
+  readonly projectionType?: dynamodb.ProjectionType;
+  readonly nonKeyAttributes?: string[];
+}
+
 export interface DynamoDBConstructProps {
   readonly developerId?: string;
   readonly environment: string;
@@ -21,6 +31,7 @@ export interface DynamoDBConstructProps {
   readonly kmsKey?: kms.IKey;
   readonly pointInTimeRecovery?: boolean;
   readonly localSecondaryIndexes?: LocalSecondaryIndexeConfig[];
+  readonly globalSecondaryIndexes?: GlobalSecondaryIndexeConfig[];
   readonly ttlAttributeName?: string;
 }
 
@@ -39,6 +50,7 @@ export class DynamoDBConstruct extends Construct {
       kmsKey,
       pointInTimeRecovery = true,
       localSecondaryIndexes = [],
+      globalSecondaryIndexes = [],
       ttlAttributeName,
     } = props;
 
@@ -74,6 +86,28 @@ export class DynamoDBConstruct extends Construct {
         }),
         ...(lsiConfig.nonKeyAttributes && {
           nonKeyAttributes: lsiConfig.nonKeyAttributes,
+        }),
+      });
+    }
+
+    for (const gsiConfig of globalSecondaryIndexes) {
+      this.table.addGlobalSecondaryIndex({
+        indexName: gsiConfig.indexName,
+        partitionKey: {
+          name: gsiConfig.partitionKeyName,
+          type: dynamodb.AttributeType.STRING,
+        },
+        ...(gsiConfig.sortKeyName && {
+          sortKey: {
+            name: gsiConfig.sortKeyName,
+            type: dynamodb.AttributeType.STRING,
+          },
+        }),
+        ...(gsiConfig.projectionType && {
+          projectionType: gsiConfig.projectionType,
+        }),
+        ...(gsiConfig.nonKeyAttributes && {
+          nonKeyAttributes: gsiConfig.nonKeyAttributes,
         }),
       });
     }

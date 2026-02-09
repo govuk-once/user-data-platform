@@ -205,9 +205,14 @@ export const routes = {
     params: MyParamsSchema,
     body: MyBodySchema,
     response: MyResponseSchema,
-    successStatus: 201,
     dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/write'],
+    successResponses: [
+      {
+        status: 200,
+        schema: MyResponseSchema,
+      },
+    ],
   },
 };
 ```

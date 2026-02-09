@@ -24,7 +24,7 @@ const logger = getLogger({
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 
@@ -32,9 +32,10 @@ let factory: ServiceFactory;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
+      identityTableName: IDENTITY_TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -49,7 +50,10 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     await getFactory()
       .getService('identity')
-      .deleteById(event.pathParameters.identifier);
+      .deleteById(
+        event.pathParameters.serviceName,
+        event.pathParameters.identifier,
+      );
 
     return {
       statusCode: 200,
@@ -68,7 +72,11 @@ export const handler = middy()
   .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  .use(zodValidator({ pathParameters: routes.deleteIdentity.params }))
+  .use(
+    zodValidator({
+      pathParameters: routes.deleteIdentity.params,
+    }),
+  )
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

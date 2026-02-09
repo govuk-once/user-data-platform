@@ -136,6 +136,7 @@ if (!skipMainStack) {
     apiEndpoint: mainStack.api.url,
     e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
     apiId: mainStack.api.restApiId,
+    identityTableName: mainStack.identityTable.tableName,
   });
 
   e2eStack.addDependency(mainStack);

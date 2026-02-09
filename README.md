@@ -226,9 +226,14 @@ export routes = {
         params: ParamsSchema,
         body: BodySchema,
         response: ResponseSchema,
-        successStatus: 201,
         dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query'], // set apropriate actions required
         authorizationScopes: ['udp/write'], // set scopes required in auth
+        successResponses: [
+          {
+            status: 200,
+            schema: ResponseSchema,
+          },
+        ],
     }
 }
 ```

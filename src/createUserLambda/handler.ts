@@ -18,7 +18,7 @@ import {
 import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 
@@ -35,8 +35,9 @@ let factory: ServiceFactory;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
     factory = new ServiceFactory({
+      identityTableName: IDENTITY_TABLE_NAME,
       tableName: TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
       tracer,
@@ -54,17 +55,25 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       ...(event.body as unknown as CreateUserBody),
     } as unknown as IdentityInput;
 
-    await getFactory().getService('identity').create(input);
+    const result = await getFactory()
+      .getService('identity')
+      .createAppUser(input);
+
+    if (result.created) {
+      return {
+        statusCode: 201,
+        body: 'User Successfully Created',
+      };
+    }
 
     return {
-      statusCode: 201,
-      body: 'User Successfully Created',
+      statusCode: 200,
+      body: 'User already exists',
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
       throw error;
     }
-
     throw new createError.InternalServerError();
   }
 };

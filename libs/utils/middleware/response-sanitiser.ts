@@ -1,6 +1,6 @@
 import type { MiddlewareObj } from '@middy/core';
 
-const omitvalues = ['ttl', 'pk', 'sk', 'udpId', 'lsi', 'lsi_1'];
+const omitvalues = ['ttl', 'pk', 'sk', 'udpId', 'lsi', 'lsi_1', '__dataKey'];
 
 type SanitiseOptions = {
   omitKeys?: string[];

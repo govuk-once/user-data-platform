@@ -12,6 +12,7 @@ import {
   routes,
   zodValidator,
   createEnvValidator,
+  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
@@ -25,7 +26,7 @@ const logger = getLogger({
 });
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 
@@ -33,9 +34,11 @@ let factory;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
+      identityTableName: IDENTITY_TABLE_NAME,
+
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -52,10 +55,15 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     const identity = await getFactory()
       .getService('identity')
-      .getById(event.pathParameters.identifier);
+      .getByServiceId(
+        event.headers['requesting-service'],
+        event.headers['requesting-service-user-id'],
+      );
+
     await getFactory()
       .getService('data')
-      .save(identity, event.pathParameters.proxy, event.body);
+      .save(identity, event.pathParameters.resourcePath, event.body);
+
     tracer.putAnnotation('putEntitySuccess', true);
     return {
       statusCode: 201,
@@ -63,11 +71,18 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     };
   } catch (error) {
     tracer.putAnnotation('putEntitySuccess', false);
+    let response = {
+      statusCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error',
+    };
     if (createError.isHttpError(error)) {
-      throw error;
+      response = generateErrorResponseFromHttpError(error);
     }
-
-    throw new createError.InternalServerError();
+    return {
+      statusCode: response.statusCode,
+      body: response,
+    };
   }
 };
 
@@ -80,12 +95,14 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
+  .use(jsonBodyParser())
   .use(
     zodValidator({
       pathParameters: routes.createData.params,
+      headers: routes.createData.headers,
+      body: routes.createData.body,
     }),
   )
-  .use(jsonBodyParser())
   .use(httpErrorHandler())
   .use(
     httpResponseSerializer({

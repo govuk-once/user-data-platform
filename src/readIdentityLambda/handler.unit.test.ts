@@ -6,6 +6,7 @@ import { beforeEach } from 'node:test';
 import createHttpError from 'http-errors';
 
 process.env['TABLE_NAME'] = 'test-table';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
 
 const mockGet = vi.fn();
 
@@ -14,7 +15,7 @@ vi.mock('@libs/data-access', () => ({
   ServiceFactory: class {
     getService() {
       return {
-        getById: mockGet,
+        getByServiceId: mockGet,
       };
     }
   },
@@ -46,10 +47,12 @@ describe('readIdentityLambda', () => {
   });
 
   describe('Bad Request 400', () => {
-    it('Should throw a bad request if the identifier is not set in the path params', async () => {
+    it('Should throw a bad request if the identifier adn serviceName is not set in the path params', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
+          'requesting-service': 'app',
+          'requesting-service-user-id': 'test-user-id',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
@@ -59,13 +62,16 @@ describe('readIdentityLambda', () => {
         routeKey: 'POST /identity/{identifier}',
         pathParameters: {
           identifier: undefined,
+          serviceName: undefined,
         },
       };
 
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed identifier: is required');
+      expect(result.body).toBe(
+        'Validation Failed identifier: is required,serviceName: is required',
+      );
     });
   });
 
@@ -74,12 +80,15 @@ describe('readIdentityLambda', () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
+          'requesting-service': 'app',
+          'requesting-service-user-id': 'test-user-id',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/identity/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'service1',
         },
         rawQueryString: '',
         version: '2.0',
@@ -118,12 +127,15 @@ describe('readIdentityLambda', () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
+          'requesting-service': 'app',
+          'requesting-service-user-id': 'test-user-id',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'service1',
         },
         rawQueryString: '',
         version: '2.0',
@@ -141,12 +153,15 @@ describe('readIdentityLambda', () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
+          'requesting-service': 'app',
+          'requesting-service-user-id': 'test-user-id',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
         rawPath: '/user/user-guid-123',
         pathParameters: {
           identifier: 'test-user-id',
+          serviceName: 'service1',
         },
         rawQueryString: '',
         version: '2.0',

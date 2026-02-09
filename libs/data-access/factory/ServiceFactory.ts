@@ -6,20 +6,24 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDbDataService } from '../services/DynamoDbDataService';
 import { Tracer } from '@aws-lambda-powertools/tracer';
+import { Logger } from '@libs/utils';
 
 export interface ServiceFactoryConfig {
   tableName: string;
+  identityTableName: string;
   kmsKeyId?: string;
   tracer?: Tracer;
 }
 
 export class ServiceFactory {
   private tableName: string;
+  private identityTableName: string;
   private kmsKeyId: string;
   private docClient: DynamoDBDocumentClient;
   private services: Map<string, unknown> = new Map();
 
   constructor(config: ServiceFactoryConfig) {
+    this.identityTableName = config.identityTableName;
     this.tableName = config.tableName;
     this.kmsKeyId = config.kmsKeyId;
 
@@ -81,9 +85,10 @@ export class ServiceFactory {
       'refreshToken',
     ]);
     const repository = new DynamoDBRepository<IdentityRecordEntity>(
-      this.tableName,
+      this.identityTableName,
       this.docClient,
       encryption,
+      console as unknown as Logger,
     );
 
     return new DynamoDBIdentityService(repository);

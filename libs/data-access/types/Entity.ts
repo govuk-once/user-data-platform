@@ -105,10 +105,6 @@ export interface IdentityRecordEntity {
   sk: string;
 
   /**
-   * local secondary index UDP.ID/SERVICE.ID.
-   */
-  lsi_1?: string;
-  /**
    * unique UUIDv4 for UDP.ID.
    */
   udpId: string;
@@ -130,26 +126,16 @@ export interface IdentityRecordEntity {
    * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.
    */
   ttl?: number;
-
-  /**
-   * Access Token for the service
-   */
-  accessToken?: string;
-
-  /**
-   * Id Token for the service
-   */
-  idToken?: string;
-
-  /**
-   * Refresh Token for the service
-   */
-  refreshToken?: string;
 }
 
 export interface DataInput {
-  ttl?: number;
-  [key: string]: unknown;
+  configuration?: {
+    expiryMechanism?: 'DELETE';
+    expiresAt?: number;
+  };
+  data: {
+    [key: string]: unknown;
+  };
 }
 
 export interface DynamoDBDataEntity {
@@ -176,4 +162,23 @@ export interface UserDataInput {
   resourcePath: string;
   ttl?: number;
   [key: string]: unknown;
+}
+
+export interface NewIdentityEntity {
+  pk: string;
+  sk: string;
+  udpId: string;
+  serviceId: string;
+  serviceName: string;
+  ttl?: number;
+}
+
+export interface CreateUserInput {
+  appId: string;
+  ttl?: number;
+}
+
+export interface CreateUserResult {
+  udpId: string;
+  created: boolean;
 }

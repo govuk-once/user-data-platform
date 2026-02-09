@@ -16,9 +16,15 @@ export class CustomWorld extends World<CustomWorldParams> {
 
   public authenticated: boolean = true;
 
+  public headers: Record<string, string> = {};
+
   constructor(options: IWorldOptions<CustomWorldParams>) {
     super(options);
     this.api = new ApiClient(config.apiBaseUrl);
+  }
+
+  setHeader(name: string, value: string): void {
+    this.headers[name] = value;
   }
 
   setApiClient(roleArn?: string, externalId?: string): void {

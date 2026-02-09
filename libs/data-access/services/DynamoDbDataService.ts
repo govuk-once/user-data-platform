@@ -26,7 +26,7 @@ export class DynamoDbDataService {
   public async save(
     identity: IdentityRecordEntity,
     resourcePath: string,
-    input: Record<string, unknown>,
+    input: DataInput,
   ) {
     this.validate(identity, resourcePath, input);
     const entity = await this.createFromInput(identity, resourcePath, input);
@@ -75,11 +75,14 @@ export class DynamoDbDataService {
     resourcePath: string,
     input: DataInput,
   ): DynamoDBDataEntity {
-    const { ttl, ...rest } = input;
+    const data = input.data;
+    const ttl = input.configuration
+      ? (input.configuration.expiresAt ?? undefined)
+      : undefined;
     return {
       pk: identity.udpId,
       sk: resourcePath,
-      data: rest,
+      ...(data ? { data } : {}),
       ...(ttl ? { ttl } : {}),
     };
   }
@@ -97,9 +100,9 @@ export class DynamoDbDataService {
       throw createHttpError.BadRequest(`resourcePath is required`);
     }
 
-    if (input?.ttl !== undefined) {
+    if (input?.configuration?.expiresAt !== undefined) {
       const nowInSeconds = Math.floor(Date.now() / 1000);
-      if (input.ttl <= nowInSeconds) {
+      if (input.configuration.expiresAt <= nowInSeconds) {
         throw createHttpError.BadRequest(
           `TTL must be a future timestamp in seconds since epoch`,
         );

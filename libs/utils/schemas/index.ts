@@ -8,14 +8,14 @@ export * from './data';
 
 import status from 'statuses';
 
-export const ErrorResponseSchema = z.object({
+export const DefaultErrorResponseSchema = z.object({
   body: z.string().openapi({
     description: 'Error message',
     example: 'Error Message',
   }),
 });
 
-export const SuccessResponseSchema = z.object({
+export const DefaultSuccessResponseSchema = z.object({
   body: z.string().openapi({
     description: 'Success message',
     example: 'Success',
@@ -37,7 +37,7 @@ export function getErrorSchema(code: number): z.ZodType {
 
 export function getErrorResponse(
   code: number,
-  schema: z.ZodType = ErrorResponseSchema,
+  schema: z.ZodType = DefaultErrorResponseSchema,
 ): {
   description: string;
   content: { 'application/json': { schema: z.ZodType } };

@@ -111,19 +111,29 @@ export class ApiClient {
     }
 
     let data: T;
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      data = (await response.json()) as unknown as T;
-    } else {
-      data = (await response.text()) as unknown as T;
-    }
+    let text: string;
+    try {
+      text = await response.text();
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json') && text) {
+        try {
+          data = JSON.parse(text) as T;
+        } catch {
+          data = text as unknown as T;
+        }
+      } else {
+        data = text as unknown as T;
+      }
 
-    return {
-      status: response.status,
-      headers: response.headers,
-      body: data,
-      ok: response.ok,
-    };
+      return {
+        status: response.status,
+        headers: response.headers,
+        body: data,
+        ok: response.ok,
+      };
+    } catch (e) {
+      console.error({ e });
+    }
   }
 
   get<T = unknown>(

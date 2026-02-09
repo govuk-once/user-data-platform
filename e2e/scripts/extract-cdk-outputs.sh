@@ -80,6 +80,7 @@ echo " Getting vars"
 API_ENDPOINT=$(get_cfn_output "$STACK_NAME" "ApiEndpoint")
 API_ID=$(get_cfn_output "$STACK_NAME" "ApiId")
 DYNAMODB_TABLE=$(get_cfn_output "$STACK_NAME" "TableName")
+IDENTITY_TABLE=$(get_cfn_output "$STACK_NAME" "IdentityTableName")
 AWS_REGION=$(get_cfn_output "$STACK_NAME" "AwsRegion")
 
 
@@ -92,6 +93,7 @@ API_ID=$API_ID
 
 
 DYNAMODB_TABLE_NAME=$DYNAMODB_TABLE
+IDENTITY_TABLE_NAME=$IDENTITY_TABLE
 AWS_REGION=$AWS_REGION
 EOF
 
