@@ -170,15 +170,11 @@ export class LambdaApiConstruct extends Construct {
       let resource: apigateway.IResource = api.root;
 
       for (const part of pathParts) {
-        // Check if this is a path variable (starts and ends with braces)
-        const isVariable = part.startsWith('{') && part.endsWith('}');
-        const resourceName = isVariable ? part.slice(1, -1) : part; // Remove braces
-        
-        const existingResource = resource.getResource(resourceName);
+        const existingResource = resource.getResource(part);
         if (existingResource) {
           resource = existingResource;
         } else {
-          resource = resource.addResource(resourceName);
+          resource = resource.addResource(part);
         }
       }
 
