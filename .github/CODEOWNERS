@@ -1,36 +1,36 @@
 # Default owner for everything in the repo
 
-- @govuk-once/user-data-platform
+- govuk-once-udp-developers
 
 # Github Actions workflows
 
-/.github/workflows/ @govuk-once/user-data-platform
+/.github/workflows/ govuk-once-udp-developers
 
 # Github configuration (dependabot, CODEOWNERS, etc.)
 
-/.github/ @govuk-once/user-data-platform
+/.github/ govuk-once-udp-developers
 
 # CDK Infrastructure
 
-/cdk/ @govuk-once/user-data-platform
+/cdk/ govuk-once-udp-developers
 
 # Application source code
 
-/src/ @govuk-once/user-data-platform
+/src/ govuk-once-udp-developers
 
 # Shared libraries
 
-/libs/ @govuk-once/user-data-platform
+/libs/ govuk-once-udp-developers
 
 # End-to-end tests
 
-/e2e/ @govuk-once/user-data-platform
+/e2e/ govuk-once-udp-developers
 
 # Scripts and tooling
 
-/scripts/ @govuk-once/user-data-platform
-/git-hooks/ @govuk-once/user-data-platform
+/scripts/ govuk-once-udp-developers
+/git-hooks/ govuk-once-udp-developers
 
 # Documentation
 
-/docs/ @govuk-once/user-data-platform
+/docs/ govuk-once-udp-developers
