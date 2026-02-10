@@ -1,36 +1,36 @@
 # Default owner for everything in the repo
 
-- govuk-once-udp-developers
+- @govuk-once/govuk-once-udp-developers
 
 # Github Actions workflows
 
-/.github/workflows/ govuk-once-udp-developers
+/.github/workflows/ @govuk-once/govuk-once-udp-developers
 
 # Github configuration (dependabot, CODEOWNERS, etc.)
 
-/.github/ govuk-once-udp-developers
+/.github/ @govuk-once/govuk-once-udp-developers
 
 # CDK Infrastructure
 
-/cdk/ govuk-once-udp-developers
+/cdk/ @govuk-once/govuk-once-udp-developers
 
 # Application source code
 
-/src/ govuk-once-udp-developers
+/src/ @govuk-once/govuk-once-udp-developers
 
 # Shared libraries
 
-/libs/ govuk-once-udp-developers
+/libs/ @govuk-once/govuk-once-udp-developers
 
 # End-to-end tests
 
-/e2e/ govuk-once-udp-developers
+/e2e/ @govuk-once/govuk-once-udp-developers
 
 # Scripts and tooling
 
-/scripts/ govuk-once-udp-developers
-/git-hooks/ govuk-once-udp-developers
+/scripts/ @govuk-once/govuk-once-udp-developers
+/git-hooks/ @govuk-once/govuk-once-udp-developers
 
 # Documentation
 
-/docs/ govuk-once-udp-developers
+/docs/ @govuk-once/govuk-once-udp-developers
