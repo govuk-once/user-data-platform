@@ -6,7 +6,7 @@
 openapi: 3.0.3
 info:
   title: User Data platform API
-  version: 1.10.2
+  version: 1.10.3
   description: Private Api for the User data Platform
 tags:
   - name: identity
