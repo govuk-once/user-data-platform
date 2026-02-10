@@ -107,7 +107,7 @@ export class MonitoringStack extends Stack {
 
       slackChannel.role?.addToPrincipalPolicy(
         new PolicyStatement({
-          actions: ['kms:Decrypt', 'km:GenerateDataKey'],
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
           resources: [kmsKey.keyArn],
         }),
       );
