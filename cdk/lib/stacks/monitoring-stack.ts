@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps, Duration, CfnJson } from 'aws-cdk-lib';
+import { Stack, StackProps, Duration, Fn } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -95,14 +95,19 @@ export class MonitoringStack extends Stack {
 
     // if (!developerId) {
     const param = `/development/udp-param/udp/monitoring`;
-    const ssmValue = StringParameter.valueFromLookup(this, param);
+    const ssmValue = StringParameter.fromStringParameterName(
+      this,
+      `UdpParam${hash(param)}`,
+      param,
+    );
 
-    const monitoringParams = JSON.parse(ssmValue);
+    const workspaceId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+    const channelId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
 
     const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
       slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-      slackWorkspaceId: monitoringParams.workspaceId,
-      slackChannelId: monitoringParams.channelId,
+      slackWorkspaceId: workspaceId,
+      slackChannelId: channelId,
       notificationTopics: [this.criticalTopic],
       guardrailPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
