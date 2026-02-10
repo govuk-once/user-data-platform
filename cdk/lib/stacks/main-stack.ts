@@ -278,5 +278,11 @@ export class MainStack extends Stack {
       description: 'AppConfig Configuration Profile ID',
       exportName: `${id}-AppConfigProfileId`,
     });
+
+    new CfnOutput(this, 'KmsKeyArn', {
+      value: this.kmsKey.keyArn,
+      description: 'KMS Key ARN',
+      exportName: `${id}-kmsKeyArn`,
+    });
   }
 }

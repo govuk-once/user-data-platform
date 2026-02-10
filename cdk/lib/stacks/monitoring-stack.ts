@@ -21,6 +21,8 @@ export interface MonitorStackProps extends StackProps {
 
 export class MonitoringStack extends Stack {
   public readonly alarmTopic: sns.Topic;
+  public readonly criticalTopic: sns.Topic;
+  public readonly warningTopic: sns.Topic;
   public readonly dashboard: cloudwatch.Dashboard;
   public readonly xrayTraceGroup?: xray.CfnGroup;
 
@@ -47,6 +49,18 @@ export class MonitoringStack extends Stack {
     this.alarmTopic = new sns.Topic(this, 'AlarmTopic', {
       topicName: `${resourcePrefix}-alarms`,
       displayName: `${resourcePrefix} Infrastructure Alarms`,
+      masterKey: kmsKey,
+    });
+
+    this.criticalTopic = new sns.Topic(this, 'CriticalTopic', {
+      topicName: `${resourcePrefix}-critical-alarms`,
+      displayName: `${resourcePrefix} Critical Alerts`,
+      masterKey: kmsKey,
+    });
+
+    this.warningTopic = new sns.Topic(this, 'WarningTopic', {
+      topicName: `${resourcePrefix}-warning-alarms`,
+      displayName: `${resourcePrefix} Warning Alerts`,
       masterKey: kmsKey,
     });
 

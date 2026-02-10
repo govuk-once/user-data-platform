@@ -11,6 +11,7 @@ export interface E2EConfig {
   apiBaseUrl: string;
   awsRegion: string;
   identityTableName: string;
+  kmsKeyArn?: string;
 }
 
 function getRequiredEnv(key: string): string {
@@ -29,4 +30,5 @@ export const config: E2EConfig = {
   awsRegion: getOptionalEnv('AWS_REGION', 'eu-west-2'),
   apiBaseUrl: getRequiredEnv('API_BASE_URL'),
   identityTableName: getRequiredEnv('IDENTITY_TABLE_NAME'),
+  kmsKeyArn: getRequiredEnv('KMS_KEY_ARN'),
 };
