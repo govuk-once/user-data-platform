@@ -88,7 +88,7 @@ export class MonitoringStack extends Stack {
       );
     }
 
-    if (!developerId) {
+    // if (!developerId) {
       const ssmConfig = `/${environment}/udp-param/udp/monitoring`;
 
       const params = StringParameter.valueForStringParameter(this, ssmConfig);
@@ -111,7 +111,7 @@ export class MonitoringStack extends Stack {
           resources: [kmsKey.keyArn],
         }),
       );
-    }
+    // }
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
       dashboardName: `${resourcePrefix}-dashboard`,
