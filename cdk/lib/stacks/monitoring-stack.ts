@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps, Duration } from 'aws-cdk-lib';
+import { Stack, StackProps, Duration, CfnJson } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -90,28 +90,29 @@ export class MonitoringStack extends Stack {
 
     // if (!developerId) {
     const ssmPath = `/development/udp-secret/udp/notification-hash-secret`;
-    const ssmValue = StringParameter.valueFromLookup(this, ssmPath);
+    const ssmValue = StringParameter.valueForStringParameter(this, ssmPath);
 
-    if (!ssmValue.includes('dummy-value')) {
-      const monitoringParams = JSON.parse(ssmValue);
+    const monitoringParams = new CfnJson(this, 'SlackConfig', {
+      value: ssmValue,
+    });
 
-      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
-        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-        slackWorkspaceId: monitoringParams.workspaceId,
-        slackChannelId: monitoringParams.channelId,
-        notificationTopics: [this.criticalTopic],
-        guardrailPolicies: [
-          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-        ],
-      });
+    const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
+      slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+      slackWorkspaceId: monitoringParams.resolve('workspaceId').toString(),
+      slackChannelId: monitoringParams.resolve('channelId').toString(),
+      notificationTopics: [this.criticalTopic],
+      guardrailPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+      ],
+    });
 
-      slackChannel.role?.addToPrincipalPolicy(
-        new PolicyStatement({
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-          resources: [kmsKey.keyArn],
-        }),
-      );
-    }
+    slackChannel.role?.addToPrincipalPolicy(
+      new PolicyStatement({
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+        resources: [kmsKey.keyArn],
+      }),
+    );
+
     // }
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
