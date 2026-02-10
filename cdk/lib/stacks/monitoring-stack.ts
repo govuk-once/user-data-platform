@@ -89,11 +89,11 @@ export class MonitoringStack extends Stack {
     }
 
     // if (!developerId) {
-      const ssmConfig = `/${environment}/udp-param/udp/monitoring`;
+    const ssmPath = `/${environment}/udp-param/udp/monitoring`;
+    const ssmValue = StringParameter.valueFromLookup(this, ssmPath);
 
-      const params = StringParameter.valueForStringParameter(this, ssmConfig);
-
-      const monitoringParams = JSON.parse(params);
+    if (!ssmValue.includes('dummy-value')) {
+      const monitoringParams = JSON.parse(ssmValue);
 
       const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
         slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
@@ -111,6 +111,7 @@ export class MonitoringStack extends Stack {
           resources: [kmsKey.keyArn],
         }),
       );
+    }
     // }
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
