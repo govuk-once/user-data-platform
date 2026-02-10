@@ -6,7 +6,7 @@
 openapi: 3.0.3
 info:
   title: User Data platform API
-  version: 1.10.3
+  version: 1.11.1
   description: Private Api for the User data Platform
 tags:
   - name: identity
@@ -23,7 +23,7 @@ components:
   schemas: {}
   parameters: {}
 paths:
-  /user:
+  /v1/user:
     post:
       summary: Create User Record
       description: Create User Record
@@ -116,7 +116,7 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-  /identity/{serviceName}/{identifier}:
+  /v1/identity/{serviceName}/{identifier}:
     post:
       summary: Create Identity Record
       description: Create Identity Record

@@ -9,9 +9,9 @@ Feature: KMS Key Rotation
 
     Scenario: Data remains accessible after KMS key rotation
         # Store data
-        When I send a post to `/user' with the body '{ "appId": "kms-test-user", "serviceName": "kms-rotation-test" }
+        When I send a post to `/v1/user' with the body '{ "appId": "kms-test-user", "serviceName": "kms-rotation-test" }
         Then I should recieve a successful response
-        When I send a post to '/vi/topics' with the body '{"data": {"rotation": "test-data"}}'
+        When I send a post to '/v1/topics' with the body '{"data": {"rotation": "test-data"}}'
         Then I should recieve a successful response
 
         # Read data before rotation
@@ -31,5 +31,5 @@ Feature: KMS Key Rotation
         # cleanup
         When I send a delete to '/v1/topics'
         Then I should recieve a successful response
-        When I send a delete to '/identity/kms-rotation-test/kms-test-user'
+        When I send a delete to '/v1/identity/kms-rotation-test/kms-test-user'
         Then I should recieve a successful response
