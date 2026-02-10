@@ -89,7 +89,7 @@ export class MonitoringStack extends Stack {
     }
 
     // if (!developerId) {
-    const ssmPath = `/${environment}/udp-param/udp/monitoring`;
+    const ssmPath = `/development/udp-secret/udp/notification-hash-secret`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath);
 
     if (!ssmValue.includes('dummy-value')) {
