@@ -23,6 +23,13 @@
     "pr": {
       "executor": "nx:run-commands",
       "options": {
+        "command": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags 'not @kms'",
+        "cwd": "e2e"
+      }
+    },
+    "release": {
+      "executor": "nx:run-commands",
+      "options": {
         "command": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
         "cwd": "e2e"
       }

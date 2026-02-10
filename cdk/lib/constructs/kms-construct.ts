@@ -10,6 +10,7 @@ export interface KmsConstructProps {
   readonly namePrefix?: string;
   readonly deletionWindowInDays?: number;
   readonly enableKeyRotation?: boolean;
+  readonly rotationPeriodInDays?: number;
 }
 
 export class KmsConstruct extends Construct {
@@ -25,6 +26,7 @@ export class KmsConstruct extends Construct {
       namePrefix = 'encryption',
       deletionWindowInDays = 30,
       enableKeyRotation = true,
+      rotationPeriodInDays = 90,
     } = props;
 
     const resourcePrefix = developerId
@@ -37,6 +39,7 @@ export class KmsConstruct extends Construct {
     this.key = new kms.Key(this, 'Key', {
       description: `${resourcePrefix}-${environment} encryption key`,
       enableKeyRotation,
+      rotationPeriod: Duration.days(rotationPeriodInDays),
       pendingWindow: Duration.days(deletionWindowInDays),
       removalPolicy: getRemovalPolicy(environment),
       alias: `${resourcePrefix}-${environment}`,
