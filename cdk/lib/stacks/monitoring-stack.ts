@@ -7,6 +7,9 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
+import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -82,6 +85,31 @@ export class MonitoringStack extends Stack {
           protocol: sns.SubscriptionProtocol.EMAIL,
           endpoint: email,
         },
+      );
+    }
+
+    if (!developerId) {
+      const ssmConfig = `/${environment}/udp-param/udp/monitoring`;
+
+      const params = StringParameter.valueForStringParameter(this, ssmConfig);
+
+      const monitoringParams = JSON.parse(params);
+
+      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
+        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+        slackWorkspaceId: monitoringParams.workspaceId,
+        slackChannelId: monitoringParams.channelId,
+        notificationTopics: [this.alarmTopic],
+        guardrailPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
+
+      slackChannel.role?.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['kms:Decrypt', 'km:GenerateDataKey'],
+          resources: [kmsKey.keyArn],
+        }),
       );
     }
 
