@@ -23,7 +23,7 @@ components:
   schemas: {}
   parameters: {}
 paths:
-  v1/user:
+  /v1/user:
     post:
       summary: Create User Record
       description: Create User Record
@@ -116,7 +116,7 @@ paths:
                     example: Internal Server Error
                 required:
                   - body
-  v1/identity/{serviceName}/{identifier}:
+  /v1/identity/{serviceName}/{identifier}:
     post:
       summary: Create Identity Record
       description: Create Identity Record
