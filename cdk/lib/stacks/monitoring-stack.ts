@@ -99,7 +99,7 @@ export class MonitoringStack extends Stack {
         slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
         slackWorkspaceId: monitoringParams.workspaceId,
         slackChannelId: monitoringParams.channelId,
-        notificationTopics: [this.alarmTopic],
+        notificationTopics: [this.criticalTopic],
         guardrailPolicies: [
           ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
         ],
