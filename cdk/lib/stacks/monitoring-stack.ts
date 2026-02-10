@@ -10,6 +10,11 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import crypto from 'crypto';
+
+function hash(string: string) {
+  return crypto.createHash('md5').update(string).digest('hex').slice(0, 16);
+}
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -89,17 +94,15 @@ export class MonitoringStack extends Stack {
     }
 
     // if (!developerId) {
-    const ssmPath = `/development/udp-secret/udp/notification-hash-secret`;
-    const ssmValue = StringParameter.valueForStringParameter(this, ssmPath);
+    const param = `/development/udp-param/udp/monitoring`;
+    const ssmValue = StringParameter.valueFromLookup(this, param);
 
-    const monitoringParams = new CfnJson(this, 'SlackConfig', {
-      value: ssmValue,
-    });
+    const monitoringParams = JSON.parse(ssmValue);
 
     const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
       slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-      slackWorkspaceId: monitoringParams.resolve('workspaceId').toString(),
-      slackChannelId: monitoringParams.resolve('channelId').toString(),
+      slackWorkspaceId: monitoringParams.workspaceId,
+      slackChannelId: monitoringParams.channelId,
       notificationTopics: [this.criticalTopic],
       guardrailPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
