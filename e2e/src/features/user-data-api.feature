@@ -8,7 +8,7 @@ Feature: User Data API
         Given I am authenticated
 
     Scenario: Create user for tests
-        When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'
+        When I send a post to '/v1/user' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
@@ -33,5 +33,5 @@ Feature: User Data API
         Then I should recieve a successful response
 
     Scenario: Successfully Delete identity Record
-        When i send a delete to '/identity/app/123'
+        When i send a delete to '/v1/identity/app/123'
         Then I should recieve a successful response
