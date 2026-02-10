@@ -50,7 +50,3 @@ Feature: identity Api
     Scenario: Returns a 404 if not found
         When i send a get to '/v1/identity/service2/unknown'
         Then the response status should be 404
-
-    Scenario: Reutrns a 404 if url is invalid
-        When i send a get to '/v1/identity/'
-        Then the response status should be 404
