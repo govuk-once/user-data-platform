@@ -1,5 +1,8 @@
 framework:
   - cloudformation
 
+external-checks-dir:
+  - custom-checks
+
 skip-check:
   - 'CKV_AWS_116'

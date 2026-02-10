@@ -23,6 +23,7 @@ export interface E2EStackProps extends StackProps {
   readonly e2eTestConsumerRole?: IRole;
   readonly e2eTestConsumerSecret?: ISecret;
   readonly identityTableName: string;
+  readonly kmsKeyArn?: string;
 }
 
 export class E2eStack extends Stack {
@@ -43,6 +44,7 @@ export class E2eStack extends Stack {
       e2eTestConsumerRole,
       e2eTestConsumerSecret,
       identityTableName,
+      kmsKeyArn,
     } = props;
 
     const resourcePrefix = developerId
@@ -75,6 +77,7 @@ export class E2eStack extends Stack {
       consumerConfigSecret: e2eTestConsumerSecret,
       e2eTestConsumerRole,
       identityTableName,
+      kmsKeyArn,
     });
 
     new CfnOutput(this, 'CodeBuildProjectName', {

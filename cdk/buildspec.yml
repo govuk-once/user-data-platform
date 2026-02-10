@@ -21,6 +21,7 @@ phases:
         COGNITO_CLIENT_FLEX_SECRET=${COGNITO_CLIENT_FLEX_SECRET}
         COGNITO_CLIENT_FLEX_SCOPES=${COGNITO_CLIENT_FLEX_SCOPES}
         COGNITO_DEFAULT_CLIENT=${COGNITO_DEFAULT_CLIENT}
+        KMS_KEY_ARN=${KMS_KEY_ARN}
         AWS_REGION=${AWS_REGION}
         EOF
       - echo "Environment configured for e2e tests"
@@ -28,7 +29,7 @@ phases:
   build:
     commands:
       - echo "Running Cucumber E2E tests..."
-      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run e2e:pr
+      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run e2e:${E2E_TARGET:-release}
       - echo "E2E tests completed with exit code ${E2E_EXIT_CODE:-0}"
 
   post_build:
