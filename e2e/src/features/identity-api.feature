@@ -8,49 +8,49 @@ Feature: identity Api
         Given I am authenticated
 
     Scenario: Successfully create initial app User
-        When I send a post to '/user' with the body '{"appId":"123", "serviceName": "app"}'
+        When I send a post to '/v1/user' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
     Scenario: Successfully link initial app User to another service
-        When I send a post to '/identity/service2/321' with the body '{"appId":"123"}'
+        When I send a post to '/v1/identity/service2/321' with the body '{"appId":"123"}'
         Then I should recieve a successful response
         Then the response status should be 201
 
     Scenario: Successfully re link a user
-       When I send a post to '/identity/service2/321' with the body '{"appId":"123"}'
+       When I send a post to '/v1/identity/service2/321' with the body '{"appId":"123"}'
        Then I should recieve a successful response
        Then the response status should be 201
 
     Scenario: Returns a 404 if the appId isnt found when linking
-        When I send a post to '/identity/service2/321' with the body '{"appId":"doesnt-exist"}'
+        When I send a post to '/v1/identity/service2/321' with the body '{"appId":"doesnt-exist"}'
         Then the response status should be 404
 
     Scenario: Returns a 400 if the appId isnt set
-        When I send a post to '/identity/service2/321' with the body '{}'
+        When I send a post to '/v1/identity/service2/321' with the body '{}'
         Then the response status should be 400
 
     Scenario: Successfully Retrieve identity Record
-        When i send a get to '/identity/app/123'
+        When i send a get to '/v1/identity/app/123'
         Then I should recieve a successful response
 
     Scenario: Successfully Retrieve linked identity Record
-        When i send a get to '/identity/service2/321'
+        When i send a get to '/v1/identity/service2/321'
         Then I should recieve a successful response
         Then The response body contain body '{"serviceId":"321", "serviceName": "service2"}'
 
     Scenario: Successfully Delete linked Record
-        When i send a delete to '/identity/service2/321'
+        When i send a delete to '/v1/identity/service2/321'
         Then I should recieve a successful response
 
     Scenario: Successfully Delete identity Record
-        When i send a delete to '/identity/app/123'
+        When i send a delete to '/v1/identity/app/123'
         Then I should recieve a successful response
 
     Scenario: Returns a 404 if not found
-        When i send a get to '/identity/service2/unknown'
+        When i send a get to '/v1/identity/service2/unknown'
         Then the response status should be 404
 
     Scenario: Reutrns a 404 if url is invalid
-        When i send a get to '/identity/'
+        When i send a get to '/v1/identity/'
         Then the response status should be 404
