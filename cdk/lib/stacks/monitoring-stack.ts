@@ -11,6 +11,7 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import crypto from 'crypto';
+import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 
 function hash(string: string) {
   return crypto.createHash('md5').update(string).digest('hex').slice(0, 16);
@@ -26,6 +27,12 @@ export interface MonitorStackProps extends StackProps {
   readonly stackPrefix: string;
   readonly kmsKeyAlias: string;
 }
+
+const mapEnvironents = {
+  [GovUkOnceEnvironments.Dev]: 'development',
+  [GovUkOnceEnvironments.Stag]: 'staging',
+  [GovUkOnceEnvironments.Prod]: 'production',
+};
 
 export class MonitoringStack extends Stack {
   public readonly alarmTopic: sns.Topic;
@@ -94,7 +101,7 @@ export class MonitoringStack extends Stack {
     }
 
     if (!developerId) {
-      const param = `/development/udp-param/udp/monitoring`;
+      const param = `/${mapEnvironents[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
       const ssmValue = StringParameter.fromStringParameterName(
         this,
         `UdpParam${hash(param)}`,
