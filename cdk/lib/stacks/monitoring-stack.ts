@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps, Duration } from 'aws-cdk-lib';
+import { Stack, StackProps, Duration, Fn } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -7,6 +7,14 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
+import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import crypto from 'crypto';
+
+function hash(string: string) {
+  return crypto.createHash('md5').update(string).digest('hex').slice(0, 16);
+}
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -82,6 +90,35 @@ export class MonitoringStack extends Stack {
           protocol: sns.SubscriptionProtocol.EMAIL,
           endpoint: email,
         },
+      );
+    }
+
+    if (!developerId) {
+      const param = `/development/udp-param/udp/monitoring`;
+      const ssmValue = StringParameter.fromStringParameterName(
+        this,
+        `UdpParam${hash(param)}`,
+        param,
+      );
+
+      const workspaceId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+      const channelId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+
+      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
+        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+        slackWorkspaceId: workspaceId,
+        slackChannelId: channelId,
+        notificationTopics: [this.criticalTopic],
+        guardrailPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
+
+      slackChannel.role?.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [kmsKey.keyArn],
+        }),
       );
     }
 
