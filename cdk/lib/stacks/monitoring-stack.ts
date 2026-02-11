@@ -93,35 +93,34 @@ export class MonitoringStack extends Stack {
       );
     }
 
-    // if (!developerId) {
-    const param = `/development/udp-param/udp/monitoring`;
-    const ssmValue = StringParameter.fromStringParameterName(
-      this,
-      `UdpParam${hash(param)}`,
-      param,
-    );
+    if (!developerId) {
+      const param = `/development/udp-param/udp/monitoring`;
+      const ssmValue = StringParameter.fromStringParameterName(
+        this,
+        `UdpParam${hash(param)}`,
+        param,
+      );
 
-    const workspaceId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
-    const channelId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+      const workspaceId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+      const channelId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
 
-    const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
-      slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-      slackWorkspaceId: workspaceId,
-      slackChannelId: channelId,
-      notificationTopics: [this.criticalTopic],
-      guardrailPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-      ],
-    });
+      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
+        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+        slackWorkspaceId: workspaceId,
+        slackChannelId: channelId,
+        notificationTopics: [this.criticalTopic],
+        guardrailPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
 
-    slackChannel.role?.addToPrincipalPolicy(
-      new PolicyStatement({
-        actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-        resources: [kmsKey.keyArn],
-      }),
-    );
-
-    // }
+      slackChannel.role?.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [kmsKey.keyArn],
+        }),
+      );
+    }
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
       dashboardName: `${resourcePrefix}-dashboard`,
