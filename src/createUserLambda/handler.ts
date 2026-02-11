@@ -62,13 +62,13 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     if (result.created) {
       return {
         statusCode: 201,
-        body: 'User Successfully Created',
+        body: {message: 'User Successfully Created'},
       };
     }
 
     return {
       statusCode: 200,
-      body: 'User already exists',
+      body: {message: 'User already exists'},
     };
   } catch (error) {
     if (createError.isHttpError(error)) {

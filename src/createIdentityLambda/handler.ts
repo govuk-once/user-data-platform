@@ -61,7 +61,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 201,
-      body: 'Identity Successfully created',
+      body: {message: 'Identity Successfully created'},
     };
   } catch (error) {
     if (createError.isHttpError(error)) {

@@ -93,9 +93,7 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
     if (throwNotFound && !user) {
       throw createHttpError.NotFound(
-        serviceName === 'app'
-          ? `User not found`
-          : `Service not found ${serviceName} ${serviceId}`,
+        `Identity not found with service: ${serviceName} and id: ${serviceId}`,
       );
     }
 
