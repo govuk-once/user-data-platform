@@ -28,7 +28,6 @@ export interface MonitorStackProps extends StackProps {
 }
 
 export class MonitoringStack extends Stack {
-  public readonly alarmTopic: sns.Topic;
   public readonly criticalTopic: sns.Topic;
   public readonly warningTopic: sns.Topic;
   public readonly dashboard: cloudwatch.Dashboard;
@@ -53,12 +52,6 @@ export class MonitoringStack extends Stack {
       : environment;
 
     const kmsKey = kms.Alias.fromAliasName(this, 'KmsKeyAlias', kmsKeyAlias);
-
-    this.alarmTopic = new sns.Topic(this, 'AlarmTopic', {
-      topicName: `${resourcePrefix}-alarms`,
-      displayName: `${resourcePrefix} Infrastructure Alarms`,
-      masterKey: kmsKey,
-    });
 
     this.criticalTopic = new sns.Topic(this, 'CriticalTopic', {
       topicName: `${resourcePrefix}-critical-alarms`,
@@ -86,7 +79,7 @@ export class MonitoringStack extends Stack {
         this,
         `Email-${email.replace(/[^a-zA-Z0-9]/g, '')}`,
         {
-          topic: this.alarmTopic,
+          topic: this.criticalTopic,
           protocol: sns.SubscriptionProtocol.EMAIL,
           endpoint: email,
         },
@@ -154,7 +147,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, 'DyanamoDbWriteThrottled', {
@@ -172,7 +165,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, 'DyanamoDbSystemErrors', {
@@ -191,7 +184,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
@@ -253,7 +246,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, 'ApiGateway4xxErrors', {
@@ -264,7 +257,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, 'ApiGatewayLatency', {
@@ -275,7 +268,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
     });
   }
 
@@ -329,7 +322,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, `${id}Duration`, {
@@ -343,7 +336,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, `${id}Throttles`, {
@@ -357,7 +350,7 @@ export class MonitoringStack extends Stack {
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.alarmTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
