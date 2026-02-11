@@ -104,7 +104,7 @@ export class MonitoringStack extends Stack {
       const configParts = Fn.split('"', ssmValue.stringValue);
       const workspaceId = Fn.select(3, configParts);
       const channelId = Fn.select(7, configParts);
-      
+
       let pagerDutyUrl;
       if (environment === 'production') {
         pagerDutyUrl = Fn.select(11, configParts);
