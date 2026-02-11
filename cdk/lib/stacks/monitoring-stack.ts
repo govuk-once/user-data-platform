@@ -101,8 +101,10 @@ export class MonitoringStack extends Stack {
         param,
       );
 
-      const workspaceId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
-      const channelId = Fn.select(3, Fn.split('"', ssmValue.stringValue));
+      const configParts = Fn.split('"', ssmValue.stringValue);
+      const workspaceId = Fn.select(3, configParts);
+      const channelId = Fn.select(7, configParts);
+      const pagerDutyUrl = Fn.select(11, configParts);
 
       const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
         slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
@@ -120,6 +122,14 @@ export class MonitoringStack extends Stack {
           resources: [kmsKey.keyArn],
         }),
       );
+
+      if (pagerDutyUrl) {
+        new sns.Subscription(this, 'PagerDutySubscription', {
+          topic: this.criticalTopic,
+          protocol: sns.SubscriptionProtocol.HTTPS,
+          endpoint: pagerDutyUrl,
+        });
+      }
     }
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
