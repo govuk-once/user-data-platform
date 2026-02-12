@@ -2,9 +2,8 @@ import {
   OpenApiGeneratorV3,
   OpenAPIRegistry,
 } from '@asteasolutions/zod-to-openapi';
-import { getDefaultErrorCodes, getErrorResponses } from './';
-import type { RouteConfig } from '../types';
-import { routes } from '../routes';
+import type { RouteConfig } from '../routes/types';
+import { routes } from '../routes/routes';
 import { OpenAPIObject } from '@asteasolutions/zod-to-openapi/dist/types';
 import { RouteParameter } from '@asteasolutions/zod-to-openapi/dist/openapi-registry';
 import { version } from '../../../package.json';
@@ -23,11 +22,6 @@ function registerRoute(route: RouteConfig) {
   const params = route.params as unknown as RouteParameter;
   const query = route.query as unknown as RouteParameter;
   const headers = route.headers as unknown as RouteParameter;
-
-  const errorCodes = getDefaultErrorCodes({
-    hasBody: !!route.body,
-    hasParams: !!route.params,
-  });
 
   registry.registerPath({
     method: route.method.toLowerCase() as
@@ -56,7 +50,7 @@ function registerRoute(route: RouteConfig) {
         route.successResponses.map((resp) => [
           resp.status,
           {
-            description: 'Sucesss',
+            description: resp.description,
             content: {
               'application/json': {
                 schema: resp.schema,
@@ -65,7 +59,19 @@ function registerRoute(route: RouteConfig) {
           },
         ]),
       ),
-      ...getErrorResponses(errorCodes),
+      ...Object.fromEntries(
+        route.errorResponses.map((resp) => [
+          resp.status,
+          {
+            description: resp.description,
+            content: {
+              'application/json': {
+                schema: resp.schema,
+              },
+            },
+          },
+        ])
+      ),
     },
   });
 }

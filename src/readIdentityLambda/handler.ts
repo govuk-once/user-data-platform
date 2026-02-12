@@ -7,13 +7,13 @@ import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
   responseSanitiser,
-  routes,
   zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
+import { identityEndpointPathSchema } from '@libs/schemas'
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -79,7 +79,7 @@ export const handler = middy()
   })
   .use(
     zodValidator({
-      pathParameters: routes.readIdentity.params,
+      pathParameters: identityEndpointPathSchema,
     }),
   )
   .use(httpErrorHandler())

@@ -6,7 +6,6 @@ import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
   createEnvValidator,
-  routes,
   zodValidator,
   getLogger,
   injectLambdaContext,
@@ -14,6 +13,7 @@ import {
   captureLambdaHandler,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
+import { dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
 
 const serviceName = 'udpDeleteData';
 const { STACK: stack } = process.env;
@@ -89,8 +89,8 @@ export const handler = middy()
   })
   .use(
     zodValidator({
-      pathParameters: routes.readData.params,
-      headers: routes.readData.headers,
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema
     }),
   )
   .use(httpErrorHandler())

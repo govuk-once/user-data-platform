@@ -9,11 +9,11 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
-  routes,
   zodValidator,
   createEnvValidator,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
+import { postDataRequestSchema, dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
 
@@ -98,9 +98,9 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(
     zodValidator({
-      pathParameters: routes.createData.params,
-      headers: routes.createData.headers,
-      body: routes.createData.body,
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema,
+      body: postDataRequestSchema,
     }),
   )
   .use(httpErrorHandler())

@@ -12,10 +12,8 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
-  CreateUserSchema,
 } from '@libs/utils';
-import { z } from 'zod';
+import { CreateUserRequest, createUserRequestSchema } from '@libs/schemas'
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -47,12 +45,10 @@ function getFactory() {
   return factory;
 }
 
-type CreateUserBody = z.infer<typeof CreateUserSchema>;
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const input = {
-      ...(event.body as unknown as CreateUserBody),
+      ...(event.body as unknown as CreateUserRequest),
     } as unknown as IdentityInput;
 
     const result = await getFactory()
@@ -90,7 +86,7 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(
     zodValidator({
-      body: routes.createUser.body,
+      body: createUserRequestSchema,
     }),
   )
   .use(httpErrorHandler())

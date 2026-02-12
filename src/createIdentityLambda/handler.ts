@@ -6,15 +6,14 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
-  CreateIdentityRequestSchema,
   createEnvValidator,
   zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
 } from '@libs/utils';
+import { CreateIdentityRequest, createIdentityRequestSchema, identityEndpointPathSchema } from '@libs/schemas'
 import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
@@ -47,12 +46,10 @@ function getFactory() {
   return factory;
 }
 
-type CreateItemBody = z.infer<typeof CreateIdentityRequestSchema>;
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     const input = {
-      ...(event.body as unknown as CreateItemBody),
+      ...(event.body as unknown as CreateIdentityRequest),
       serviceId: event.pathParameters.identifier,
       serviceName: event.pathParameters.serviceName,
     } as unknown as IdentityInput;
@@ -84,8 +81,8 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(
     zodValidator({
-      pathParameters: routes.createIdentity.params,
-      body: routes.createIdentity.body,
+      pathParameters: identityEndpointPathSchema,
+      body: createIdentityRequestSchema
     }),
   )
   .use(httpErrorHandler())

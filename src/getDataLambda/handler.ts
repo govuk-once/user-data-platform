@@ -11,9 +11,9 @@ import {
   getTracer,
   captureLambdaHandler,
   injectLambdaContext,
-  routes,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
+import { dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
 import { ServiceFactory } from '@libs/data-access';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpGetData' } = process.env;
@@ -90,8 +90,8 @@ export const handler = middy()
   })
   .use(
     zodValidator({
-      pathParameters: routes.readData.params,
-      headers: routes.readData.headers,
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema,
     }),
   )
   .use(httpErrorHandler())

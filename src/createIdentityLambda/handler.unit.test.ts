@@ -99,7 +99,7 @@ describe('createItentityHandler', () => {
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed appId: is required');
+      expect(result.body).toBe('Validation Failed appId: Invalid input: expected string, received undefined');
     });
 
     it('Should throw a bad request if the appId is not set in the body', async () => {

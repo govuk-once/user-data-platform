@@ -11,8 +11,8 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
 } from '@libs/utils';
+import { identityEndpointPathSchema } from '@libs/schemas'
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;
@@ -74,7 +74,7 @@ export const handler = middy()
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use(
     zodValidator({
-      pathParameters: routes.deleteIdentity.params,
+      pathParameters: identityEndpointPathSchema,
     }),
   )
   .use(httpErrorHandler())
