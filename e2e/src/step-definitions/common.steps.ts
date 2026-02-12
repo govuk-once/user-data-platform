@@ -35,7 +35,7 @@ When(
 );
 
 When(
-  'i send a get to {string}',
+  'I send a get to {string}',
   async function (this: CustomWorld, path: string) {
     const response = await this.api.get(path, {
       authenticated: this.authenticated,
@@ -46,7 +46,7 @@ When(
 );
 
 When(
-  'i send a delete to {string}',
+  'I send a delete to {string}',
   async function (this: CustomWorld, path: string) {
     const response = await this.api.delete(path, {
       authenticated: this.authenticated,
@@ -57,7 +57,7 @@ When(
 );
 
 Then(
-  'the response status should be {int}',
+  'The response status should be {int}',
   function (this: CustomWorld, expectedStatus: number) {
     expect(this.lastResponse?.status).toEqual(expectedStatus);
   },
