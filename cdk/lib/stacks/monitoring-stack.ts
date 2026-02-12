@@ -94,7 +94,8 @@ export class MonitoringStack extends Stack {
     }
 
     if (!developerId) {
-      const param = `/${mapEnvironents[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
+      const mappedEnv = mapEnvironents[environment as GovUkOnceEnvironments];
+      const param = `/${mappedEnv}/udp-param/udp/monitoring`;
       const ssmValue = StringParameter.fromStringParameterName(
         this,
         `UdpParam${hash(param)}`,
@@ -106,7 +107,7 @@ export class MonitoringStack extends Stack {
       const channelId = Fn.select(7, configParts);
 
       let pagerDutyUrl;
-      if (environment === 'production') {
+      if (mappedEnv === GovUkOnceEnvironments.Prod) {
         pagerDutyUrl = Fn.select(11, configParts);
       }
 
