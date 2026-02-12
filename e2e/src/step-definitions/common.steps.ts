@@ -88,7 +88,7 @@ Then(
 );
 
 Then(
-  'the response body contain body {string}',
+  'the response body contains {string}',
   function (this: CustomWorld, message: string) {
     const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data).toEqual(JSON.parse(message));

@@ -37,7 +37,7 @@ Feature: identity Api
     Scenario: Successfully Retrieve linked identity Record
         When I send a get to '/v1/identity/service2/321'
         Then I should recieve a successful response
-        Then the response body contain body '{"serviceId":"321", "serviceName": "service2"}'
+        Then the response body contains '{"serviceId":"321", "serviceName": "service2"}'
 
     Scenario: Successfully Delete linked Record
         When I send a delete to '/v1/identity/service2/321'

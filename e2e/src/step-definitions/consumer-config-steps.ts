@@ -31,7 +31,7 @@ Then(
 );
 
 When(
-  'i create and API client using the consumer config credentials',
+  'I create and API client using the consumer config credentials',
   async function () {
     if (!consumerConfig) {
       consumerConfig = await getConsumerConfig();
@@ -46,7 +46,7 @@ When(
 );
 
 When(
-  'i send a get to {string} using consumer credentials',
+  'I send a get to {string} using consumer credentials',
   async function (this: CustomWorld, path: string) {
     if (!consumerConfig) {
       consumerConfig = await getConsumerConfig();
