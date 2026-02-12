@@ -13,7 +13,11 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { CreateIdentityRequest, createIdentityRequestSchema, identityEndpointPathSchema } from '@libs/schemas'
+import {
+  CreateIdentityRequest,
+  createIdentityRequestSchema,
+  identityEndpointPathSchema,
+} from '@libs/schemas';
 import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
@@ -82,7 +86,7 @@ export const handler = middy()
   .use(
     zodValidator({
       pathParameters: identityEndpointPathSchema,
-      body: createIdentityRequestSchema
+      body: createIdentityRequestSchema,
     }),
   )
   .use(httpErrorHandler())

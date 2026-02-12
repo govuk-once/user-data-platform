@@ -13,7 +13,11 @@ import {
   createEnvValidator,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
-import { postDataRequestSchema, dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
+import {
+  postDataRequestSchema,
+  dataEndpointPathSchema,
+  dataEndpointHeaderSchema,
+} from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
 

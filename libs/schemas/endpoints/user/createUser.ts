@@ -1,5 +1,8 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { defaultSucccessResponseSchema, DefaultSuccessResponse } from 'libs/schemas/defaults/success';
+import {
+  defaultSucccessResponseSchema,
+  DefaultSuccessResponse,
+} from 'libs/schemas/defaults/success';
 import z from 'zod';
 
 extendZodWithOpenApi(z);

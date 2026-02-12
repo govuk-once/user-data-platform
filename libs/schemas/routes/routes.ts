@@ -1,12 +1,25 @@
-import { badRequestResponseSchema, internalServerErrorResponseSchema } from '../defaults/errors';
+import {
+  badRequestResponseSchema,
+  internalServerErrorResponseSchema,
+} from '../defaults/errors';
 import { identityEndpointPathSchema } from '../endpoints/identity/defaults';
-import { createIdentityRequestSchema, createIdentityResponseSchema } from '../endpoints/identity/createIdentity';
+import {
+  createIdentityRequestSchema,
+  createIdentityResponseSchema,
+} from '../endpoints/identity/createIdentity';
 import { CreateUserResponseSchema } from '../endpoints/user/createUser';
 import type { RouteConfig } from './types';
 import { getIdentityResponseSchema } from '../endpoints/identity/getIdentity';
 import { deleteIdentityResponseSchema } from '../endpoints/identity/deleteIdentity';
-import { dataEndpointHeaderSchema, dataEndpointNotFoundResponseSchema, dataEndpointPathSchema } from '../endpoints/data/defaults';
-import { postDataRequestSchema, postDataResponseSchema } from '../endpoints/data/postData';
+import {
+  dataEndpointHeaderSchema,
+  dataEndpointNotFoundResponseSchema,
+  dataEndpointPathSchema,
+} from '../endpoints/data/defaults';
+import {
+  postDataRequestSchema,
+  postDataResponseSchema,
+} from '../endpoints/data/postData';
 import { getDataResponseSchema } from '../endpoints/data/getData';
 import { deleteDataResponseSchema } from '../endpoints/data/deleteData';
 
@@ -39,20 +52,20 @@ export const routes: Record<string, RouteConfig> = {
         status: 200,
         description: 'OK',
         schema: CreateUserResponseSchema,
-      }
+      },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   createIdentity: {
     name: 'createIdentity',
@@ -84,17 +97,17 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   readIdentity: {
     name: 'readIdentity',
@@ -119,22 +132,22 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 404,
-            description: 'Not Found',
-            schema: identityEndpointPathSchema,
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: identityEndpointPathSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   deleteIdentity: {
     name: 'deleteIdentity',
@@ -160,22 +173,22 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 404,
-            description: 'Not Found',
-            schema: identityEndpointPathSchema,
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: identityEndpointPathSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   createData: {
     name: 'postData',
@@ -198,17 +211,17 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   readData: {
     name: 'getData',
@@ -230,22 +243,22 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 404,
-            description: 'Not Found',
-            schema: dataEndpointNotFoundResponseSchema,
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: dataEndpointNotFoundResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
   deleteData: {
     name: 'deleteData',
@@ -267,22 +280,22 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
     errorResponses: [
-        {
-            status: 400,
-            description: 'Bad Request',
-            schema: badRequestResponseSchema
-        },
-        {
-            status: 404,
-            description: 'Not Found',
-            schema: dataEndpointNotFoundResponseSchema,
-        },
-        {
-            status: 500,
-            description: 'Internal Server Error',
-            schema: internalServerErrorResponseSchema
-        }
-    ]
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: dataEndpointNotFoundResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
   },
 } as const satisfies Record<string, RouteConfig>;
 

@@ -12,7 +12,7 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { identityEndpointPathSchema } from '@libs/schemas'
+import { identityEndpointPathSchema } from '@libs/schemas';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;

@@ -1,6 +1,9 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
-import { dataNotFoundResponseSchema, identityNotFoundResponseSchema } from '../../defaults/errors';
+import {
+  dataNotFoundResponseSchema,
+  identityNotFoundResponseSchema,
+} from '../../defaults/errors';
 
 extendZodWithOpenApi(z);
 
@@ -26,8 +29,13 @@ export const dataEndpointPathSchema = z.object({
   }),
 });
 
-export const dataEndpointNotFoundResponseSchema = z.union([identityNotFoundResponseSchema, dataNotFoundResponseSchema])
+export const dataEndpointNotFoundResponseSchema = z.union([
+  identityNotFoundResponseSchema,
+  dataNotFoundResponseSchema,
+]);
 
-export type DataEndpointHeaders = z.infer<typeof dataEndpointHeaderSchema>
-export type DataEndpointPathParmeters = z.infer<typeof dataEndpointPathSchema>
-export type DataEndpointNotFoundResponse = z.infer<typeof dataEndpointNotFoundResponseSchema>
+export type DataEndpointHeaders = z.infer<typeof dataEndpointHeaderSchema>;
+export type DataEndpointPathParmeters = z.infer<typeof dataEndpointPathSchema>;
+export type DataEndpointNotFoundResponse = z.infer<
+  typeof dataEndpointNotFoundResponseSchema
+>;

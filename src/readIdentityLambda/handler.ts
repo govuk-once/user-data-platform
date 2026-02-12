@@ -13,7 +13,7 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { identityEndpointPathSchema } from '@libs/schemas'
+import { identityEndpointPathSchema } from '@libs/schemas';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],

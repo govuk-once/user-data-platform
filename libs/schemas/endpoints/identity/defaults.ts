@@ -14,4 +14,6 @@ export const identityEndpointPathSchema = z.object({
   }),
 });
 
-export type identityEndpointPathParmeters = z.infer<typeof identityEndpointPathSchema>
+export type identityEndpointPathParmeters = z.infer<
+  typeof identityEndpointPathSchema
+>;

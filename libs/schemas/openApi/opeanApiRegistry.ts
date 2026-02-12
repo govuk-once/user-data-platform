@@ -70,7 +70,7 @@ function registerRoute(route: RouteConfig) {
               },
             },
           },
-        ])
+        ]),
       ),
     },
   });

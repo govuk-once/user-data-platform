@@ -13,7 +13,10 @@ import {
   captureLambdaHandler,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
-import { dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
+import {
+  dataEndpointPathSchema,
+  dataEndpointHeaderSchema,
+} from '@libs/schemas';
 
 const serviceName = 'udpDeleteData';
 const { STACK: stack } = process.env;
@@ -90,7 +93,7 @@ export const handler = middy()
   .use(
     zodValidator({
       pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema
+      headers: dataEndpointHeaderSchema,
     }),
   )
   .use(httpErrorHandler())

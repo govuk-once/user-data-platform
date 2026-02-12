@@ -13,7 +13,7 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { CreateUserRequest, createUserRequestSchema } from '@libs/schemas'
+import { CreateUserRequest, createUserRequestSchema } from '@libs/schemas';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],

@@ -13,7 +13,10 @@ import {
   injectLambdaContext,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
-import { dataEndpointPathSchema, dataEndpointHeaderSchema } from '@libs/schemas'
+import {
+  dataEndpointPathSchema,
+  dataEndpointHeaderSchema,
+} from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpGetData' } = process.env;
