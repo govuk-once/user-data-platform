@@ -10,12 +10,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import crypto from 'crypto';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
-
-function hash(string: string) {
-  return crypto.createHash('md5').update(string).digest('hex').slice(0, 16);
-}
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -41,7 +36,7 @@ export class MonitoringStack extends Stack {
   public readonly xrayTraceGroup?: xray.CfnGroup;
 
   constructor(scope: Construct, id: string, props: MonitorStackProps) {
-    super(scope, id);
+    super(scope, id, props);
 
     const {
       developerId,
