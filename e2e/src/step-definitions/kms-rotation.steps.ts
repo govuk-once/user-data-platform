@@ -19,7 +19,7 @@ When('I rotate the KMS encryption key', async function (this: CustomEvent) {
   rotationResponse = await client.send(command);
 });
 
-Then('the key roatation should succeed', function (this: CustomWorld) {
+Then('The key rotation should succeed', function (this: CustomWorld) {
   expect(rotationResponse).toBeDefined();
   expect(rotationResponse?.keyId).toBeDefined();
 });
