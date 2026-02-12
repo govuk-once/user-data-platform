@@ -95,39 +95,45 @@ export class MonitoringStack extends Stack {
 
     if (!developerId) {
       const param = `/${mapEnvironents[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
-      const ssmValue = StringParameter.fromStringParameterName(
-        this,
-        `UdpParam${hash(param)}`,
-        param,
-      );
+      const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
 
-      const configParts = Fn.split('"', ssmValue.stringValue);
-      const workspaceId = Fn.select(3, configParts);
-      const channelId = Fn.select(7, configParts);
-      const pagerDutyUrl = Fn.select(11, configParts);
+      let monitoringConfig: {
+        workspaceId?: string;
+        channelId?: string;
+        pagerDutyUrl?: string;
+      } = {};
+      try {
+        monitoringConfig = JSON.parse(ssmValue);
+      } catch {}
 
-      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
-        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-        slackWorkspaceId: workspaceId,
-        slackChannelId: channelId,
-        notificationTopics: [this.criticalTopic],
-        guardrailPolicies: [
-          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-        ],
-      });
+      if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
+        const slackChannel = new SlackChannelConfiguration(
+          this,
+          'SlackChannel',
+          {
+            slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+            slackWorkspaceId: monitoringConfig.workspaceId,
+            slackChannelId: monitoringConfig.channelId,
+            notificationTopics: [this.criticalTopic],
+            guardrailPolicies: [
+              ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+            ],
+          },
+        );
 
-      slackChannel.role?.addToPrincipalPolicy(
-        new PolicyStatement({
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-          resources: [kmsKey.keyArn],
-        }),
-      );
+        slackChannel.role?.addToPrincipalPolicy(
+          new PolicyStatement({
+            actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+            resources: [kmsKey.keyArn],
+          }),
+        );
+      }
 
-      if (pagerDutyUrl) {
+      if (monitoringConfig.pagerDutyUrl) {
         new sns.Subscription(this, 'PagerDutySubscription', {
           topic: this.criticalTopic,
           protocol: sns.SubscriptionProtocol.HTTPS,
-          endpoint: pagerDutyUrl,
+          endpoint: monitoringConfig.pagerDutyUrl,
         });
       }
     }
