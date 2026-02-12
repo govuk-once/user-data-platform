@@ -15,5 +15,5 @@ Feature: Consumer Config Api Access
     Scenario: Consumer can access the API using config credentials
         When I create and API client using the consumer config credentials
         And I send a get to '/v1/identity/test-consumer-access' using consumer credentials
-        Then The response status should be 404
+        Then the response status should be 404
         # 404 is expected - user doesnt exist

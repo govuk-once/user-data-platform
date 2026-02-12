@@ -17,16 +17,16 @@ Feature: KMS Key Rotation
         # Read data before rotation
         When I send a get to '/v1/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data": {"rotation": "test-data"}}'
+        Then the response body contain body '{"data": {"rotation": "test-data"}}'
 
         # Rotate the KMS Key
         When I rotate the KMS encryption key
-        Then The key rotation should succeed
+        Then the key rotation should succeed
 
         # Read data after rotation
         When I send a get to '/v1/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data": {"rotation": "test-data"}}'
+        Then the response body contain body '{"data": {"rotation": "test-data"}}'
 
         # cleanup
         When I send a delete to '/v1/topics'
