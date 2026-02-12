@@ -10,7 +10,7 @@ Feature: User Data API
     Scenario: Create user for tests
         When I send a post to '/v1/user' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
-        Then the response status should be 201
+        Then The response status should be 201
 
     Scenario: Successfully add data
         Given I set header 'requesting-service' to 'app'
