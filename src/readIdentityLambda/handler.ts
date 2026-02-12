@@ -5,15 +5,18 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  createEnvValidator,
-  responseSanitiser,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { identityEndpointPathSchema } from '@libs/schemas';
+import {
+  createEnvValidator,
+  responseSanitiser,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import { GetIdentityResponse, getIdentityResponseSchema, identityEndpointPathSchema } from '@libs/schemas';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -57,7 +60,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: identity,
+      body: identity satisfies GetIdentityResponse,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -69,7 +72,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -77,12 +79,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(
-    zodValidator({
-      pathParameters: identityEndpointPathSchema,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -95,4 +91,12 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
+  .use(udpErrorHandling())
+  .use(
+    zodValidator({
+      pathParameters: identityEndpointPathSchema,
+      response: getIdentityResponseSchema,
+    }, logger),
+  )
+  .use(envMiddleware)
   .handler(lambdaHandler);

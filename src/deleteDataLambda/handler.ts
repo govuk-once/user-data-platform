@@ -1,21 +1,21 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  createEnvValidator,
-  zodValidator,
   getLogger,
   injectLambdaContext,
   getTracer,
   captureLambdaHandler,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
+import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
 import {
   dataEndpointPathSchema,
   dataEndpointHeaderSchema,
+  deleteDataResponseSchema,
+  DeleteDataResponse,
 } from '@libs/schemas';
 
 const serviceName = 'udpDeleteData';
@@ -63,7 +63,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: { message: 'Entity deleted successfully' },
+      body: { message: 'Entity deleted successfully' } satisfies DeleteDataResponse,
     };
   } catch (error) {
     let response = {
@@ -82,7 +82,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -90,13 +89,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -109,4 +101,13 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling())
+  .use(
+    zodValidator({
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema,
+      response: deleteDataResponseSchema,
+    }, logger),
+  )
+  .use(envMiddleware)
   .handler(lambdaHandler);

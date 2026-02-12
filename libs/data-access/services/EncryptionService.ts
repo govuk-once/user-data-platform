@@ -118,7 +118,7 @@ export class EncryptionService {
     const response = await this.kmsClient.send(command);
 
     if (!response.Plaintext) {
-      throw new Error('Failed to decrytp the key');
+      throw new Error('Failed to decrypt the key');
     }
 
     return Buffer.from(response.Plaintext);

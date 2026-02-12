@@ -1,7 +1,11 @@
 import middy from '@middy/core';
 import type { Context } from 'aws-lambda';
-import { Logger } from '../logger/src/Logger';
-import createHttpError from 'http-errors';
+import {
+  Logger,
+  BaseUDPError,
+  MissingEnvironmentVariablesError,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 
 export type OptionalEnvConfig<T extends string = string> = {
   [K in T]: string;
@@ -39,8 +43,9 @@ export function getValidatedEnv<TEvent, TResult>(
 ): ValidatorEnv {
   const env = request.internal[VALIDATED_ENV_KEY];
   if (!env) {
-    throw new Error(
+    throw new BaseUDPError(
       'Validated environement not found, Ensure envValidator middleware is configured',
+      UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
     );
   }
   return env;
@@ -52,8 +57,9 @@ export function envValidator<TEvent = unknown, TResult = unknown>(
   const { required = [], optional = {}, logger = console } = options;
 
   if (required.length === 0 && Object.keys(optional).length === 0) {
-    throw new Error(
+    throw new BaseUDPError(
       'envValidator requires at least one required or optional environment variable',
+      UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
     );
   }
 
@@ -73,11 +79,13 @@ export function envValidator<TEvent = unknown, TResult = unknown>(
       }
 
       if (missingVaraiables.length > 0) {
-        const error = new createHttpError.BadRequest(
-          `Missing required environment variables: ${missingVaraiables.join(', ')}`,
+        const errorMessage = `Missing required environment variables: ${missingVaraiables.join(', ')}`;
+        logger.error(errorMessage);
+        throw new MissingEnvironmentVariablesError(
+          errorMessage,
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          missingVaraiables,
         );
-        logger.error(error.message);
-        throw error;
       }
 
       for (const [varName, defaultValue] of Object.entries(optional)) {
@@ -90,7 +98,10 @@ export function envValidator<TEvent = unknown, TResult = unknown>(
         get(name: string): string {
           const val = validatedValues[name];
           if (val === undefined) {
-            throw new Error(`Env var ${name} was not in the validated list`);
+            throw new BaseUDPError(
+              `Env var ${name} was not in the validated list`,
+              UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+            );
           }
           return val;
         },
@@ -146,7 +157,10 @@ export function createEnvValidator<
     middleware,
     getEnv: () => {
       if (!cachedEnv) {
-        throw new Error('getEnv() called before middleware executed');
+        throw new BaseUDPError(
+          'getEnv() called before middleware executed',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        );
       }
       return cachedEnv as { [K in TRequired[number]]: string } & {
         [K in keyof TOptional]: string;

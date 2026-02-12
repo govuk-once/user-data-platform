@@ -5,9 +5,9 @@ import {
   envValidator,
   getValidatedEnv,
   RequestWithEnv,
-} from './env-validator';
+} from './envValidator';
 import { APIGatewayProxyResult, Context } from 'aws-lambda';
-import { Logger } from '../logger/src/Logger';
+import { Logger } from '@libs/utils';
 import createHttpError from 'http-errors';
 
 const createMockContext = (): Context => ({

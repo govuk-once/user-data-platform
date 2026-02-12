@@ -21,6 +21,7 @@ export default defineConfig({
       ),
       '@libs/utils': path.resolve(__dirname, './libs/utils/index.ts'),
       '@libs/schemas': path.resolve(__dirname, './libs/schemas/index.ts'),
+      '@libs/middleware': path.resolve(__dirname, './libs/middleware/index.ts'),
     },
   },
 });

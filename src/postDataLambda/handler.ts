@@ -9,14 +9,15 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
-  zodValidator,
-  createEnvValidator,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
+import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
 import {
   postDataRequestSchema,
   dataEndpointPathSchema,
   dataEndpointHeaderSchema,
+  postDataResponseSchema,
+  PostDataResponse,
 } from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
@@ -70,8 +71,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     tracer.putAnnotation('putEntitySuccess', true);
     return {
-      statusCode: 201,
-      body: { message: 'Entity saved successfully' },
+      statusCode: 200,
+      body: { message: 'Entity saved successfully' } satisfies PostDataResponse,
     };
   } catch (error) {
     tracer.putAnnotation('putEntitySuccess', false);
@@ -91,7 +92,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -99,15 +99,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-      body: postDataRequestSchema,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -119,4 +110,15 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling())
+  .use(jsonBodyParser())
+  .use(
+    zodValidator({
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema,
+      body: postDataRequestSchema,
+      response: postDataResponseSchema,
+    }, logger),
+  )
+  .use(envMiddleware)
   .handler(lambdaHandler);

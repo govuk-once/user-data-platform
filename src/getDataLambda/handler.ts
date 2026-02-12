@@ -4,9 +4,6 @@ import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import {
-  createEnvValidator,
-  responseSanitiser,
-  zodValidator,
   getLogger,
   getTracer,
   captureLambdaHandler,
@@ -14,8 +11,16 @@ import {
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import {
+  createEnvValidator,
+  responseSanitiser,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import {
   dataEndpointPathSchema,
   dataEndpointHeaderSchema,
+  getDataResponseSchema,
+  GetDataResponse,
 } from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -64,7 +69,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: entity,
+      body: entity satisfies GetDataResponse,
     };
   } catch (error) {
     let response = {
@@ -83,7 +88,6 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -91,13 +95,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -111,4 +108,13 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
+  .use(udpErrorHandling())
+  .use(
+    zodValidator({
+      pathParameters: dataEndpointPathSchema,
+      headers: dataEndpointHeaderSchema,
+      response: getDataResponseSchema,
+    }, logger),
+  )
+  .use(envMiddleware)
   .handler(lambdaHandler);

@@ -1,18 +1,16 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  createEnvValidator,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { identityEndpointPathSchema } from '@libs/schemas';
+import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
+import { DeleteIdentityResponse, deleteIdentityResponseSchema, identityEndpointPathSchema } from '@libs/schemas';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;
@@ -57,7 +55,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: 'Successfully Deleted Identity',
+      body: { message: 'Successfully Deleted Identity' } satisfies DeleteIdentityResponse,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -69,15 +67,13 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  .use(
-    zodValidator({
-      pathParameters: identityEndpointPathSchema,
-    }),
-  )
-  .use(httpErrorHandler())
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(
     httpResponseSerializer({
       serializers: [
@@ -89,4 +85,12 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling())
+  .use(
+    zodValidator({
+      pathParameters: identityEndpointPathSchema,
+      response: deleteIdentityResponseSchema,
+    }, logger),
+  )
+  .use(envMiddleware)
   .handler(lambdaHandler);
