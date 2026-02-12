@@ -26,6 +26,12 @@ export enum GovUkOnceEnvironments {
   Prod = 'prod',
 }
 
+export const environmentLongNames: Record<string, string> = {
+  [GovUkOnceEnvironments.Dev]: 'development',
+  [GovUkOnceEnvironments.Stag]: 'staging',
+  [GovUkOnceEnvironments.Prod]: 'production',
+};
+
 export function getRemovalPolicy(environment: string): RemovalPolicy {
   if (
     environment === GovUkOnceEnvironments.Prod ||

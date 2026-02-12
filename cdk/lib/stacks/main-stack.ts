@@ -26,6 +26,8 @@ import {
   IamConsumerConfig,
   IamConumerConstruct,
 } from '../constructs/iam-consumer-construct';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { environmentLongNames } from 'cdk/constants/environment';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -41,8 +43,6 @@ export interface MainStackProps extends StackProps {
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
   availabilityZones?: string[];
-  externalConsumers?: Record<string, ExternalConsumerConfig>;
-  consumerVpcEndpointIds?: string[];
 }
 
 export class MainStack extends Stack {
@@ -71,9 +71,22 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
-      consumerVpcEndpointIds = [],
-      externalConsumers = {},
     } = props;
+
+    const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
+    const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
+
+    let externalConsumers: Record<
+      string,
+      ExternalConsumerConfig & { vpcEndpointId?: string }
+    > = {};
+    try {
+      externalConsumers = JSON.parse(ssmValue);
+    } catch {}
+
+    const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
+      .map((c) => c.vpcEndpointId)
+      .filter((id): id is string => !!id);
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
     cdk.Tags.of(this).add('TeamName', teamName || 'UnknownTeam');
