@@ -48,38 +48,23 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.headers['requesting-service'],
-        event.headers['requesting-service-user-id'],
-      ); //TODO: Refactor Identity service for service name usage.
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-    await getFactory()
-      .getService('data')
-      .deleteByKey(identity, event.pathParameters.resourcePath);
+  await getFactory()
+    .getService('data')
+    .deleteByKey(identity, event.pathParameters.resourcePath);
 
-    return {
-      statusCode: 200,
-      body: {
-        message: 'Entity deleted successfully',
-      } satisfies DeleteDataResponse,
-    };
-  } catch (error) {
-    let response = {
-      statusCode: 500,
-      errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error',
-    };
-    if (createError.isHttpError(error)) {
-      response = generateErrorResponseFromHttpError(error);
-    }
-    return {
-      statusCode: response.statusCode,
-      body: response,
-    };
-  }
+  return {
+    statusCode: 200,
+    body: {
+      message: 'Entity deleted successfully',
+    } satisfies DeleteDataResponse,
+  };
 };
 
 export const handler = middy()
@@ -102,7 +87,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(zodValidator('deleteData', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

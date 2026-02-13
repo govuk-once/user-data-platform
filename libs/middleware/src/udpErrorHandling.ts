@@ -1,7 +1,10 @@
 import {
   BaseUDPError,
   DataRecordNotFoundError,
+  IdentityLinkingInvalidIdentitesError,
   IdentityRecordNotFoundError,
+  Logger,
+  UDP_ERROR_TYPES,
   ZodValidationError,
 } from '@libs/utils';
 import {
@@ -15,7 +18,9 @@ import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 
 type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
 
-export function udpErrorHandling(): MiddlewareObj<APIGatewayProxyEventV2> {
+export function udpErrorHandling(
+  logger: Logger,
+): MiddlewareObj<APIGatewayProxyEventV2> {
   return {
     onError: async (request: APIGatewayRequest) => {
       if (request.response !== undefined) {
@@ -85,6 +90,18 @@ export function udpErrorHandling(): MiddlewareObj<APIGatewayProxyEventV2> {
         };
         return;
       }
+
+      logger.error((error as Error).message);
+      const responseBody: InternalServerErrorResponse = {
+        errorCode: 500,
+        errorMessage: `Internal Server Error - unexpected error of name: ${(error as Error).name}`,
+        errorType: UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+      };
+      request.response = {
+        statusCode: 500,
+        body: responseBody,
+      };
+      return;
     },
   };
 }

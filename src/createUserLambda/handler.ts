@@ -48,34 +48,25 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const input = {
-      ...(event.body as unknown as CreateUserRequest),
-    } as unknown as IdentityInput;
+  const input = {
+    ...(event.body as unknown as CreateUserRequest),
+  } as unknown as IdentityInput;
 
-    const result = await getFactory()
-      .getService('identity')
-      .createAppUser(input);
+  const result = await getFactory().getService('identity').createAppUser(input);
 
-    if (result.created) {
-      return {
-        statusCode: 200,
-        body: {
-          message: 'User Successfully Created',
-        } satisfies CreateUserResponse,
-      };
-    }
-
+  if (result.created) {
     return {
       statusCode: 200,
-      body: { message: 'User already exists' },
+      body: {
+        message: 'User Successfully Created',
+      } satisfies CreateUserResponse,
     };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-    throw new createError.InternalServerError();
   }
+
+  return {
+    statusCode: 200,
+    body: { message: 'User already exists' },
+  };
 };
 
 export const handler = middy()
@@ -97,7 +88,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(jsonBodyParser())
   .use(zodValidator('createUser', logger))
   .use(envMiddleware)

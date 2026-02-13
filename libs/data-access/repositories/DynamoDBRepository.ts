@@ -7,8 +7,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { GetError, SaveError, DeleteError } from '../errors/Errors';
-import { Logger } from '@libs/utils';
+import { InvalidDynamoKeyError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
 
 /**
@@ -43,27 +42,31 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     this.logger = logger;
   }
 
-  /**
-   * Retrieves an entity by its key(s) from DynamoDB.
-   * @param keys - Partial entity containing the key properties needed to identify the entity
-   * @returns A promise that resolves to the entity if found, or null if not found
-   * @throws {GetError} When the DynamoDB operation fails or required keys are missing
-   */
-  async get(keys: Partial<T>): Promise<T | null> {
+  validateKeys(keys: Partial<T>): { pk: string; sk: string } {
     if (
       !('pk' in keys) ||
       !('sk' in keys) ||
       keys.pk === undefined ||
       keys.sk === undefined
     ) {
-      throw new GetError(
-        'item',
-        JSON.stringify(keys),
-        new Error('Both pk and sk are required for composite key entities'),
+      throw new InvalidDynamoKeyError(
+        'Both pk and sk are required for composite key entities',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        keys.pk,
+        keys.sk,
       );
     }
 
-    const { pk, sk } = keys as { pk: string; sk: string };
+    return keys as { pk: string; sk: string };
+  }
+
+  /**
+   * Retrieves an entity by its key(s) from DynamoDB.
+   * @param keys - Partial entity containing the key properties needed to identify the entity
+   * @returns A promise that resolves to the entity if found, or null if not found
+   */
+  async get(keys: Partial<T>): Promise<T | null> {
+    const { pk, sk } = this.validateKeys(keys);
 
     this.logger?.debug('Getting item from DynamoDB', {
       operation: 'get',
@@ -72,37 +75,26 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       sk,
     });
 
-    try {
-      const command = new GetCommand({
-        TableName: this.tableName,
-        Key: { pk, sk },
-      });
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: { pk, sk },
+    });
 
-      const response = await this.client.send(command);
+    const response = await this.client.send(command);
 
-      if (!response.Item) {
-        this.logger?.debug('Item not found', { pk, sk });
-        return null;
-      }
-
-      this.logger?.debug('Item retrieved successfully', { pk, sk });
-
-      return this.encryption
-        ? ((await this.encryption.service.decryptFields(
-            response.Item as Record<string, unknown> & EncryptedData,
-            this.encryption.dataFields,
-          )) as T)
-        : (response.Item as T);
-    } catch (error) {
-      this.logger?.error('Failed to get item from DynamoDB', {
-        operation: 'get',
-        tableName: this.tableName,
-        pk,
-        sk,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new GetError('item', `${pk}#${sk}`, error as Error);
+    if (!response.Item) {
+      this.logger?.debug('Item not found', { pk, sk });
+      return null;
     }
+
+    this.logger?.debug('Item retrieved successfully', { pk, sk });
+
+    return this.encryption
+      ? ((await this.encryption.service.decryptFields(
+          response.Item as Record<string, unknown> & EncryptedData,
+          this.encryption.dataFields,
+        )) as T)
+      : (response.Item as T);
   }
 
   async getByPk(pk: string): Promise<T | null> {
@@ -112,69 +104,45 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       operation: 'getByPk',
     });
 
-    try {
-      const command = new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'pk = :pk',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-        },
-        Limit: 1,
-      });
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+      },
+      Limit: 1,
+    });
 
-      const response = await this.client.send(command);
+    const response = await this.client.send(command);
 
-      if (!response.Items || response.Items.length === 0) {
-        this.logger?.debug('Item not found', { pk });
-        return null;
-      }
-
-      const item = response.Items[0];
-
-      this.logger?.debug('Checking data by pk', {
-        item,
-        tableName: this.tableName,
-        operation: 'getByPk',
-      });
-
-      return this.encryption
-        ? ((await this.encryption.service.encryptFields(
-            item as Record<string, unknown> & EncryptedData,
-            this.encryption.dataFields,
-          )) as T)
-        : (item as T);
-    } catch (error) {
-      this.logger?.error('Failed to get item by pk from DynamoDb', {
-        tableName: this.tableName,
-        operation: 'getByPk',
-        pk,
-      });
-
-      throw new GetError('item', pk, error as Error);
+    if (!response.Items || response.Items.length === 0) {
+      this.logger?.debug('Item not found', { pk });
+      return null;
     }
+
+    const item = response.Items[0];
+
+    this.logger?.debug('Checking data by pk', {
+      item,
+      tableName: this.tableName,
+      operation: 'getByPk',
+    });
+
+    return this.encryption
+      ? ((await this.encryption.service.encryptFields(
+          item as Record<string, unknown> & EncryptedData,
+          this.encryption.dataFields,
+        )) as T)
+      : (item as T);
   }
 
   /**
    * Retrieves an entity by its key(s) from DynamoDB.
    * @param keys - Partial entity containing the key properties needed to identify the entity
    * @returns A promise that resolves to the entity if found, or null if not found
-   * @throws {GetError} When the DynamoDB operation fails or required keys are missing
    */
   async skBeginswith(keys: Partial<T>): Promise<T | null> {
-    if (
-      !('pk' in keys) ||
-      !('sk' in keys) ||
-      keys.pk === undefined ||
-      keys.sk === undefined
-    ) {
-      throw new GetError(
-        'item',
-        JSON.stringify(keys),
-        new Error('Both pk and sk are required for composite key entities'),
-      );
-    }
-
-    const { pk, sk } = keys as { pk: string; sk: string };
+    const { pk, sk } = this.validateKeys(keys);
 
     this.logger?.debug('Getting item from DynamoDB', {
       operation: 'get',
@@ -183,49 +151,38 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       sk,
     });
 
-    try {
-      const command = new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':skPrefix': sk,
-        },
-        Limit: 1,
-      });
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':skPrefix': sk,
+      },
+      Limit: 1,
+    });
 
-      const response = await this.client.send(command);
+    const response = await this.client.send(command);
 
-      if (!response.Items || response.Items.length < 1) {
-        this.logger?.debug('Item not found', { pk, sk });
-        return null;
-      }
-
-      this.logger?.debug('Item retrieved successfully', { pk, sk });
-
-      const firstItem = response.Items[0];
-
-      if (!firstItem) {
-        this.logger?.debug('Item not found', { pk, sk });
-        return null;
-      }
-
-      return this.encryption
-        ? ((await this.encryption.service.decryptFields(
-            firstItem as Record<string, unknown> & EncryptedData,
-            this.encryption.dataFields,
-          )) as T)
-        : (firstItem as unknown as T);
-    } catch (error) {
-      this.logger?.error('Failed to get item from DynamoDB', {
-        operation: 'get',
-        tableName: this.tableName,
-        pk,
-        sk,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new GetError('item', `${pk}#${sk}`, error as Error);
+    if (!response.Items || response.Items.length < 1) {
+      this.logger?.debug('Item not found', { pk, sk });
+      return null;
     }
+
+    this.logger?.debug('Item retrieved successfully', { pk, sk });
+
+    const firstItem = response.Items[0];
+
+    if (!firstItem) {
+      this.logger?.debug('Item not found', { pk, sk });
+      return null;
+    }
+
+    return this.encryption
+      ? ((await this.encryption.service.decryptFields(
+          firstItem as Record<string, unknown> & EncryptedData,
+          this.encryption.dataFields,
+        )) as T)
+      : (firstItem as unknown as T);
   }
 
   /**
@@ -234,7 +191,6 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
    * Undefined values are automatically removed from the entity before saving.
    * @param entity - The entity to save
    * @returns A promise that resolves when the save operation is complete
-   * @throws {SaveError} When the DynamoDB operation fails
    */
   async save(entity: T): Promise<void> {
     this.logger?.debug('Saving item to DynamoDB', {
@@ -245,58 +201,33 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       hasTtl: entity.ttl !== undefined,
     });
 
-    try {
-      const itemToStore = this.encryption
-        ? await this.encryption.service.encryptFields(
-            entity as Record<string, unknown>,
-            this.encryption.dataFields,
-          )
-        : entity;
+    const itemToStore = this.encryption
+      ? await this.encryption.service.encryptFields(
+          entity as Record<string, unknown>,
+          this.encryption.dataFields,
+        )
+      : entity;
 
-      const command = new PutCommand({
-        TableName: this.tableName,
-        Item: itemToStore,
-      });
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: itemToStore,
+    });
 
-      await this.client.send(command);
+    await this.client.send(command);
 
-      this.logger?.debug('Item saved successfully', {
-        pk: entity.pk,
-        sk: entity.sk,
-      });
-    } catch (error) {
-      this.logger?.error('Failed to save item to DynamoDB', {
-        operation: 'save',
-        tableName: this.tableName,
-        pk: entity.pk,
-        sk: entity.sk,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new SaveError('item', `${entity.pk}#${entity.sk}`, error as Error);
-    }
+    this.logger?.debug('Item saved successfully', {
+      pk: entity.pk,
+      sk: entity.sk,
+    });
   }
 
   /**
    * Retrieves an entity by its key(s) from DynamoDB.
    * @param keys - Partial entity containing the key properties needed to identify the entity
    * @returns A promise that resolves when the delete operation is complete
-   * @throws {DeleteError} When the DynamoDB operation fails or required keys are missing
    */
   async delete(keys: Partial<T>): Promise<boolean | null> {
-    if (
-      !('pk' in keys) ||
-      !('sk' in keys) ||
-      keys.pk === undefined ||
-      keys.sk === undefined
-    ) {
-      throw new DeleteError(
-        'item',
-        JSON.stringify(keys),
-        new Error('Both pk and sk are required for composite key entities'),
-      );
-    }
-
-    const { pk, sk } = keys as { pk: string; sk: string };
+    const { pk, sk } = this.validateKeys(keys);
 
     this.logger?.debug('Deleting item from DynamoDB', {
       operation: 'get',
@@ -320,14 +251,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
         return null;
       }
 
-      this.logger?.error('Failed to delete item from DynamoDB', {
-        operation: 'get',
-        tableName: this.tableName,
-        pk,
-        sk,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new DeleteError('item', `${pk}#${sk}`, error as Error);
+      throw error;
     }
   }
 }

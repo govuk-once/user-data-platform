@@ -4,6 +4,7 @@ import {
   GenerateDataKeyCommand,
   KMSClient,
 } from '@aws-sdk/client-kms';
+import { EncryptionError, UDP_ERROR_TYPES } from '@libs/utils';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -102,7 +103,11 @@ export class EncryptionService {
     const response = await this.kmsClient.send(command);
 
     if (!response.Plaintext || !response.CiphertextBlob) {
-      throw new Error('Failed to generate key data from KMS');
+      throw new EncryptionError(
+        'Failed to generate key data from KMS',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        this.kmsKeyId,
+      );
     }
 
     return {
@@ -118,7 +123,11 @@ export class EncryptionService {
     const response = await this.kmsClient.send(command);
 
     if (!response.Plaintext) {
-      throw new Error('Failed to decrypt the key');
+      throw new EncryptionError(
+        'Failed to decrypt the key',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        this.kmsKeyId,
+      );
     }
 
     return Buffer.from(response.Plaintext);

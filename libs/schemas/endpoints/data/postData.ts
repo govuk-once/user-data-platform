@@ -12,6 +12,8 @@ extendZodWithOpenApi(z);
  Response Schemas & Types
 */
 
+const getCurrentTime = Math.floor(Date.now() / 1000);
+
 export const postDataRequestSchema = z.object({
   configuration: z
     .object({
@@ -19,8 +21,9 @@ export const postDataRequestSchema = z.object({
         description: 'The UDP mechanism to execute at expiry',
         example: 'DELETE',
       }),
-      expiresAt: z.number().optional().openapi({
-        description: 'The expiry time for the data in EPOCH Timestamp no MS',
+      expiresAt: z.number().int().gt(getCurrentTime).optional().openapi({
+        description:
+          'The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated',
         example: 1738671000,
       }),
     })

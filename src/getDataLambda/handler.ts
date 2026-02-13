@@ -49,36 +49,21 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.headers['requesting-service'],
-        event.headers['requesting-service-user-id'],
-      );
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-    const entity = await getFactory()
-      .getService('data')
-      .getByKey(identity, event.pathParameters.resourcePath);
+  const entity = await getFactory()
+    .getService('data')
+    .getByKey(identity, event.pathParameters.resourcePath);
 
-    return {
-      statusCode: 200,
-      body: entity satisfies GetDataResponse,
-    };
-  } catch (error) {
-    let response = {
-      statusCode: 500,
-      errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error',
-    };
-    if (createError.isHttpError(error)) {
-      response = generateErrorResponseFromHttpError(error);
-    }
-    return {
-      statusCode: response.statusCode,
-      body: response,
-    };
-  }
+  return {
+    statusCode: 200,
+    body: entity satisfies GetDataResponse,
+  };
 };
 
 export const handler = middy()
@@ -102,7 +87,7 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(zodValidator('getData', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

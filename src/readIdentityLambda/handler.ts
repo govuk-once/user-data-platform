@@ -49,25 +49,17 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.pathParameters.serviceName,
-        event.pathParameters.identifier,
-      );
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.pathParameters.serviceName,
+      event.pathParameters.identifier,
+    );
 
-    return {
-      statusCode: 200,
-      body: identity satisfies ReadIdentityResponse,
-    };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-
-    throw new createError.InternalServerError();
-  }
+  return {
+    statusCode: 200,
+    body: identity satisfies ReadIdentityResponse,
+  };
 };
 
 export const handler = middy()
@@ -90,7 +82,7 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(zodValidator('readIdentity', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

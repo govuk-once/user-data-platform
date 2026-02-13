@@ -47,29 +47,19 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  tracer.putAnnotation('stack', stack);
+  await getFactory()
+    .getService('identity')
+    .deleteById(
+      event.pathParameters.serviceName,
+      event.pathParameters.identifier,
+    );
 
-  try {
-    await getFactory()
-      .getService('identity')
-      .deleteById(
-        event.pathParameters.serviceName,
-        event.pathParameters.identifier,
-      );
-
-    return {
-      statusCode: 200,
-      body: {
-        message: 'Successfully Deleted Identity',
-      } satisfies DeleteIdentityResponse,
-    };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-
-    throw new createError.InternalServerError();
-  }
+  return {
+    statusCode: 200,
+    body: {
+      message: 'Successfully Deleted Identity',
+    } satisfies DeleteIdentityResponse,
+  };
 };
 
 export const handler = middy()
@@ -91,7 +81,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(zodValidator('deleteIdentity', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

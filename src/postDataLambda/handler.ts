@@ -51,10 +51,6 @@ function getFactory() {
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
-    if (!event.body) {
-      throw createHttpError.BadRequest();
-    }
-
     const identity = await getFactory()
       .getService('identity')
       .getByServiceId(
@@ -73,18 +69,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     };
   } catch (error) {
     tracer.putAnnotation('putEntitySuccess', false);
-    let response = {
-      statusCode: 500,
-      errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error',
-    };
-    if (createError.isHttpError(error)) {
-      response = generateErrorResponseFromHttpError(error);
-    }
-    return {
-      statusCode: response.statusCode,
-      body: response,
-    };
+    throw error;
   }
 };
 
@@ -107,7 +92,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
-  .use(udpErrorHandling())
+  .use(udpErrorHandling(logger))
   .use(jsonBodyParser())
   .use(zodValidator('postData', logger))
   .use(envMiddleware)

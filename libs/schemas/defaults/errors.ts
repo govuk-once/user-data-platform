@@ -14,13 +14,10 @@ export const badRequestResponseSchema = z.object({
     description: 'The error message',
     example: 'Request invalid on fields: headers.requesting-service',
   }),
-  errorPaths: z
-    .array(z.string())
-    .openapi({
-      description: 'Array of failing fields',
-      example: ['headers.requesting-service', 'body.configuration'],
-    })
-    .optional(),
+  errorPaths: z.array(z.string()).openapi({
+    description: 'Array of failing fields',
+    example: ['headers.requesting-service', 'body.configuration'],
+  }),
 });
 
 export const unauthorizedResponseSchema = z.object({

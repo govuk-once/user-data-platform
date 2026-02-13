@@ -30,6 +30,24 @@ export class MissingEnvironmentVariablesError extends BaseUDPError {
   }
 }
 
+export class IdentityLinkingInvalidIdentitesError extends BaseUDPError {
+  public appId: string;
+  public serviceId: string;
+
+  constructor(
+    message: string,
+    errorType: UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+    appId: string,
+    serviceId: string,
+  ) {
+    super(message, errorType);
+    this.errorType = errorType;
+    this.appId = appId;
+    this.serviceId = serviceId;
+    this.name = 'IdentityLinkingInvalidIdentitesError';
+  }
+}
+
 export class ZodValidationError extends BaseUDPError {
   public errorPaths: string[];
 
