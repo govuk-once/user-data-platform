@@ -95,6 +95,7 @@ if (!skipMainStack) {
     apiId: mainStack.api.restApiId,
     identityTableName: mainStack.identityTable.tableName,
     kmsKeyArn: mainStack.kmsKey.keyArn,
+    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
   });
 
   e2eStack.addDependency(mainStack);

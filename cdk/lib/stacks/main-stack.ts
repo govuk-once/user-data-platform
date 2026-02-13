@@ -24,13 +24,17 @@ import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { IRole } from 'aws-cdk-lib/aws-iam';
 import {
   IamConsumerConfig,
-  IamConumerConstruct,
+  IamConsumerConstruct,
 } from '../constructs/iam-consumer-construct';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
+import {
+  ConsumerThrottleConfig,
+  ConsumerUsagePlanConstruct,
+} from '../constructs/consumer-usage-plan-construct';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -59,6 +63,7 @@ export class MainStack extends Stack {
   public readonly appConfigProfileId: string;
   public readonly e2eTestConsumerSecret?: ISecret;
   public readonly e2eTestConsumerRole?: IRole;
+  public readonly e2eTestConsumerApiKeyValue?: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -218,6 +223,10 @@ export class MainStack extends Stack {
       },
     };
 
+    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
+      test: { rateLimit: 50, burstLimit: 100 },
+    };
+
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
@@ -227,15 +236,28 @@ export class MainStack extends Stack {
         externalId: consumerConfig.externalId,
         description: consumerConfig.description,
       };
+
+      consumerthrottleConfigs[consumerName] = {
+        rateLimit: consumerConfig.rateLimit,
+        burstLimit: consumerConfig.burstLimit,
+      };
     }
 
-    const iamConsumers = new IamConumerConstruct(this, 'IamConsumers', {
+    const iamConsumers = new IamConsumerConstruct(this, 'IamConsumers', {
       developerId,
       environment,
       api: this.api,
       consumers: IamConsumerConfigs,
     });
 
+    const usagePlans = new ConsumerUsagePlanConstruct(this, `UsagePlans`, {
+      developerId,
+      environment,
+      api: this.api,
+      consumers: consumerthrottleConfigs,
+    });
+
+    this.e2eTestConsumerApiKeyValue = usagePlans.apiKeyValues.get('test');
     this.e2eTestConsumerRole = iamConsumers.consumerRoles.get('test');
 
     if (Object.keys(externalConsumers).length > 0) {
@@ -250,6 +272,7 @@ export class MainStack extends Stack {
           consumerRoles: iamConsumers.consumerRoles,
           externalConsumers,
           apiUrl: this.api.url,
+          apiKeyValues: usagePlans.apiKeyValues,
         },
       );
 

@@ -197,6 +197,7 @@ export class LambdaApiConstruct extends Construct {
               'method.request.header.requesting-service-user-id': false,
             }
           : undefined,
+        apiKeyRequired: true,
       });
     }
   }

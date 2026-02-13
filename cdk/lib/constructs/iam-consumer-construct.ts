@@ -19,7 +19,7 @@ export interface IamConsumerConfig {
   readonly description?: string;
 }
 
-export interface IamConumerConstructProps {
+export interface IamConsumerConstructProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly api: RestApi;
@@ -32,10 +32,10 @@ const PERMISSIONS_TO_METHODS: Record<Permission, string[]> = {
   delete: ['DELETE'],
 };
 
-export class IamConumerConstruct extends Construct {
+export class IamConsumerConstruct extends Construct {
   public readonly consumerRoles: Map<string, Role> = new Map();
 
-  constructor(scope: Construct, id: string, props: IamConumerConstructProps) {
+  constructor(scope: Construct, id: string, props: IamConsumerConstructProps) {
     super(scope, id);
 
     const { developerId, environment, api, consumers } = props;
