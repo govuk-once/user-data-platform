@@ -36,7 +36,6 @@ import {
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
 
-
 export interface MainStackProps extends StackProps {
   developerId?: string;
   environment: string;
