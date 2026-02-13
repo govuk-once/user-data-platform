@@ -6,6 +6,8 @@ Feature: KMS Key Rotation
 
     Background:
         Given I am authenticated
+        And I set header 'requesting-service' to 'kms-rotation-test'
+        And I set header 'requesting-service-user-id' to 'kms-test-user'
 
     Scenario: Data remains accessible after KMS key rotation
         # Store data
