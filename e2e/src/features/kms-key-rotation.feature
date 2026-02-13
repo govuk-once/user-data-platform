@@ -33,5 +33,5 @@ Feature: KMS Key Rotation
         # cleanup
         When I send a delete to '/v1/topics'
         Then I should recieve a successful response
-        When I send a delete to '/v1/identity/kms-rotation-test/kms-test-user'
+        When I send a delete to '/v1/identity/app/kms-test-user'
         Then I should recieve a successful response
