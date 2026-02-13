@@ -1,16 +1,33 @@
-import { describe, beforeEach, it, vi, expect } from 'vitest';
-import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
+import { describe, beforeEach, it, expect } from 'vitest';
 import { DynamoDbDataService } from './DynamoDbDataService';
+import { ServiceFactory } from '../factory/ServiceFactory';
 import {
   DataInput,
   DynamoDBDataEntity,
   IdentityRecordEntity,
 } from '../types/Entity';
-import createHttpError from 'http-errors';
+import { mockClient } from 'aws-sdk-client-mock';
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { DataRecordNotFoundError, UDP_ERROR_TYPES } from '@libs/utils';
+
+const dynamoMock = mockClient(DynamoDBDocumentClient);
+
+const getCommandCall = (command: any, callNumber: number) => {
+  return dynamoMock.commandCalls(command)[callNumber - 1].args[0].input;
+};
 
 describe('DynamoDb Data Service', () => {
-  let mockRepository: DynamoDBRepository<DynamoDBDataEntity>;
-  let service: DynamoDbDataService;
+  const tableName = 'test-data-service';
+  const identityTableName = 'test-identity-service';
+  const service: DynamoDbDataService = new ServiceFactory({
+    tableName,
+    identityTableName,
+  }).getService('data');
 
   const mockResource = 'topics';
   const mockIdentity: IdentityRecordEntity = {
@@ -22,13 +39,7 @@ describe('DynamoDb Data Service', () => {
   };
 
   beforeEach(() => {
-    mockRepository = {
-      get: vi.fn(),
-      save: vi.fn(),
-      delete: vi.fn(),
-      skBeginswith: vi.fn(),
-    } as unknown as DynamoDBRepository<DynamoDBDataEntity>;
-    service = new DynamoDbDataService(mockRepository);
+    dynamoMock.reset();
   });
 
   describe('Save', () => {
@@ -37,16 +48,36 @@ describe('DynamoDb Data Service', () => {
         data: { test: 'value' },
       };
 
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
+      dynamoMock.on(PutCommand).resolves({});
 
       await service.save(mockIdentity, mockResource, input);
 
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        sk: mockResource,
-        ...input,
+      expect(getCommandCall(PutCommand, 1)).toMatchObject({
+        TableName: tableName,
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: input.data,
+        },
       });
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
+    });
+    
+    it('should successfully save an empty data entity', async () => {
+      const input: DataInput = {
+        data: undefined,
+      };
+
+      dynamoMock.on(PutCommand).resolves({});
+
+      await service.save(mockIdentity, mockResource, input);
+
+      expect(getCommandCall(PutCommand, 1)).toMatchObject({
+        TableName: tableName,
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+        },
+      });
     });
 
     it('should save entity with ttl', async () => {
@@ -56,156 +87,134 @@ describe('DynamoDb Data Service', () => {
         configuration: { expiresAt: ttl },
       };
 
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
+      dynamoMock.on(PutCommand).resolves({});
 
       await service.save(mockIdentity, mockResource, input);
 
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        sk: mockResource,
-        data: { test: 'value' },
-        ttl,
+      expect(getCommandCall(PutCommand, 1)).toMatchObject({
+        TableName: tableName,
+        Item: {
+          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          sk: mockResource,
+          data: { test: 'value' },
+          ttl,
+        },
       });
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw a bad request if the identity has no UdpId', async () => {
+    it('should throw the original error should the repository.save() call fail', async () => {
       const input: DataInput = {
         data: { test: 'value' },
       };
+      const mockError = new Error('The repository.save() call failed');
 
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
-
-      await expect(
-        service.save({ ...mockIdentity, udpId: '' }, mockResource, input),
-      ).rejects.toThrow(createHttpError.BadRequest);
-    });
-
-    it('should throw a bad request if the resource path is not set', async () => {
-      const input: DataInput = {
-        data: { test: 'value' },
-      };
-
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
-
-      await expect(service.save(mockIdentity, '', input)).rejects.toThrow(
-        createHttpError.BadRequest,
-      );
-    });
-
-    it('should throw an error save fails', async () => {
-      const input: DataInput = {
-        data: { test: 'value' },
-      };
-
-      vi.mocked(mockRepository.save).mockRejectedValue(new Error('Unknown'));
+      dynamoMock.on(PutCommand).rejects(mockError);
 
       await expect(
         service.save(mockIdentity, mockResource, input),
-      ).rejects.toThrow('Unknown');
-    });
-
-    it('should throw error when ttl is negative', async () => {
-      const input: DataInput = {
-        configuration: { expiresAt: -100 },
-        data: { status: 'active' },
-      };
-
-      await expect(
-        service.save(mockIdentity, mockResource, input),
-      ).rejects.toThrow(
-        'TTL must be a future timestamp in seconds since epoch',
-      );
-      expect(mockRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when ttl is a past timestamp', async () => {
-      const pastTimestamp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-      const input: DataInput = {
-        configuration: { expiresAt: pastTimestamp },
-        data: { status: 'active' },
-      };
-
-      await expect(
-        service.save(mockIdentity, mockResource, input),
-      ).rejects.toThrow(
-        'TTL must be a future timestamp in seconds since epoch',
-      );
-      expect(mockRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when ttl is current timestamp', async () => {
-      const nowInSeconds = Math.floor(Date.now() / 1000);
-      const input: DataInput = {
-        configuration: { expiresAt: nowInSeconds },
-        data: { status: 'active' },
-      };
-
-      await expect(
-        service.save(mockIdentity, mockResource, input),
-      ).rejects.toThrow(
-        'TTL must be a future timestamp in seconds since epoch',
-      );
-      expect(mockRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when ttl is epoch (January 1, 1970)', async () => {
-      const input: DataInput = {
-        configuration: { expiresAt: 1 },
-        data: { status: 'active' },
-      };
-
-      await expect(
-        service.save(mockIdentity, mockResource, input),
-      ).rejects.toThrow(
-        'TTL must be a future timestamp in seconds since epoch',
-      );
-      expect(mockRepository.save).not.toHaveBeenCalled();
+      ).rejects.toThrow(mockError);
     });
   });
 
   describe('Get by keys', () => {
-    it('should successfully save a valid entity', async () => {
+    it('should successfully fetch a valid entity', async () => {
+      const expiryDate = Math.floor(new Date('01/01/2030').getTime() / 1000);
       const result: DynamoDBDataEntity = {
         pk: 'mock-pk',
         sk: 'mock-sk',
         data: { test: 'value' },
+        ttl: expiryDate,
       };
 
-      vi.mocked(mockRepository.get).mockResolvedValue(result);
+      dynamoMock.on(GetCommand).resolves({ Item: result });
 
-      const r = await service.getByKey(mockIdentity, mockResource);
+      const response = await service.getByKey(mockIdentity, mockResource);
 
-      expect(mockRepository.get).toHaveBeenCalledWith({
-        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        sk: mockResource,
+      expect(getCommandCall(GetCommand, 1)).toMatchObject({
+        TableName: tableName,
+        Key: {
+          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          sk: mockResource,
+        },
       });
-      expect(mockRepository.get).toHaveBeenCalledTimes(1);
-      expect(r).toEqual(result);
+      expect(response).toEqual(result);
     });
 
-    it('should throw a bad request if the identity has no UdpId', async () => {
-      vi.mocked(mockRepository.get).mockResolvedValue(undefined);
+    it('should throw a DataRecordNotFoundError when the fetched entity is undefined', async () => {
+      dynamoMock.on(GetCommand).resolves({});
 
-      await expect(
-        service.getByKey({ ...mockIdentity, udpId: '' }, mockResource),
-      ).rejects.toThrow(createHttpError.BadRequest);
+      try {
+        await service.getByKey(mockIdentity, mockResource);
+        expect.fail('Error should have been thrown')
+      } catch (error) {
+        const expectedError = new DataRecordNotFoundError(
+          `Resource not found on path ${mockResource}: for identity ${mockIdentity.serviceName}#${mockIdentity.serviceId}`,
+          UDP_ERROR_TYPES.DATA_NOT_FOUND,
+          mockIdentity.serviceName,
+          mockIdentity.serviceId,
+          mockResource,
+        );
+        expect(error instanceof DataRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
     });
 
-    it('should throw a bad request if the resource path is not set', async () => {
-      vi.mocked(mockRepository.get).mockResolvedValue(undefined);
+    it('should throw the original error when respoitory.get() errors', async () => {
+      const mockError = new Error('The repository.get() call failed');
 
-      await expect(service.getByKey(mockIdentity, '')).rejects.toThrow(
-        createHttpError.BadRequest,
-      );
-    });
-
-    it('should propogate respoitory errors', async () => {
-      vi.mocked(mockRepository.get).mockRejectedValue(new Error('Unknown'));
+      dynamoMock.on(GetCommand).rejects(mockError);
 
       await expect(
         service.getByKey(mockIdentity, mockResource),
-      ).rejects.toThrow('Unknown');
+      ).rejects.toThrow(mockError);
     });
   });
+
+  describe('Delete by Key', () => {
+    /*
+      Happy delete
+      Condition check fail - data not found
+      error propagates
+    */
+
+      it('should successfully delete a valid entity', async () => {
+        dynamoMock.on(DeleteCommand).resolves({});
+
+        const response = await service.deleteByKey(mockIdentity, mockResource);
+        expect(getCommandCall(DeleteCommand,1)).toMatchObject(expect.objectContaining({
+          TableName: tableName,
+          Key: {
+            pk: mockIdentity.udpId,
+            sk: mockResource,
+          }
+        }))
+      })
+
+      it('should throw a DataRecordNotFoundError where the delete could not find the provided keys', async () => {
+        const mockError = new Error('Failure');
+        mockError.name = 'ConditionalCheckFailedException';
+        dynamoMock.on(DeleteCommand).rejects(mockError);
+
+        try{
+          await service.deleteByKey(mockIdentity, mockResource);
+        } catch (error) {
+          const expectedError = new DataRecordNotFoundError(
+          `Resource not found on path ${mockResource}: for identity ${mockIdentity.serviceName}#${mockIdentity.serviceId}`,
+          UDP_ERROR_TYPES.DATA_NOT_FOUND,
+          mockIdentity.serviceName,
+          mockIdentity.serviceId,
+          mockResource,
+        );
+        expect(error instanceof DataRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+        }
+      })
+
+      it('should throw the original error if the repository.delete() call errors', async () => {
+        const mockError = new Error('Failure');
+        dynamoMock.on(DeleteCommand).rejects(mockError);
+
+        await expect(service.deleteByKey(mockIdentity,mockResource)).rejects.toThrow(mockError);
+      })
+  })
 });

@@ -7,11 +7,5 @@
     "rootDir": "."
   },
   "include": ["**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "**/tests/**",
-    "**/**/vitest.*.ts",
-    "**/*.test.ts",
-    "../../dist/libs/**"
-  ]
+  "exclude": ["node_modules", "../../dist/libs/**"]
 }

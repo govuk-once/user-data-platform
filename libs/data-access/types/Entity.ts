@@ -66,9 +66,7 @@ export type DynamoDBAttributeMap = {
  * }
  * ```
  */
-export interface DynamoDBEntity<
-  TData extends DynamoDBAttributeMap = DynamoDBAttributeMap,
-> extends Entity {
+export interface DynamoDBEntity {
   /**
    * Partition key for the entity.
    */
@@ -81,7 +79,7 @@ export interface DynamoDBEntity<
    * The actual data payload for the entity.
    * Must conform to DynamoDB-compatible types.
    */
-  data?: TData;
+  data?: Record<string, unknown>;
   /**
    * Optional time-to-live (TTL) attribute for automatic expiration.
    * Should be a Unix timestamp (seconds since epoch) indicating when the item should be deleted.

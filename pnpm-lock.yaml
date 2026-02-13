@@ -167,6 +167,9 @@ importers:
       aws-sdk-client-mock:
         specifier: ^4.1.0
         version: 4.1.0
+      aws-sdk-client-mock-vitest:
+        specifier: ^7.0.1
+        version: 7.0.1(@smithy/types@4.12.0)(aws-sdk-client-mock@4.1.0)(vitest@4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2))
       esbuild:
         specifier: 0.27.0
         version: 0.27.0
@@ -4719,6 +4722,17 @@ packages:
         integrity: sha512-9GNFMRrEMG5y3Jvv+V4azWvc+qNWdWLTjDdhf/zgMlz8haaaLWv0xeAIWxz9PuWUBawsVxy0zZotjCdR3Xq+2w==,
       }
     hasBin: true
+
+  aws-sdk-client-mock-vitest@7.0.1:
+    resolution:
+      {
+        integrity: sha512-uvMZKOT6i7dDxdHM/8ksZ7Z3m27ZZNRNm8r+zzFTT0cXmW2xG5/ttUtQDEImthZ5QARA325ll1wMCBGQ0+8WrQ==,
+      }
+    engines: { node: ^20.0.0 || ^22.0.0 || >=24.0.0 }
+    peerDependencies:
+      '@smithy/types': '>=3.5.0'
+      aws-sdk-client-mock: '>=2.2.0'
+      vitest: '>=3.2.0'
 
   aws-sdk-client-mock@4.1.0:
     resolution:
@@ -12515,6 +12529,13 @@ snapshots:
       commander: 3.0.2
       js-yaml: 3.14.2
       watchpack: 2.4.4
+
+  aws-sdk-client-mock-vitest@7.0.1(@smithy/types@4.12.0)(aws-sdk-client-mock@4.1.0)(vitest@4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)):
+    dependencies:
+      '@smithy/types': 4.12.0
+      '@vitest/expect': 4.0.9
+      aws-sdk-client-mock: 4.1.0
+      vitest: 4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)
 
   aws-sdk-client-mock@4.1.0:
     dependencies:
