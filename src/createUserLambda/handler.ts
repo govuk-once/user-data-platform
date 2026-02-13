@@ -10,8 +10,12 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
-import { CreateUserRequest, createUserRequestSchema, CreateUserResponse, CreateUserResponseSchema } from '@libs/schemas';
+import {
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import type { CreateUserRequest, CreateUserResponse } from '@libs/schemas';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -56,7 +60,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     if (result.created) {
       return {
         statusCode: 200,
-        body: { message: 'User Successfully Created' } satisfies CreateUserResponse,
+        body: {
+          message: 'User Successfully Created',
+        } satisfies CreateUserResponse,
       };
     }
 
@@ -93,11 +99,6 @@ export const handler = middy()
   )
   .use(udpErrorHandling())
   .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      body: createUserRequestSchema,
-      response: CreateUserResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('createUser', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

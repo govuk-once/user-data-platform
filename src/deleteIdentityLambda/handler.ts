@@ -9,8 +9,12 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
-import { DeleteIdentityResponse, deleteIdentityResponseSchema, identityEndpointPathSchema } from '@libs/schemas';
+import {
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import type { DeleteIdentityResponse } from '@libs/schemas';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;
@@ -55,7 +59,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: { message: 'Successfully Deleted Identity' } satisfies DeleteIdentityResponse,
+      body: {
+        message: 'Successfully Deleted Identity',
+      } satisfies DeleteIdentityResponse,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -86,11 +92,6 @@ export const handler = middy()
     }),
   )
   .use(udpErrorHandling())
-  .use(
-    zodValidator({
-      pathParameters: identityEndpointPathSchema,
-      response: deleteIdentityResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('deleteIdentity', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

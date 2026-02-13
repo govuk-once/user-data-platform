@@ -9,7 +9,7 @@ import {
 } from '../endpoints/identity/createIdentity';
 import { CreateUserResponseSchema } from '../endpoints/user/createUser';
 import type { RouteConfig } from './types';
-import { getIdentityResponseSchema } from '../endpoints/identity/getIdentity';
+import { readIdentityResponseSchema } from '../endpoints/identity/readIdentity';
 import { deleteIdentityResponseSchema } from '../endpoints/identity/deleteIdentity';
 import {
   dataEndpointHeaderSchema,
@@ -128,7 +128,7 @@ export const routes: Record<string, RouteConfig> = {
       {
         status: 200,
         description: 'OK',
-        schema: getIdentityResponseSchema,
+        schema: readIdentityResponseSchema,
       },
     ],
     errorResponses: [
@@ -190,7 +190,7 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
   },
-  createData: {
+  postData: {
     name: 'postData',
     dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],

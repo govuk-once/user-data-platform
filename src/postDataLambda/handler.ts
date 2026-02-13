@@ -1,5 +1,4 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
@@ -11,14 +10,12 @@ import {
   captureLambdaHandler,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
-import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
 import {
-  postDataRequestSchema,
-  dataEndpointPathSchema,
-  dataEndpointHeaderSchema,
-  postDataResponseSchema,
-  PostDataResponse,
-} from '@libs/schemas';
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import type { PostDataResponse } from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 import createHttpError from 'http-errors';
 
@@ -112,13 +109,6 @@ export const handler = middy()
   )
   .use(udpErrorHandling())
   .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-      body: postDataRequestSchema,
-      response: postDataResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('postData', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

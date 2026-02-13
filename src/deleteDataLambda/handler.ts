@@ -10,13 +10,12 @@ import {
   captureLambdaHandler,
   generateErrorResponseFromHttpError,
 } from '@libs/utils';
-import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
 import {
-  dataEndpointPathSchema,
-  dataEndpointHeaderSchema,
-  deleteDataResponseSchema,
-  DeleteDataResponse,
-} from '@libs/schemas';
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import type { DeleteDataResponse } from '@libs/schemas';
 
 const serviceName = 'udpDeleteData';
 const { STACK: stack } = process.env;
@@ -63,7 +62,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: { message: 'Entity deleted successfully' } satisfies DeleteDataResponse,
+      body: {
+        message: 'Entity deleted successfully',
+      } satisfies DeleteDataResponse,
     };
   } catch (error) {
     let response = {
@@ -102,12 +103,6 @@ export const handler = middy()
     }),
   )
   .use(udpErrorHandling())
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-      response: deleteDataResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('deleteData', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

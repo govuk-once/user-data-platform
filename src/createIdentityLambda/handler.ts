@@ -10,13 +10,14 @@ import {
   getLogger,
   injectLambdaContext,
 } from '@libs/utils';
-import { createEnvValidator, udpErrorHandling, zodValidator } from '@libs/middleware';
 import {
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+} from '@libs/middleware';
+import type {
   CreateIdentityRequest,
-  createIdentityRequestSchema,
   CreateIdentityResponse,
-  createIdentityResponseSchema,
-  identityEndpointPathSchema,
 } from '@libs/schemas';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
@@ -61,7 +62,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
-      body: { message: 'Identity Successfully created' } satisfies CreateIdentityResponse,
+      body: {
+        message: 'Identity Successfully created',
+      } satisfies CreateIdentityResponse,
     };
   } catch (error) {
     if (createError.isHttpError(error)) {
@@ -93,12 +96,6 @@ export const handler = middy()
   )
   .use(udpErrorHandling())
   .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      pathParameters: identityEndpointPathSchema,
-      body: createIdentityRequestSchema,
-      response: createIdentityResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('createIdentity', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);

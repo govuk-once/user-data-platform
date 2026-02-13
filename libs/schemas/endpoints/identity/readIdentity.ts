@@ -1,9 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
-import {
-  defaultSucccessResponseSchema,
-  DefaultSuccessResponse,
-} from '../../defaults/success';
 
 extendZodWithOpenApi(z);
 
@@ -12,7 +8,7 @@ extendZodWithOpenApi(z);
  Response Schemas & Types
 */
 
-export const getIdentityResponseSchema = z.object({
+export const readIdentityResponseSchema = z.object({
   serviceId: z.string().openapi({
     description: 'The Identifer for the requested service',
     example: 'ca07a074-ed4b-4426-951e-961bedd80493',
@@ -35,4 +31,4 @@ export const getIdentityResponseSchema = z.object({
   }),
 });
 
-export type GetIdentityResponse = z.infer<typeof getIdentityResponseSchema>;
+export type ReadIdentityResponse = z.infer<typeof readIdentityResponseSchema>;

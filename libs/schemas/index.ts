@@ -9,7 +9,7 @@ export * from './endpoints/data/postData';
 export * from './endpoints/data/deleteData';
 
 export * from './endpoints/identity/defaults';
-export * from './endpoints/identity/getIdentity';
+export * from './endpoints/identity/readIdentity';
 export * from './endpoints/identity/createIdentity';
 export * from './endpoints/identity/deleteIdentity';
 

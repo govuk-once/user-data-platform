@@ -1,5 +1,4 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import createError from 'http-errors';
@@ -16,12 +15,7 @@ import {
   udpErrorHandling,
   zodValidator,
 } from '@libs/middleware';
-import {
-  dataEndpointPathSchema,
-  dataEndpointHeaderSchema,
-  getDataResponseSchema,
-  GetDataResponse,
-} from '@libs/schemas';
+import type { GetDataResponse } from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpGetData' } = process.env;
@@ -109,12 +103,6 @@ export const handler = middy()
   )
   .use(responseSanitiser({}))
   .use(udpErrorHandling())
-  .use(
-    zodValidator({
-      pathParameters: dataEndpointPathSchema,
-      headers: dataEndpointHeaderSchema,
-      response: getDataResponseSchema,
-    }, logger),
-  )
+  .use(zodValidator('getData', logger))
   .use(envMiddleware)
   .handler(lambdaHandler);
