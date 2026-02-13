@@ -6,12 +6,12 @@ Feature: KMS Key Rotation
 
     Background:
         Given I am authenticated
-        And I set header 'requesting-service' to 'kms-rotation-test'
+        And I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'kms-test-user'
 
     Scenario: Data remains accessible after KMS key rotation
         # Store data
-        When I send a post to '/v1/user' with the body '{ "appId": "kms-test-user", "serviceName": "kms-rotation-test" }'
+        When I send a post to '/v1/user' with the body '{ "appId": "kms-test-user" }'
         Then I should recieve a successful response
         When I send a post to '/v1/topics' with the body '{"data": {"rotation": "test-data"}}'
         Then I should recieve a successful response
