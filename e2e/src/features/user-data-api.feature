@@ -17,21 +17,21 @@ Feature: User Data API
         And I set header 'requesting-service-user-id' to '123'
         When I send a post to '/v1/topics' with the body '{"data": {"test":"data"} }'
         Then I should recieve a successful response
-        Then The response will contain message 'Entity saved successfully'
+        Then the response will contain message 'Entity saved successfully'
 
     Scenario: Successfully Retrive data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
-        When i send a get to '/v1/topics'
+        When I send a get to '/v1/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data":{"test":"data"}}'
+        Then the response body contains '{"data":{"test":"data"}}'
 
     Scenario: Successfully delete data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
-        When i send a delete to '/v1/topics'
+        When I send a delete to '/v1/topics'
         Then I should recieve a successful response
 
     Scenario: Successfully Delete identity Record
-        When i send a delete to '/v1/identity/app/123'
+        When I send a delete to '/v1/identity/app/123'
         Then I should recieve a successful response

@@ -9,24 +9,24 @@ Feature: KMS Key Rotation
 
     Scenario: Data remains accessible after KMS key rotation
         # Store data
-        When I send a post to '/v1/user' with the body '{ "appId": "kms-test-user", "serviceName": "kms-rotation-test" }
+        When I send a post to '/v1/user' with the body '{ "appId": "kms-test-user", "serviceName": "kms-rotation-test" }'
         Then I should recieve a successful response
         When I send a post to '/v1/topics' with the body '{"data": {"rotation": "test-data"}}'
         Then I should recieve a successful response
 
         # Read data before rotation
-        When I send a get to '/v1/topic'
+        When I send a get to '/v1/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data": {"rotation": "test-data"}}'
+        Then the response body contains '{"data": {"rotation": "test-data"}}'
 
         # Rotate the KMS Key
         When I rotate the KMS encryption key
-        Then The key rotation should succeed
+        Then the key rotation should succeed
 
         # Read data after rotation
-        When I send a get to '/v1/topic'
+        When I send a get to '/v1/topics'
         Then I should recieve a successful response
-        Then The response body contain body '{"data": {"rotation": "test-data"}}'
+        Then the response body contains '{"data": {"rotation": "test-data"}}'
 
         # cleanup
         When I send a delete to '/v1/topics'
