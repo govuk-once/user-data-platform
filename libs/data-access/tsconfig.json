@@ -4,7 +4,6 @@
     "composite": false,
     "declaration": true,
     "outDir": "../../dist/libs/data-access",
-    "rootDir": ".",
     "types": ["node"]
   },
   "include": ["**/*.ts", "index.ts"],
