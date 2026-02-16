@@ -1,4 +1,5 @@
 import { ApiKey, RestApi, UsagePlan } from 'aws-cdk-lib/aws-apigateway';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import {
   AwsCustomResource,
   AwsCustomResourcePolicy,
@@ -90,9 +91,13 @@ export class ConsumerUsagePlanConstruct extends Construct {
             },
             physicalResourceId: PhysicalResourceId.of(apiKey.keyId),
           },
-          policy: AwsCustomResourcePolicy.fromSdkCalls({
-            resources: AwsCustomResourcePolicy.ANY_RESOURCE,
-          }),
+          policy: AwsCustomResourcePolicy.fromStatements([
+            new PolicyStatement({
+              effect: Effect.ALLOW,
+              actions: ['apigateway.GET'],
+              resources: [`arn:aws:apigateway:*::/apikeys/*`],
+            }),
+          ]),
         },
       );
       getApiKeyResource.node.addDependency(apiKey);
