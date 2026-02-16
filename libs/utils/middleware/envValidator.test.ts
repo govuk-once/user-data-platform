@@ -7,11 +7,8 @@ import {
   RequestWithEnv,
 } from './envValidator';
 import { APIGatewayProxyResult, Context } from 'aws-lambda';
-import {
-  Logger,
-  MissingEnvironmentVariablesError,
-  UDP_ERROR_TYPES,
-} from '@libs/utils';
+import { MissingEnvironmentVariablesError, UDP_ERROR_TYPES } from '../Errors';
+import { Logger } from '../logger/Logger';
 
 const createMockContext = (): Context => ({
   callbackWaitsForEmptyEventLoop: true,

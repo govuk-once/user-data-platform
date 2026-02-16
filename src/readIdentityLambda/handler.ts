@@ -7,14 +7,12 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-} from '@libs/utils';
-import {
   createEnvValidator,
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
-} from '@libs/middleware';
-import type { ReadIdentityResponse } from '@libs/schemas';
+  ReadIdentityResponse
+} from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],

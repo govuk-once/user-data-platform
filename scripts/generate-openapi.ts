@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'yaml';
-import { generateOpenApiDocument } from '../libs/schemas/openApi/opeanApiRegistry';
+import { generateOpenApiDocument } from '../libs/utils/schemas/openApi/opeanApiRegistry';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

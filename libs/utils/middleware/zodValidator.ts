@@ -1,9 +1,9 @@
-import { BaseUDPError, UDP_ERROR_TYPES, ZodValidationError } from '@libs/utils';
 import type { MiddlewareObj, Request } from '@middy/core';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { z, ZodError } from 'zod';
-import { Logger } from '@libs/utils';
-import { RouteConfig, routes } from '@libs/schemas';
+import { BaseUDPError, UDP_ERROR_TYPES, ZodValidationError } from '../Errors';
+import { RouteConfig, routes } from '../schemas';
+import { Logger } from '../logger/Logger';
 
 type ResponseSchemaConfig<TResponse> = {
   statusCode: number;

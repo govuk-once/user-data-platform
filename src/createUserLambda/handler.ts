@@ -8,13 +8,12 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-} from '@libs/utils';
-import {
   createEnvValidator,
   udpErrorHandling,
   zodValidator,
-} from '@libs/middleware';
-import type { CreateUserRequest, CreateUserResponse } from '@libs/schemas';
+  CreateUserRequest,
+  CreateUserResponse
+} from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],

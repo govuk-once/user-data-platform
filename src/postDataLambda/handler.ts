@@ -7,13 +7,11 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
-} from '@libs/utils';
-import {
   createEnvValidator,
   udpErrorHandling,
   zodValidator,
-} from '@libs/middleware';
-import type { PostDataResponse } from '@libs/schemas';
+  PostDataResponse
+} from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;

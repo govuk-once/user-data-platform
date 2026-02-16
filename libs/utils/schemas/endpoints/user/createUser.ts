@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import {
   defaultSucccessResponseSchema,
   DefaultSuccessResponse,
-} from 'libs/schemas/defaults/success';
+} from 'libs/utils/schemas/defaults/success';
 import z from 'zod';
 
 extendZodWithOpenApi(z);

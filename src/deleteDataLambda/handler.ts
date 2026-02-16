@@ -7,13 +7,11 @@ import {
   injectLambdaContext,
   getTracer,
   captureLambdaHandler,
-} from '@libs/utils';
-import {
   createEnvValidator,
   udpErrorHandling,
   zodValidator,
-} from '@libs/middleware';
-import type { DeleteDataResponse } from '@libs/schemas';
+  DeleteDataResponse
+} from '@libs/utils';
 
 const serviceName = 'udpDeleteData';
 const { STACK: stack } = process.env;

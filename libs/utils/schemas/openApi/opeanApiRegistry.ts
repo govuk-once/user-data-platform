@@ -6,7 +6,7 @@ import type { RouteConfig } from '../routes/types';
 import { routes } from '../routes/routes';
 import { OpenAPIObject } from '@asteasolutions/zod-to-openapi/dist/types';
 import { RouteParameter } from '@asteasolutions/zod-to-openapi/dist/openapi-registry';
-import { version } from '../../../package.json';
+import { version } from '../../../../package.json';
 
 export const registry = new OpenAPIRegistry();
 

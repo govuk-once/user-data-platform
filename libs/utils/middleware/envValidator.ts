@@ -1,11 +1,7 @@
 import middy from '@middy/core';
 import type { Context } from 'aws-lambda';
-import {
-  Logger,
-  BaseUDPError,
-  MissingEnvironmentVariablesError,
-  UDP_ERROR_TYPES,
-} from '@libs/utils';
+import { Logger } from '../logger/Logger';
+import { BaseUDPError, MissingEnvironmentVariablesError, UDP_ERROR_TYPES } from '../Errors';
 
 export type OptionalEnvConfig<T extends string = string> = {
   [K in T]: string;

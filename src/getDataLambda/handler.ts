@@ -6,14 +6,12 @@ import {
   getTracer,
   captureLambdaHandler,
   injectLambdaContext,
-} from '@libs/utils';
-import {
   createEnvValidator,
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
-} from '@libs/middleware';
-import type { GetDataResponse } from '@libs/schemas';
+  GetDataResponse
+} from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpGetData' } = process.env;
