@@ -10,7 +10,7 @@ import {
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
-  GetDataResponse
+  GetDataResponse,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 

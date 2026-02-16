@@ -10,7 +10,7 @@ import {
   createEnvValidator,
   udpErrorHandling,
   zodValidator,
-  DeleteIdentityResponse
+  DeleteIdentityResponse,
 } from '@libs/utils';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =

@@ -12,7 +12,7 @@ import {
   udpErrorHandling,
   zodValidator,
   CreateUserRequest,
-  CreateUserResponse
+  CreateUserResponse,
 } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({

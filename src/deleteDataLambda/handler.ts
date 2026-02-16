@@ -10,7 +10,7 @@ import {
   createEnvValidator,
   udpErrorHandling,
   zodValidator,
-  DeleteDataResponse
+  DeleteDataResponse,
 } from '@libs/utils';
 
 const serviceName = 'udpDeleteData';

@@ -7,8 +7,5 @@
     "rootDir": "."
   },
   "include": ["**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "../../dist/libs/**"
-  ]
+  "exclude": ["node_modules", "../../dist/libs/**"]
 }

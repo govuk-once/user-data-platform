@@ -1,8 +1,18 @@
 import type { MiddlewareObj, Request } from '@middy/core';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { Logger } from '../logger/Logger';
-import { BaseUDPError, DataRecordNotFoundError, IdentityRecordNotFoundError, ZodValidationError } from '../Errors';
-import { BadRequestResponse, DataNotFoundResponse, IdentityNotFoundResponse, InternalServerErrorResponse } from '../schemas';
+import {
+  BaseUDPError,
+  DataRecordNotFoundError,
+  IdentityRecordNotFoundError,
+  ZodValidationError,
+} from '../Errors';
+import {
+  BadRequestResponse,
+  DataNotFoundResponse,
+  IdentityNotFoundResponse,
+  InternalServerErrorResponse,
+} from '../schemas';
 
 type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
 

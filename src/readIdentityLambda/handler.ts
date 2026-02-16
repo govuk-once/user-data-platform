@@ -11,7 +11,7 @@ import {
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
-  ReadIdentityResponse
+  ReadIdentityResponse,
 } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
