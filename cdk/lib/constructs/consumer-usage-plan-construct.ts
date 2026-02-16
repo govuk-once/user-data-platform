@@ -94,7 +94,7 @@ export class ConsumerUsagePlanConstruct extends Construct {
           policy: AwsCustomResourcePolicy.fromStatements([
             new PolicyStatement({
               effect: Effect.ALLOW,
-              actions: ['apigateway.GET'],
+              actions: ['apigateway:GET'],
               resources: [`arn:aws:apigateway:*::/apikeys/*`],
             }),
           ]),
