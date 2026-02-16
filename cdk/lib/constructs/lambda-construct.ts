@@ -198,7 +198,14 @@ export class LambdaApiConstruct extends Construct {
             }
           : undefined,
         apiKeyRequired: true,
+        requestParameters: useCacheing
+          ? {
+              'method.request.header.requesting-service': false,
+              'method.request.header.requesting-service-user-id': false,
+            }
+          : undefined,
       });
+      
     }
   }
 }
