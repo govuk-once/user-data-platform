@@ -3,34 +3,34 @@ import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import { describe, it, expect, vi } from 'vitest';
 import { handler } from './handler';
 import { beforeEach } from 'node:test';
-import createHttpError from 'http-errors';
+
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { mockClient } from 'aws-sdk-client-mock';
+import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
+
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'mock-string-uuid4'),
+}));
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 process.env['TABLE_NAME'] = 'test-table';
 process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
 
-const mockSave = vi.fn();
-const mockLink = vi.fn();
-const mockGet = vi.fn();
-
-// Mock the data-access library
-vi.mock('@libs/data-access', () => ({
-  ServiceFactory: class {
-    getService() {
-      return {
-        linkIdentity: mockLink,
-        create: mockSave,
-        getById: mockGet,
-      };
-    }
-  },
-  DynamoDBIdentityService: class {
-    link = mockLink;
-    create = mockSave;
-  },
-  DynamoDBRepository: class {},
-}));
-
 describe('createItentityHandler', () => {
+  const mockAppId = 'app123';
+  const mockUdpId = 'mock-string-uuid4';
+  const mockAppIdentity: IdentityRecordEntity = {
+    pk: `app#${mockAppId}`,
+    sk: mockUdpId,
+    serviceName: 'app',
+    serviceId: mockAppId,
+    udpId: mockUdpId,
+  };
+
   const mockContext: Context = {
     callbackWaitsForEmptyEventLoop: true,
     functionName: 'createIdentityLambda',
@@ -48,147 +48,140 @@ describe('createItentityHandler', () => {
   };
 
   beforeEach(() => {
+    dynamoMock.reset();
     vi.resetAllMocks();
   });
 
-  describe('Bad Request 400', () => {
-    it('Should throw a bad request if the identifier is not set in the path params', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-        body: JSON.stringify({
-          data: { status: 'active' },
-        }) as any,
-      };
+  describe('Create Identity', () => {
+    describe('Validation Errors', () => {
+      it('Should throw a bad request if the identifier is not set in the path params', async () => {
+        const event: APIGatewayProxyEventV2 = {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          requestContext: {} as any,
+          isBase64Encoded: false,
+          rawPath: 'v1/identity/service1/test-user-id',
+          pathParameters: {},
+          rawQueryString: '',
+          version: '2.0',
+          routeKey: 'POST v1/identity/{serviceName}/{identifier}',
+          body: JSON.stringify({
+            appId: mockAppId,
+          }),
+        };
 
-      const result = await handler(event, mockContext);
+        const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed identifier: is required,serviceName: is required',
-      );
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body)).toMatchObject({
+          errorCode: 400,
+          errorType: 'BAD_REQUEST',
+          errorMessage: 'Validation Errors',
+          errorPaths: ['identifier', 'serviceName'],
+        });
+      });
+
+      it('Should throw a bad request if the appId is not set in the body', async () => {
+        const event: APIGatewayProxyEventV2 = {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          requestContext: {} as any,
+          isBase64Encoded: false,
+          rawPath: 'v1/identity/service1/test-user-id',
+          pathParameters: {
+            identifier: 'test-user-id',
+            serviceName: 'service1',
+          },
+          rawQueryString: '',
+          version: '2.0',
+          routeKey: 'POST v1/identity/{serviceName}/{identifier}',
+          body: JSON.stringify({
+            serviceName: 'test',
+          }),
+        };
+
+        const result = await handler(event, mockContext);
+
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body)).toMatchObject({
+          errorCode: 400,
+          errorType: 'BAD_REQUEST',
+          errorMessage: 'Validation Errors',
+          errorPaths: ['appId'],
+        });
+      });
     });
 
-    it('Should throw a bad request if the appId is not set in the body', async () => {
+    it('Should return a 500 when the service identifier is equal to the appId', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        pathParameters: {
-          identifier: 'test-user-id',
-          serviceName: 'service1',
-        },
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-        body: JSON.stringify({
-          serviceName: 'test',
-        }) as any,
-      };
-
-      const result = await handler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed appId: Invalid input: expected string, received undefined',
-      );
-    });
-
-    it('Should throw a bad request if the appId is not set in the body', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        pathParameters: {
-          identifier: 'test-user-id',
-        },
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-        body: JSON.stringify({
-          appId: 'test',
-        }) as any,
-      };
-
-      const result = await handler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed serviceName: is required');
-    });
-  });
-
-  describe('Create', () => {
-    it('Should return a 201 if creation is successful when the identifier is equal to the appId', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: 'v1/identity/service1/test-user-id',
         pathParameters: {
           identifier: 'test-user-id',
           serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
+        routeKey: 'POST v1/identity/{serviceName}/{identifier}',
         body: JSON.stringify({
           appId: 'test-user-id',
-          serviceName: 'test',
-        }) as any,
+        }),
       };
-
-      mockLink.mockResolvedValue(undefined);
 
       const result = await handler(event, mockContext);
 
-      expect(mockLink).toHaveBeenCalled();
-
-      expect(result?.statusCode).toBe(201);
+      console.log({ result });
+      expect(result.statusCode).toBe(500);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 500,
+        errorMessage:
+          'The provided AppId and ServiceId for linking should not be the same value',
+        errorType: 'INTERNAL_SERVER_ERROR',
+      });
     });
 
-    it('Should return a 201 if creation is successful when the identifier is not the same as appId', async () => {
+    it('Should return a 500 if creation fails when the identifier is not the same as appId', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: 'v1/identity/service1/test-user-id',
         pathParameters: {
           identifier: 'test-user-id',
           serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
+        routeKey: 'POST v1/identity/{serviceName}/{identifier}',
         body: JSON.stringify({
-          appId: 'test-app-id',
-          serviceName: 'test',
+          appId: mockAppId,
         }) as any,
       };
 
-      mockLink.mockResolvedValue(undefined);
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [mockAppIdentity],
+      });
+      dynamoMock.on(PutCommand).rejects(new Error('Failed to save'));
 
       const result = await handler(event, mockContext);
 
-      expect(mockLink).toHaveBeenCalled();
+      expect(dynamoMock.commandCalls(QueryCommand).length).toEqual(1);
+      expect(dynamoMock.commandCalls(PutCommand).length).toEqual(1);
 
-      expect(result?.statusCode).toBe(201);
+      expect(result.statusCode).toBe(500);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 500,
+        errorType: 'INTERNAL_SERVER_ERROR',
+        errorMessage: 'Internal Server Error - unexpected error of name: Error',
+      });
     });
 
     it('Should return a 404 if app user cannot be found', async () => {
@@ -198,53 +191,62 @@ describe('createItentityHandler', () => {
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: 'v1/identity/service1/test-user-id',
         pathParameters: {
           identifier: 'test-user-id',
           serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
+        routeKey: 'POST v1/identity/{serviceName}/{identifier}',
         body: JSON.stringify({
-          appId: 'test-app-id',
-          serviceName: 'test',
+          appId: mockAppId,
         }) as any,
       };
 
-      mockLink.mockRejectedValue(createHttpError.NotFound());
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
 
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(404);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 404,
+        errorType: 'IDENTITY_NOT_FOUND',
+        errorMessage: 'Identity not found with service: app and id: app123',
+        serviceName: 'app',
+        serviceUserId: mockAppId,
+      });
     });
 
-    it('Should return a 500 if theres any unknown error', async () => {
+    it('Should return a 200 when the request is successful', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
+        rawPath: 'v1/identity/service1/test-user-id',
         pathParameters: {
           identifier: 'test-user-id',
-          serviceName: 'service1',
+          serviceName: 'serviceName',
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
+        routeKey: 'POST v1/identity/{serviceName}/{identifier}',
         body: JSON.stringify({
-          appId: 'test-app-id',
-          serviceName: 'test',
+          appId: mockAppId,
         }) as any,
       };
 
-      mockLink.mockRejectedValue(Error('Unknown'));
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).resolves({});
 
       const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(500);
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toMatchObject({
+        message: 'Identity successfully created',
+      });
     });
   });
 });

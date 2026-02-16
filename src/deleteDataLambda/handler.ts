@@ -1,14 +1,12 @@
 import middy from '@middy/core';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
   getLogger,
   injectLambdaContext,
   getTracer,
   captureLambdaHandler,
-  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import {
   createEnvValidator,

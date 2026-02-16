@@ -30,7 +30,7 @@ export function udpErrorHandling(
       const error = request.error;
 
       if (error instanceof BaseUDPError) {
-        const errorType = error.errorType[error.errorType];
+        const errorType = error.errorType as any;
         const errorMessage = error.message;
         const errorCode = 500;
 
@@ -45,6 +45,7 @@ export function udpErrorHandling(
             statusCode: 400,
             body: responseBody,
           };
+          console.log({ ...request.response });
           return;
         }
 
@@ -91,10 +92,10 @@ export function udpErrorHandling(
         return;
       }
 
-      logger.error((error as Error).message);
+      logger.error(error.message);
       const responseBody: InternalServerErrorResponse = {
         errorCode: 500,
-        errorMessage: `Internal Server Error - unexpected error of name: ${(error as Error).name}`,
+        errorMessage: `Internal Server Error - unexpected error of name: ${error.name}`,
         errorType: UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
       };
       request.response = {

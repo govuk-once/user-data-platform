@@ -27,12 +27,11 @@ export type ZodValidatorOptions<
 type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
 
 const formatZodValidationError = (error: ZodError): ZodValidationError => {
-  let errorMessage = 'Validation Errors: ';
-  let errorPaths: string[];
+  let errorMessage = 'Validation Errors';
+  let errorPaths: string[] = [];
   error.issues.map((issue) => {
     const path = issue.path;
     const pathKey = path.join('.');
-    errorMessage.concat(`${pathKey}: ${issue.message}, `);
     errorPaths.push(pathKey);
   });
   return new ZodValidationError(

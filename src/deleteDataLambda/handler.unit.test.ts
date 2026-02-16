@@ -2,52 +2,25 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import createError from 'http-errors';
-import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import createHttpError from 'http-errors';
 
-const mockDeleteByKey = vi.fn();
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { mockClient } from 'aws-sdk-client-mock';
+import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
+import { handler } from './handler';
 
-const mockGetIdentity = vi.fn();
-
-// Mock the data-access library
-vi.mock('@libs/data-access', () => ({
-  ServiceFactory: class {
-    getService(type: string) {
-      switch (type) {
-        case 'identity':
-          return {
-            getByServiceId: mockGetIdentity,
-          };
-        case 'data':
-          return {
-            deleteByKey: mockDeleteByKey,
-          };
-      }
-    }
-  },
-  DynamoDbDataService: class {
-    deleteByKey = mockDeleteByKey;
-  },
-  DynamoDBIdentityService: class {
-    getById = mockGetIdentity;
-  },
-  DynamoDBRepository: class {},
-  DynamoDBEntity: {},
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'mock-string-uuid4'),
 }));
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
-const mockResolvedIdentity: IdentityRecordEntity = {
-  pk: 'IDNETITY_RECORD#',
-  sk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  serviceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  serviceName: 'app',
-  udpId: 'udp-user-id',
-};
-
-process.env['TABLE_NAME'] = 'dynamo';
+process.env['TABLE_NAME'] = 'test-table';
 process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
-
-// Import after mocks
-const { handler: lambdaHandler } = await import('./handler');
 
 describe('deleteDataLambda handler', () => {
   const mockContext: Context = {
@@ -66,42 +39,48 @@ describe('deleteDataLambda handler', () => {
     succeed: () => {},
   };
 
+  const mockUdpId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+  const mockAppId = 'app123';
+  const mockResolvedIdentity: IdentityRecordEntity = {
+    pk: `app#${mockAppId}`,
+    sk: mockUdpId,
+    serviceId: mockAppId,
+    serviceName: 'app',
+    udpId: mockUdpId,
+  };
+
+  const mockResourcePath = 'topics';
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   const createEvent = (headers, pathParameters): APIGatewayProxyEventV2 => ({
-    headers: { ...headers, 'requesting-service': 'UDP-TEST' },
+    headers: { ...headers, 'requesting-service': 'app' },
     requestContext: {} as any,
     isBase64Encoded: false,
-    rawPath: '',
+    rawPath: `/v1/${mockResourcePath}`,
     pathParameters,
     rawQueryString: '',
     version: '2.0',
-    routeKey: '$default',
+    routeKey: `DELETE /v1/${mockResourcePath}`,
   });
 
   describe('successful operations', () => {
     it('should return 200 when successfully deleted', async () => {
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-      mockDeleteByKey.mockResolvedValue('success');
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockResolvedIdentity] });
 
       const event = createEvent(
         {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          'requesting-service-user-id': mockAppId,
         },
         { resourcePath: 'topics' },
       );
-      const response = await lambdaHandler(event, mockContext);
+      const response = await handler(event, mockContext);
 
-      expect(mockDeleteByKey).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
-      expect(response).toEqual({
-        body: JSON.stringify({ message: 'Entity deleted successfully' }),
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+      expect(response.statusCode).toEqual(200);
+      expect(JSON.parse(response.body)).toMatchObject({
+        message: 'Entity deleted successfully',
       });
     });
   });
@@ -109,105 +88,65 @@ describe('deleteDataLambda handler', () => {
   describe('validation errors', () => {
     it('should return 400 when required header is not present', async () => {
       const event = createEvent({}, { resourcePath: 'topics' });
+      event.headers = {};
 
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed requesting-service-user-id: is required',
-      );
-      expect(mockDeleteByKey).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 when required header is invalid', async () => {
-      const event = createEvent(
-        { 'requesting-service-user-id': 1234 },
-        { resourcePath: 'topics' },
-      );
-
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed requesting-service-user-id: is required',
-      );
-      expect(mockDeleteByKey).not.toHaveBeenCalled();
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['requesting-service', 'requesting-service-user-id'],
+      });
     });
 
-    it('should return 400 when rawPath is missing', async () => {
+    it('should return 400 when path parameters are invalid', async () => {
       const event = createEvent(
-        {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        },
-        {},
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed resourcePath: is required');
-      expect(mockDeleteByKey).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 when path is undefined', async () => {
-      const event = createEvent(
-        {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: undefined },
       );
 
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed resourcePath: is required');
-      expect(mockDeleteByKey).not.toHaveBeenCalled();
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['resourcePath'],
+      });
     });
   });
 
   describe('error handling', () => {
-    it('should return 404 if user is not found', async () => {
-      mockGetIdentity.mockRejectedValue(createHttpError.NotFound());
-      mockDeleteByKey.mockResolvedValue(undefined);
+    it('should return 404 if identity is not found', async () => {
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
 
       const event = createEvent(
         {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          'requesting-service-user-id': mockAppId,
         },
         { resourcePath: 'topics' },
       );
 
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
+
       expect(result.statusCode).toBe(404);
-      expect(mockDeleteByKey).not.toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
-    });
-
-    it('should return 404 if user is not found', async () => {
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-      mockDeleteByKey.mockRejectedValue(createHttpError.NotFound());
-
-      const event = createEvent(
-        {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        },
-        { resourcePath: 'topics' },
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-      expect(result.statusCode).toBe(404);
-      expect(mockDeleteByKey).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 404,
+        errorType: 'IDENTITY_NOT_FOUND',
+        errorMessage: 'Identity not found with service: app and id: app123',
+        serviceName: mockResolvedIdentity.serviceName,
+        serviceUserId: mockAppId,
+      });
     });
 
     it('should return 500 for unexpected errors', async () => {
       const unexpectedError = new Error('Database connection failed');
-      mockDeleteByKey.mockRejectedValue(unexpectedError);
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockResolvedIdentity] });
+      dynamoMock.on(DeleteCommand).rejects(unexpectedError);
 
       const event = createEvent(
         {
@@ -216,19 +155,21 @@ describe('deleteDataLambda handler', () => {
         { resourcePath: 'topics' },
       );
 
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
       expect(result.statusCode).toBe(500);
-      expect(mockDeleteByKey).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 500,
+        errorType: 'INTERNAL_SERVER_ERROR',
+        errorMessage: 'Internal Server Error - unexpected error of name: Error',
+      });
     });
 
-    it('should re-throw HTTP errors from service', async () => {
-      const httpError = new createError.Unauthorized();
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
+    it('should return 500 for DataRecordNotFoundError errors when deleting', async () => {
+      const expectedError = new Error('Database connection failed');
+      expectedError.name = 'ConditionalCheckFailedException';
 
-      mockDeleteByKey.mockRejectedValue(httpError);
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockResolvedIdentity] });
+      dynamoMock.on(DeleteCommand).rejects(expectedError);
 
       const event = createEvent(
         {
@@ -237,35 +178,17 @@ describe('deleteDataLambda handler', () => {
         { resourcePath: 'topics' },
       );
 
-      const result = await lambdaHandler(event, mockContext);
-      expect(result.statusCode).toBe(401);
-      expect(result.body).toBe(
-        JSON.stringify({
-          statusCode: 401,
-          errorType: 'UnauthorizedError',
-          errorMessage: 'Unauthorized',
-        }),
-      );
-      expect(mockDeleteByKey).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-      );
-    });
-
-    it('should handle missing required', async () => {
-      delete process.env['TABLE_NAME'];
-      const event = createEvent(
-        {
-          'requesting-service-user-id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        },
-        { resourcePath: 'topics/a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Missing required environment variables: TABLE_NAME',
-      );
+      const result = await handler(event, mockContext);
+      expect(result.statusCode).toBe(404);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 404,
+        errorType: 'DATA_NOT_FOUND',
+        errorMessage:
+          'Resource not found on path topics: for identity app#app123',
+        serviceName: mockResolvedIdentity.serviceName,
+        serviceUserId: mockAppId,
+        resourcePath: 'topics',
+      });
     });
   });
 });

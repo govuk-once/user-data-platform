@@ -7,7 +7,10 @@ import {
   createIdentityRequestSchema,
   createIdentityResponseSchema,
 } from '../endpoints/identity/createIdentity';
-import { CreateUserResponseSchema } from '../endpoints/user/createUser';
+import {
+  createUserRequestSchema,
+  CreateUserResponseSchema,
+} from '../endpoints/user/createUser';
 import type { RouteConfig } from './types';
 import { readIdentityResponseSchema } from '../endpoints/identity/readIdentity';
 import { deleteIdentityResponseSchema } from '../endpoints/identity/deleteIdentity';
@@ -46,7 +49,7 @@ export const routes: Record<string, RouteConfig> = {
     summary: 'Create User Record',
     description: 'Create User Record',
     tags: ['user'],
-    body: CreateUserResponseSchema,
+    body: createUserRequestSchema,
     successResponses: [
       {
         status: 200,

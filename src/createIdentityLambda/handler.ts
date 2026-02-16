@@ -8,7 +8,6 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  BaseUDPError,
 } from '@libs/utils';
 import {
   createEnvValidator,
@@ -62,7 +61,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   return {
     statusCode: 200,
     body: {
-      message: 'Identity Successfully created',
+      message: 'Identity successfully created',
     } satisfies CreateIdentityResponse,
   };
 };

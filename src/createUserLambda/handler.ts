@@ -58,7 +58,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     return {
       statusCode: 200,
       body: {
-        message: 'User Successfully Created',
+        message: 'User successfully created',
       } satisfies CreateUserResponse,
     };
   }
