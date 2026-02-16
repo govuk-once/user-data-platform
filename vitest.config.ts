@@ -11,6 +11,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: 'v8',
+      reportsDirectory: './coverage',
       reporter: ['text'],
     },
   },
