@@ -226,7 +226,7 @@ export const routes: Record<string, RouteConfig> = {
       },
     ],
   },
-  readData: {
+  getData: {
     name: 'getData',
     dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],

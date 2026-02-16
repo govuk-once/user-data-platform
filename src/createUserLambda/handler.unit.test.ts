@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './handler';
-import { beforeEach } from 'node:test';
 
 import {
   DynamoDBDocumentClient,

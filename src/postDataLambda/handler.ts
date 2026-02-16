@@ -2,13 +2,11 @@ import middy from '@middy/core';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import {
   injectLambdaContext,
   getLogger,
   getTracer,
   captureLambdaHandler,
-  generateErrorResponseFromHttpError,
 } from '@libs/utils';
 import {
   createEnvValidator,
@@ -17,7 +15,6 @@ import {
 } from '@libs/middleware';
 import type { PostDataResponse } from '@libs/schemas';
 import { ServiceFactory } from '@libs/data-access';
-import createHttpError from 'http-errors';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
 

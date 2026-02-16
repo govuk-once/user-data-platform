@@ -13,8 +13,6 @@ import {
 import { Repository } from '../repositories/Repository';
 import { v4 as uuidv4 } from 'uuid';
 
-const PK_CONSTANT = 'IDENTITY_RECORD#';
-
 /**
  * Service class for DynamoDB Identity entity operations with business logic.
  * Provides a higher-level API with validation, transformation, and orchestration.

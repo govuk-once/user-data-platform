@@ -1,22 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
-import createError from 'http-errors';
-import createHttpError from 'http-errors';
 
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
-  PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import { handler } from './handler';
 
-vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'mock-string-uuid4'),
-}));
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 process.env['TABLE_NAME'] = 'test-table';
@@ -52,6 +46,7 @@ describe('deleteDataLambda handler', () => {
   const mockResourcePath = 'topics';
 
   beforeEach(() => {
+    dynamoMock.reset();
     vi.clearAllMocks();
   });
 
@@ -98,6 +93,23 @@ describe('deleteDataLambda handler', () => {
         errorType: 'BAD_REQUEST',
         errorMessage: 'Validation Errors',
         errorPaths: ['requesting-service', 'requesting-service-user-id'],
+      });
+    });
+
+    it('should return 400 when required header is invalid', async () => {
+      const event = createEvent(
+        { 'requesting-service-user-id': 123 },
+        { resourcePath: 'topics' },
+      );
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['requesting-service-user-id'],
       });
     });
 
@@ -164,7 +176,7 @@ describe('deleteDataLambda handler', () => {
       });
     });
 
-    it('should return 500 for DataRecordNotFoundError errors when deleting', async () => {
+    it('should return 500 for condition errors when deleting', async () => {
       const expectedError = new Error('Database connection failed');
       expectedError.name = 'ConditionalCheckFailedException';
 

@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import { describe, beforeEach, it, expect } from 'vitest';
 import { DynamoDbDataService } from './DynamoDbDataService';
 import { ServiceFactory } from '../factory/ServiceFactory';
@@ -172,16 +174,11 @@ describe('DynamoDb Data Service', () => {
   });
 
   describe('Delete by Key', () => {
-    /*
-      Happy delete
-      Condition check fail - data not found
-      error propagates
-    */
-
     it('should successfully delete a valid entity', async () => {
       dynamoMock.on(DeleteCommand).resolves({});
 
       const response = await service.deleteByKey(mockIdentity, mockResource);
+      expect(response).toBeTruthy();
       expect(getCommandCall(DeleteCommand, 1)).toMatchObject(
         expect.objectContaining({
           TableName: tableName,

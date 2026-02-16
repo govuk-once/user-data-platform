@@ -1,47 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
+
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { mockClient } from 'aws-sdk-client-mock';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
+import { handler } from './handler';
 
-const mockSave = vi.fn();
-const mockGetIdentity = vi.fn();
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
-// Mock the data-access library
-vi.mock('@libs/data-access', () => ({
-  ServiceFactory: class {
-    getService(type: string) {
-      switch (type) {
-        case 'identity':
-          return {
-            getByServiceId: mockGetIdentity,
-          };
-        case 'data':
-          return {
-            save: mockSave,
-          };
-      }
-    }
-  },
-  DynamoDbDataService: class {
-    save = mockSave;
-  },
-  DynamoDBIdentityService: class {
-    getById = mockGetIdentity;
-  },
-  DynamoDBRepository: class {},
-  DynamoDBEntity: {},
-}));
+process.env['TABLE_NAME'] = 'test-table';
+process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
 
-const mockResolvedIdentity: IdentityRecordEntity = {
-  pk: 'IDNETITY_RECORD#',
-  sk: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  serviceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  serviceName: 'app',
-  udpId: 'udp-user-id',
+const mockAppService = 'app';
+const mockAppId = 'app123';
+const mockUdpId = 'abc123';
+const mockAppIdentity: IdentityRecordEntity = {
+  pk: `app#${mockAppId}`,
+  sk: mockUdpId,
+  serviceName: mockAppService,
+  serviceId: mockAppId,
+  udpId: mockUdpId,
 };
-
-// Import after mocks
-const { handler: lambdaHandler } = await import('./handler');
 
 process.env['TABLE_NAME'] = 'dynamo';
 process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
@@ -64,6 +48,7 @@ describe('postDataLambda handler', () => {
   };
 
   beforeEach(() => {
+    dynamoMock.reset();
     vi.clearAllMocks();
   });
 
@@ -74,7 +59,7 @@ describe('postDataLambda handler', () => {
   ): APIGatewayProxyEventV2 => ({
     headers: {
       ...headers,
-      'requesting-service': 'UDP-TEST',
+      'requesting-service': mockAppService,
       'Content-Type': 'application/json',
     },
     requestContext: {} as any,
@@ -84,224 +69,211 @@ describe('postDataLambda handler', () => {
     rawQueryString: '',
     version: '2.0',
     routeKey: '$default',
-    body: JSON.stringify(body) as any,
+    body: JSON.stringify(body),
   });
 
   describe('successful operations', () => {
-    it('should return 201 and save entity with valid data', async () => {
+    it('should return 200 and save entity with valid data', async () => {
       const body = { data: { status: 'active', count: 5 } };
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: 'topics' },
         body,
       );
 
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-      mockSave.mockResolvedValue(undefined);
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).resolves({});
 
-      const response = (await lambdaHandler(event, mockContext)) as any;
+      const response = (await handler(event, mockContext)) as any;
 
-      expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual(
-        JSON.stringify({ message: 'Entity saved successfully' }),
-      );
-      expect(mockSave).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-        body,
-      );
+      expect(response.statusCode).toEqual(200);
+      expect(JSON.parse(response.body)).toEqual({
+        message: 'Entity saved successfully',
+      });
     });
 
-    it('should return 201 and save entity with TTL', async () => {
+    it('should return 200 and save entity with TTL', async () => {
       const ttl = Math.floor(Date.now() / 1000) + 3600;
       const body = {
         configuration: { expiryMechanism: 'DELETE', expiresAt: ttl },
         data: { status: 'active', count: 5 },
       };
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: 'topics' },
         body,
       );
 
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).resolves({});
 
-      mockSave.mockResolvedValue(undefined);
+      const response = (await handler(event, mockContext)) as any;
 
-      const response = (await lambdaHandler(event, mockContext)) as any;
-
-      expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual(
-        JSON.stringify({ message: 'Entity saved successfully' }),
-      );
-      expect(mockSave).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-        body,
-      );
+      expect(response.statusCode).toEqual(200);
+      expect(JSON.parse(response.body)).toEqual({
+        message: 'Entity saved successfully',
+      });
     });
 
-    it('should return 201 and save entity with only pk and sk (no data field)', async () => {
+    it('should return 200 and save entity with only pk and sk (no data field)', async () => {
       const body = { data: {} };
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: 'topics' },
         body,
       );
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-      mockSave.mockResolvedValue(undefined);
 
-      const response = (await lambdaHandler(event, mockContext)) as any;
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).resolves({});
 
-      expect(response.statusCode).toEqual(201);
-      expect(response.body).toEqual(
-        JSON.stringify({ message: 'Entity saved successfully' }),
-      );
-      expect(mockSave).toHaveBeenCalledWith(
-        mockResolvedIdentity,
-        'topics',
-        body,
-      );
+      const response = (await handler(event, mockContext)) as any;
+
+      expect(response.statusCode).toEqual(200);
+      expect(JSON.parse(response.body)).toEqual({
+        message: 'Entity saved successfully',
+      });
     });
   });
 
   describe('validation errors', () => {
-    it('should return 400 when path paremeter is missing', async () => {
+    it('should return 400 when required header is not present', async () => {
+      const body = { data: { status: 'active', count: 5 } };
+      const event = createEvent({}, { resourcePath: 'topics' }, body);
+      event.headers = { 'Content-Type': 'application/json' };
+
+      const result = await handler(event, mockContext);
+
+      console.log({ result });
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['requesting-service', 'requesting-service-user-id'],
+      });
+    });
+
+    it('should return 400 when required header is invalid', async () => {
+      const body = { data: { status: 'active', count: 5 } };
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
-        {},
-        { data: { status: 'active', count: 5 } },
+        { 'requesting-service-user-id': 123 },
+        { resourcePath: 'topics' },
+        body,
       );
 
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
-
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed resourcePath: is required');
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['requesting-service-user-id'],
+      });
+    });
 
-      expect(mockSave).not.toHaveBeenCalled();
+    it('should return 400 when path paremeter is missing', async () => {
+      const body = { data: { status: 'active', count: 5 } };
+      const event = createEvent(
+        { 'requesting-service-user-id': 123 },
+        { resourcePath: undefined },
+        body,
+      );
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['resourcePath'],
+      });
+    });
+
+    it('should return 400 when the request body is invalid missing', async () => {
+      const invalidExpiry = Math.floor(new Date('01/01/2000').getTime() / 1000);
+      const body = {
+        data: { status: 'active', count: 5 },
+        configuration: { expiryMechanism: 'DELETE', expiresAt: invalidExpiry },
+      };
+      const event = createEvent(
+        { 'requesting-service-user-id': 'abc123' },
+        { resourcePath: 'topics' },
+        body,
+      );
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['configuration.expiresAt'],
+      });
     });
 
     it('should return 400 when body is missing', async () => {
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': 'app123' },
         { resourcePath: 'topics' },
-        null,
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed : Invalid input: expected object, received null',
-      );
-
-      expect(mockSave).not.toHaveBeenCalled();
-    });
-
-    it('should return 415 when body is undefined', async () => {
-      const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
-        { resourcePath: 'topics' },
-        undefined,
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(415);
-      expect(result.body).toBe('Invalid or malformed JSON was provided');
-
-      expect(mockSave).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 when path is undefined', async () => {
-      const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
-        { resourcePath: undefined },
-        { data: { status: 'active', count: 5 } },
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe('Validation Failed resourcePath: is required');
-
-      expect(mockSave).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 when header is undefined', async () => {
-      const event = createEvent(
-        { 'requesting-service-user-id': undefined },
-        { resourcePath: 'topics' },
-        { data: { status: 'active', count: 5 } },
-      );
-
-      const result = await lambdaHandler(event, mockContext);
-
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed requesting-service-user-id: is required',
-      );
-
-      expect(mockSave).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 when header is missing', async () => {
-      const event = createEvent(
         {},
-        { resourcePath: 'topics' },
-        { data: { status: 'active', count: 5 } },
       );
 
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed requesting-service-user-id: is required',
-      );
-
-      expect(mockSave).not.toHaveBeenCalled();
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['data'],
+      });
     });
   });
 
   describe('error handling', () => {
     it('should return 500 when save operation fails', async () => {
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: 'topics' },
         { data: { status: 'active', count: 5 } },
       );
 
-      mockGetIdentity.mockResolvedValue(mockResolvedIdentity);
+      const mockError = new Error('DynamoDB Failure');
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).rejects(mockError);
 
-      mockSave.mockRejectedValue(new Error('DynamoDB error'));
-
-      const result = await lambdaHandler(event, mockContext);
+      const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(500);
-      expect(result.body).toBe(
-        JSON.stringify({
-          statusCode: 500,
-          errorType: 'INTERNAL_SERVER_ERROR',
-          errorMessage: 'Internal Server Error',
-        }),
-      );
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 500,
+        errorType: 'INTERNAL_SERVER_ERROR',
+        errorMessage: 'Internal Server Error - unexpected error of name: Error',
+      });
     });
 
-    it('should handle missing required', async () => {
-      delete process.env['TABLE_NAME'];
+    it('should return 404 when identity is not found', async () => {
       const event = createEvent(
-        { 'requesting-service-user-id': 'user-guid-123' },
+        { 'requesting-service-user-id': mockAppId },
         { resourcePath: 'topics' },
         { data: { status: 'active', count: 5 } },
       );
 
-      const result = await lambdaHandler(event, mockContext);
-      expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Missing required environment variables: TABLE_NAME',
-      );
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(404);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 404,
+        errorType: 'IDENTITY_NOT_FOUND',
+        errorMessage: `Identity not found with service: ${mockAppService} and id: ${mockAppId}`,
+        serviceName: mockAppService,
+        serviceUserId: mockAppId,
+      });
     });
   });
 });

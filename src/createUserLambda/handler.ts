@@ -2,7 +2,6 @@ import middy from '@middy/core';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
   getTracer,

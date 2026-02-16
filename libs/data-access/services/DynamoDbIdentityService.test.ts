@@ -1,16 +1,16 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 import {
   CreateUserInput,
   IdentityInput,
   IdentityRecordEntity,
 } from '../types/Entity';
-import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { DynamoDBIdentityService } from './DynamoDbIdentityService';
 import { mockClient } from 'aws-sdk-client-mock';
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
-  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -197,7 +197,6 @@ describe('Identity Service', () => {
         serviceId: 'test-service-id',
         serviceName: 'test-service',
       };
-      const pk = `app#${input.appId}`;
 
       dynamoMock.on(QueryCommand).resolves({
         Items: [mockAppIdentityRecord],

@@ -1,7 +1,6 @@
 import {
   BaseUDPError,
   DataRecordNotFoundError,
-  IdentityLinkingInvalidIdentitesError,
   IdentityRecordNotFoundError,
   Logger,
   UDP_ERROR_TYPES,
@@ -30,16 +29,15 @@ export function udpErrorHandling(
       const error = request.error;
 
       if (error instanceof BaseUDPError) {
-        const errorType = error.errorType as any;
         const errorMessage = error.message;
         const errorCode = 500;
 
         if (error instanceof ZodValidationError) {
           const responseBody: BadRequestResponse = {
             errorCode: 400,
-            errorType,
             errorMessage,
             errorPaths: error.errorPaths,
+            errorType: 'BAD_REQUEST',
           };
           request.response = {
             statusCode: 400,
@@ -52,10 +50,10 @@ export function udpErrorHandling(
         if (error instanceof IdentityRecordNotFoundError) {
           const responseBody: IdentityNotFoundResponse = {
             errorCode: 404,
-            errorType,
             errorMessage,
             serviceName: error.serviceName,
             serviceUserId: error.serviceUserId,
+            errorType: 'IDENTITY_NOT_FOUND',
           };
           request.response = {
             statusCode: 404,
@@ -67,11 +65,11 @@ export function udpErrorHandling(
         if (error instanceof DataRecordNotFoundError) {
           const responseBody: DataNotFoundResponse = {
             errorCode: 404,
-            errorType,
             errorMessage,
             serviceName: error.serviceName,
             serviceUserId: error.serviceUserId,
             resourcePath: error.resourcePath,
+            errorType: 'DATA_NOT_FOUND',
           };
           request.response = {
             statusCode: 404,
@@ -83,7 +81,7 @@ export function udpErrorHandling(
         const responseBody: InternalServerErrorResponse = {
           errorCode,
           errorMessage,
-          errorType,
+          errorType: 'INTERNAL_SERVER_ERROR',
         };
         request.response = {
           statusCode: 500,
