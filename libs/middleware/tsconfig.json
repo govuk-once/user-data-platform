@@ -4,7 +4,7 @@
     "composite": false,
     "declaration": true,
     "outDir": "../../dist/libs/middleware",
-    "rootDir": "."
+    "rootDir": ".",
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "../../dist/libs/**"]

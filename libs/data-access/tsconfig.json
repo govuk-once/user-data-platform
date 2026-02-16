@@ -1,11 +1,12 @@
 {
   "extends": "../../tsconfig.base",
   "compilerOptions": {
-    "outDir": "../../dist/libs/data-access",
-    "types": ["node"],
     "composite": false,
-    "declaration": true
+    "declaration": true,
+    "outDir": "../../dist/libs/data-access",
+    "rootDir": ".",
+    "types": ["node"]
   },
   "include": ["**/*.ts", "index.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "../../dist/libs/**"]
 }

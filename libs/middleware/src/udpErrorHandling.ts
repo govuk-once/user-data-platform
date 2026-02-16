@@ -3,7 +3,6 @@ import {
   DataRecordNotFoundError,
   IdentityRecordNotFoundError,
   Logger,
-  UDP_ERROR_TYPES,
   ZodValidationError,
 } from '@libs/utils';
 import {
@@ -94,7 +93,7 @@ export function udpErrorHandling(
       const responseBody: InternalServerErrorResponse = {
         errorCode: 500,
         errorMessage: `Internal Server Error - unexpected error of name: ${error.name}`,
-        errorType: UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        errorType: 'INTERNAL_SERVER_ERROR',
       };
       request.response = {
         statusCode: 500,
