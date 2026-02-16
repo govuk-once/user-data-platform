@@ -19,7 +19,6 @@
   "exclude": ["node_modules", "dist", "cdk.out"],
   "paths": {
     "@libs/data-access": ["libs/data-access/index.ts"],
-    "@libs/schemas": ["libs/schemas/index.ts"],
     "@libs/utils": ["libs/utils/index.ts"],
     "@libs/*": ["libs/*/src"],
     "@modules/*": ["modules/*/src"]
