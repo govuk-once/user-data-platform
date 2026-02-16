@@ -24,8 +24,17 @@ import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { IRole } from 'aws-cdk-lib/aws-iam';
 import {
   IamConsumerConfig,
-  IamConumerConstruct,
+  IamConsumerConstruct,
 } from '../constructs/iam-consumer-construct';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import {
+  environmentLongNames,
+  GovUkOnceEnvironments,
+} from 'cdk/constants/environment';
+import {
+  ConsumerThrottleConfig,
+  ConsumerUsagePlanConstruct,
+} from '../constructs/consumer-usage-plan-construct';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -41,8 +50,6 @@ export interface MainStackProps extends StackProps {
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
   availabilityZones?: string[];
-  externalConsumers?: Record<string, ExternalConsumerConfig>;
-  consumerVpcEndpointIds?: string[];
 }
 
 export class MainStack extends Stack {
@@ -56,6 +63,7 @@ export class MainStack extends Stack {
   public readonly appConfigProfileId: string;
   public readonly e2eTestConsumerSecret?: ISecret;
   public readonly e2eTestConsumerRole?: IRole;
+  public readonly e2eTestConsumerApiKeyValue?: string;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -71,14 +79,29 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
-      consumerVpcEndpointIds = [],
-      externalConsumers = {},
     } = props;
+
+    const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
+    const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
+
+    let externalConsumers: Record<
+      string,
+      ExternalConsumerConfig & { vpcEndpointId?: string }
+    > = {};
+    try {
+      externalConsumers = JSON.parse(ssmValue);
+    } catch {}
+
+    const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
+      .map((c) => c.vpcEndpointId)
+      .filter((id): id is string => !!id);
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
     cdk.Tags.of(this).add('TeamName', teamName || 'UnknownTeam');
     cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
+
+    const cachingEnabled = environment !== GovUkOnceEnvironments.Dev;
 
     const kmsConstruct = new KmsConstruct(this, 'Kms', {
       developerId,
@@ -143,7 +166,7 @@ export class MainStack extends Stack {
         : [],
       crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
-      cachingEnabled: environment !== 'dev' ? true : false,
+      cachingEnabled,
     });
 
     this.api = apiGateway.api;
@@ -185,6 +208,7 @@ export class MainStack extends Stack {
         },
         vpc,
         securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+        cachingEnabled,
       });
 
       lambdasList.push(lambda.function);
@@ -199,6 +223,10 @@ export class MainStack extends Stack {
       },
     };
 
+    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
+      test: { rateLimit: 50, burstLimit: 100 },
+    };
+
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
@@ -208,15 +236,28 @@ export class MainStack extends Stack {
         externalId: consumerConfig.externalId,
         description: consumerConfig.description,
       };
+
+      consumerthrottleConfigs[consumerName] = {
+        rateLimit: consumerConfig.rateLimit,
+        burstLimit: consumerConfig.burstLimit,
+      };
     }
 
-    const iamConsumers = new IamConumerConstruct(this, 'IamConsumers', {
+    const iamConsumers = new IamConsumerConstruct(this, 'IamConsumers', {
       developerId,
       environment,
       api: this.api,
       consumers: IamConsumerConfigs,
     });
 
+    const usagePlans = new ConsumerUsagePlanConstruct(this, `UsagePlans`, {
+      developerId,
+      environment,
+      api: this.api,
+      consumers: consumerthrottleConfigs,
+    });
+
+    this.e2eTestConsumerApiKeyValue = usagePlans.apiKeyValues.get('test');
     this.e2eTestConsumerRole = iamConsumers.consumerRoles.get('test');
 
     if (Object.keys(externalConsumers).length > 0) {
@@ -231,6 +272,7 @@ export class MainStack extends Stack {
           consumerRoles: iamConsumers.consumerRoles,
           externalConsumers,
           apiUrl: this.api.url,
+          apiKeyValues: usagePlans.apiKeyValues,
         },
       );
 

@@ -33,46 +33,6 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
-const externalConsumersFromContext: Record<
-  string,
-  {
-    accountId: string;
-    description?: string;
-    permissions: ('read' | 'write' | 'delete')[];
-    externalId: string;
-    vpcEndpointId: string;
-  }
-> = (() => {
-  const envSpecificKey = `externalConsumers:${environment}`;
-  const ctx =
-    app.node.tryGetContext(envSpecificKey) ||
-    app.node.tryGetContext('externalConsumers');
-  if (!ctx) return {};
-  if (typeof ctx === 'object' && !Array.isArray(ctx)) return ctx;
-  try {
-    return JSON.parse(ctx);
-  } catch {
-    return {};
-  }
-})();
-
-const externalConsumers: Record<
-  string,
-  {
-    accountId: string;
-    description?: string;
-    permissions: ('read' | 'write' | 'delete')[];
-    externalId: string;
-    vpcEndpointId: string;
-  }
-> = {
-  ...externalConsumersFromContext,
-};
-
-const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
-  .map((c) => c.vpcEndpointId)
-  .filter((id) => !!id);
-
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
@@ -96,9 +56,6 @@ if (!skipMainStack) {
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
-    externalConsumers,
-    consumerVpcEndpointIds,
-
     ...repoMetaData,
   });
 
@@ -138,6 +95,7 @@ if (!skipMainStack) {
     apiId: mainStack.api.restApiId,
     identityTableName: mainStack.identityTable.tableName,
     kmsKeyArn: mainStack.kmsKey.keyArn,
+    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
   });
 
   e2eStack.addDependency(mainStack);

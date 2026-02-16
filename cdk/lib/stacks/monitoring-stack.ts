@@ -10,12 +10,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import crypto from 'crypto';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
-
-function hash(string: string) {
-  return crypto.createHash('md5').update(string).digest('hex').slice(0, 16);
-}
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -41,7 +36,7 @@ export class MonitoringStack extends Stack {
   public readonly xrayTraceGroup?: xray.CfnGroup;
 
   constructor(scope: Construct, id: string, props: MonitorStackProps) {
-    super(scope, id);
+    super(scope, id, props);
 
     const {
       developerId,
@@ -95,39 +90,45 @@ export class MonitoringStack extends Stack {
 
     if (!developerId) {
       const param = `/${mapEnvironents[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
-      const ssmValue = StringParameter.fromStringParameterName(
-        this,
-        `UdpParam${hash(param)}`,
-        param,
-      );
+      const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
 
-      const configParts = Fn.split('"', ssmValue.stringValue);
-      const workspaceId = Fn.select(3, configParts);
-      const channelId = Fn.select(7, configParts);
-      const pagerDutyUrl = Fn.select(11, configParts);
+      let monitoringConfig: {
+        workspaceId?: string;
+        channelId?: string;
+        pagerDutyUrl?: string;
+      } = {};
+      try {
+        monitoringConfig = JSON.parse(ssmValue);
+      } catch {}
 
-      const slackChannel = new SlackChannelConfiguration(this, 'SlackChannel', {
-        slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-        slackWorkspaceId: workspaceId,
-        slackChannelId: channelId,
-        notificationTopics: [this.criticalTopic],
-        guardrailPolicies: [
-          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-        ],
-      });
+      if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
+        const slackChannel = new SlackChannelConfiguration(
+          this,
+          'SlackChannel',
+          {
+            slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
+            slackWorkspaceId: monitoringConfig.workspaceId,
+            slackChannelId: monitoringConfig.channelId,
+            notificationTopics: [this.criticalTopic],
+            guardrailPolicies: [
+              ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+            ],
+          },
+        );
 
-      slackChannel.role?.addToPrincipalPolicy(
-        new PolicyStatement({
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-          resources: [kmsKey.keyArn],
-        }),
-      );
+        slackChannel.role?.addToPrincipalPolicy(
+          new PolicyStatement({
+            actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+            resources: [kmsKey.keyArn],
+          }),
+        );
+      }
 
-      if (pagerDutyUrl) {
+      if (monitoringConfig.pagerDutyUrl) {
         new sns.Subscription(this, 'PagerDutySubscription', {
           topic: this.criticalTopic,
           protocol: sns.SubscriptionProtocol.HTTPS,
-          endpoint: pagerDutyUrl,
+          endpoint: monitoringConfig.pagerDutyUrl,
         });
       }
     }

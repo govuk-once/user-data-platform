@@ -156,6 +156,11 @@ export class ApiGatewayConstruct extends Construct {
         cachingEnabled,
         cacheClusterEnabled: cachingEnabled,
         cacheClusterSize: cachingEnabled ? cacheClusterSize : undefined,
+        methodOptions: cachingEnabled
+          ? {
+              '/**/GET': { cachingEnabled: true },
+            }
+          : undefined,
       },
 
       disableExecuteApiEndpoint: false,

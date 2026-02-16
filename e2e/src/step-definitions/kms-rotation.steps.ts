@@ -4,7 +4,7 @@ import { KMSClient, RotateKeyOnDemandCommand } from '@aws-sdk/client-kms';
 import { CustomWorld } from 'src/helpers/world';
 import { expect } from 'vitest';
 
-let rotationResponse: { keyId?: string } | null = null;
+let rotationResponse: { KeyId?: string } | null = null;
 
 When('I rotate the KMS encryption key', async function (this: CustomEvent) {
   const kmsKeyArn = config.kmsKeyArn;
@@ -19,7 +19,7 @@ When('I rotate the KMS encryption key', async function (this: CustomEvent) {
   rotationResponse = await client.send(command);
 });
 
-Then('the key roatation should succeed', function (this: CustomWorld) {
+Then('the key rotation should succeed', function (this: CustomWorld) {
   expect(rotationResponse).toBeDefined();
-  expect(rotationResponse?.keyId).toBeDefined();
+  expect(rotationResponse?.KeyId).toBeDefined();
 });

@@ -31,22 +31,22 @@ Feature: identity Api
         Then the response status should be 400
 
     Scenario: Successfully Retrieve identity Record
-        When i send a get to '/v1/identity/app/123'
+        When I send a get to '/v1/identity/app/123'
         Then I should recieve a successful response
 
     Scenario: Successfully Retrieve linked identity Record
-        When i send a get to '/v1/identity/service2/321'
+        When I send a get to '/v1/identity/service2/321'
         Then I should recieve a successful response
-        Then The response body contain body '{"serviceId":"321", "serviceName": "service2"}'
+        Then the response body contains '{"serviceId":"321", "serviceName": "service2"}'
 
     Scenario: Successfully Delete linked Record
-        When i send a delete to '/v1/identity/service2/321'
+        When I send a delete to '/v1/identity/service2/321'
         Then I should recieve a successful response
 
     Scenario: Successfully Delete identity Record
-        When i send a delete to '/v1/identity/app/123'
+        When I send a delete to '/v1/identity/app/123'
         Then I should recieve a successful response
 
     Scenario: Returns a 404 if not found
-        When i send a get to '/v1/identity/service2/unknown'
+        When I send a get to '/v1/identity/service2/unknown'
         Then the response status should be 404

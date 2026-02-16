@@ -60,6 +60,10 @@ export class ApiClient {
       ...headers,
     };
 
+    if (process.env.API_KEY) {
+      requestHeaders['x-api-key'] = process.env.API_KEY;
+    }
+
     if (authenticated) {
       const signOptions: SignedRequestOptions = {
         roleArn,

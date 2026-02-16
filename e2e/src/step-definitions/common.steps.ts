@@ -35,7 +35,7 @@ When(
 );
 
 When(
-  'i send a get to {string}',
+  'I send a get to {string}',
   async function (this: CustomWorld, path: string) {
     const response = await this.api.get(path, {
       authenticated: this.authenticated,
@@ -46,7 +46,7 @@ When(
 );
 
 When(
-  'i send a delete to {string}',
+  'I send a delete to {string}',
   async function (this: CustomWorld, path: string) {
     const response = await this.api.delete(path, {
       authenticated: this.authenticated,
@@ -72,7 +72,7 @@ Then('I should recieve an error response', function (this: CustomWorld) {
 });
 
 Then(
-  'The response should contain {string} with value {string}',
+  'the response should contain {string} with value {string}',
   function (this: CustomWorld, field: string, value: string) {
     const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data[field]).toEqual(value);
@@ -80,7 +80,7 @@ Then(
 );
 
 Then(
-  'The response will contain message {string}',
+  'the response will contain message {string}',
   function (this: CustomWorld, message: string) {
     const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data.message).toEqual(message);
@@ -88,7 +88,7 @@ Then(
 );
 
 Then(
-  'The response body contain body {string}',
+  'the response body contains {string}',
   function (this: CustomWorld, message: string) {
     const data = this.lastResponse?.body as Record<string, unknown>;
     expect(data).toEqual(JSON.parse(message));
