@@ -38,6 +38,7 @@ export interface CodeBuildE2eConstructProps {
   readonly e2eTestConsumerRole?: IRole;
   readonly identityTableName: string;
   readonly kmsKeyArn?: string;
+  readonly e2eTestConsumerApiKeyValue?: string;
 }
 
 export class CodeBuildE2eConstruct extends Construct {
@@ -61,6 +62,7 @@ export class CodeBuildE2eConstruct extends Construct {
       e2eTestConsumerRole,
       identityTableName,
       kmsKeyArn,
+      e2eTestConsumerApiKeyValue,
     } = props;
 
     const stack = Stack.of(this);
@@ -259,6 +261,12 @@ export class CodeBuildE2eConstruct extends Construct {
       IDENTITY_TABLE_NAME: { value: identityTableName },
       DEBUG: { value: 'false' },
     };
+
+    if (e2eTestConsumerApiKeyValue) {
+      environmentVariables.API_KEY = {
+        value: e2eTestConsumerApiKeyValue,
+      };
+    }
 
     if (consumerConfigSecret) {
       environmentVariables.CONSUMER_CONFIG_SECRET_ARN = {

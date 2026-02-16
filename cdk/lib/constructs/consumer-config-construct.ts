@@ -14,6 +14,8 @@ export interface ExternalConsumerConfig {
   readonly permissions: ('read' | 'write' | 'delete')[];
   readonly externalId?: string;
   readonly description?: string;
+  readonly rateLimit?: number;
+  readonly burstLimit?: number;
 }
 
 export interface ConsumerConfigProps {
@@ -24,6 +26,7 @@ export interface ConsumerConfigProps {
   readonly consumerRoles: Map<string, Role>;
   readonly externalConsumers: Record<string, ExternalConsumerConfig>;
   readonly apiUrl: string;
+  readonly apiKeyValues?: Map<string, string>;
 }
 
 export class ConsumerConfigConstruct extends Construct {
@@ -40,6 +43,7 @@ export class ConsumerConfigConstruct extends Construct {
       consumerRoles,
       externalConsumers,
       apiUrl,
+      apiKeyValues,
     } = props;
 
     const secretPathPrefix = developerId
@@ -82,6 +86,10 @@ export class ConsumerConfigConstruct extends Construct {
         secretValue.externalId = SecretValue.unsafePlainText(
           consumerConfig.externalId,
         );
+      }
+      const apiKeyValue = apiKeyValues?.get(consumerName);
+      if (apiKeyValue) {
+        secretValue.apiKey = SecretValue.unsafePlainText(apiKeyValue);
       }
 
       const secret = new Secret(this, `Secret${consumerName.toUpperCase()}`, {

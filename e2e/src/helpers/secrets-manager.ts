@@ -9,6 +9,7 @@ export interface ConsumerConfig {
   apiUrl: string;
   consumerRoleArn: string;
   externalId?: string;
+  apiKey?: string;
 }
 
 let cachedConsumerConfig: ConsumerConfig | null = null;
