@@ -206,7 +206,6 @@ export class LambdaApiConstruct extends Construct {
           : undefined,
         apiKeyRequired: true,
       });
-      
     }
   }
 }
