@@ -34,7 +34,7 @@ export interface LambdaApiConstructProps {
   readonly vpcSubnets?: ec2.SubnetSelection;
   readonly securityGroups?: ec2.ISecurityGroup[];
   readonly reservedConcurrentExecutions?: number;
-  readonly cachingEnabled?:boolean
+  readonly cachingEnabled?: boolean;
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -68,7 +68,7 @@ export class LambdaApiConstruct extends Construct {
       vpcSubnets,
       securityGroups,
       reservedConcurrentExecutions = 10,
-      cachingEnabled = false
+      cachingEnabled = false,
     } = props;
 
     const fullFunctionName = developerId
@@ -165,7 +165,7 @@ export class LambdaApiConstruct extends Construct {
 
     if (api) {
       const isGetMethod = httpMethod === 'GET';
-      const useCacheing = isGetMethod && cachingEnabled
+      const useCacheing = isGetMethod && cachingEnabled;
 
       const integration = new apigateway.LambdaIntegration(this.function, {
         proxy: true,
@@ -198,7 +198,6 @@ export class LambdaApiConstruct extends Construct {
             }
           : undefined,
       });
-      
     }
   }
 }
