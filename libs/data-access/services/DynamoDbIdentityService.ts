@@ -11,7 +11,6 @@ import {
   UDP_ERROR_TYPES,
 } from '@libs/utils';
 import { Repository } from '../repositories/Repository';
-import createHttpError from 'http-errors';
 import { v4 as uuidv4 } from 'uuid';
 
 const PK_CONSTANT = 'IDENTITY_RECORD#';
@@ -67,7 +66,6 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       udpId,
       serviceId: input.appId,
       serviceName: 'app',
-      ...(input.ttl !== undefined ? { ttl: input.ttl } : {}),
     } as unknown as T;
 
     this.logger?.debug('Creating new app user', {
@@ -103,9 +101,7 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       );
     }
 
-    if (user) {
-      return user;
-    }
+    return user;
   }
 
   public async deleteById(serviceName: string, serviceId: string) {

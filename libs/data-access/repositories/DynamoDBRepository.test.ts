@@ -186,7 +186,7 @@ describe('DynamoDBRepository', () => {
           'topics',
         );
 
-        expect(error instanceof InvalidDynamoKeyError);
+        expect(error).instanceOf(InvalidDynamoKeyError);
         expect(error as InvalidDynamoKeyError).toEqual(expectedError);
       }
     });
@@ -206,7 +206,7 @@ describe('DynamoDBRepository', () => {
           undefined,
         );
 
-        expect(error instanceof InvalidDynamoKeyError);
+        expect(error).instanceOf(InvalidDynamoKeyError);
         expect(error as InvalidDynamoKeyError).toEqual(expectedError);
       }
     });
@@ -227,7 +227,7 @@ describe('DynamoDBRepository', () => {
           'topics',
         );
 
-        expect(error instanceof InvalidDynamoKeyError);
+        expect(error).instanceOf(InvalidDynamoKeyError);
         expect(error as InvalidDynamoKeyError).toEqual(expectedError);
       }
     });
@@ -248,7 +248,7 @@ describe('DynamoDBRepository', () => {
           undefined,
         );
 
-        expect(error instanceof InvalidDynamoKeyError);
+        expect(error).instanceOf(InvalidDynamoKeyError);
         expect(error as InvalidDynamoKeyError).toEqual(expectedError);
       }
     });

@@ -173,7 +173,6 @@ export interface NewIdentityEntity {
 
 export interface CreateUserInput {
   appId: string;
-  ttl?: number;
 }
 
 export interface CreateUserResult {

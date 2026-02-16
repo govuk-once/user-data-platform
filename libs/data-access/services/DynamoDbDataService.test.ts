@@ -61,9 +61,10 @@ describe('DynamoDb Data Service', () => {
         },
       });
     });
-    
+
     it('should successfully save an empty data entity', async () => {
       const input: DataInput = {
+        configuration: {},
         data: undefined,
       };
 
@@ -145,7 +146,7 @@ describe('DynamoDb Data Service', () => {
 
       try {
         await service.getByKey(mockIdentity, mockResource);
-        expect.fail('Error should have been thrown')
+        expect.fail('Error should have been thrown');
       } catch (error) {
         const expectedError = new DataRecordNotFoundError(
           `Resource not found on path ${mockResource}: for identity ${mockIdentity.serviceName}#${mockIdentity.serviceId}`,
@@ -154,7 +155,7 @@ describe('DynamoDb Data Service', () => {
           mockIdentity.serviceId,
           mockResource,
         );
-        expect(error instanceof DataRecordNotFoundError);
+        expect(error).instanceOf(DataRecordNotFoundError);
         expect(error).toEqual(expectedError);
       }
     });
@@ -177,44 +178,48 @@ describe('DynamoDb Data Service', () => {
       error propagates
     */
 
-      it('should successfully delete a valid entity', async () => {
-        dynamoMock.on(DeleteCommand).resolves({});
+    it('should successfully delete a valid entity', async () => {
+      dynamoMock.on(DeleteCommand).resolves({});
 
-        const response = await service.deleteByKey(mockIdentity, mockResource);
-        expect(getCommandCall(DeleteCommand,1)).toMatchObject(expect.objectContaining({
+      const response = await service.deleteByKey(mockIdentity, mockResource);
+      expect(getCommandCall(DeleteCommand, 1)).toMatchObject(
+        expect.objectContaining({
           TableName: tableName,
           Key: {
             pk: mockIdentity.udpId,
             sk: mockResource,
-          }
-        }))
-      })
+          },
+        }),
+      );
+    });
 
-      it('should throw a DataRecordNotFoundError where the delete could not find the provided keys', async () => {
-        const mockError = new Error('Failure');
-        mockError.name = 'ConditionalCheckFailedException';
-        dynamoMock.on(DeleteCommand).rejects(mockError);
+    it('should throw a DataRecordNotFoundError where the delete could not find the provided keys', async () => {
+      const mockError = new Error('Failure');
+      mockError.name = 'ConditionalCheckFailedException';
+      dynamoMock.on(DeleteCommand).rejects(mockError);
 
-        try{
-          await service.deleteByKey(mockIdentity, mockResource);
-        } catch (error) {
-          const expectedError = new DataRecordNotFoundError(
+      try {
+        await service.deleteByKey(mockIdentity, mockResource);
+      } catch (error) {
+        const expectedError = new DataRecordNotFoundError(
           `Resource not found on path ${mockResource}: for identity ${mockIdentity.serviceName}#${mockIdentity.serviceId}`,
           UDP_ERROR_TYPES.DATA_NOT_FOUND,
           mockIdentity.serviceName,
           mockIdentity.serviceId,
           mockResource,
         );
-        expect(error instanceof DataRecordNotFoundError);
+        expect(error).instanceOf(DataRecordNotFoundError);
         expect(error).toEqual(expectedError);
-        }
-      })
+      }
+    });
 
-      it('should throw the original error if the repository.delete() call errors', async () => {
-        const mockError = new Error('Failure');
-        dynamoMock.on(DeleteCommand).rejects(mockError);
+    it('should throw the original error if the repository.delete() call errors', async () => {
+      const mockError = new Error('Failure');
+      dynamoMock.on(DeleteCommand).rejects(mockError);
 
-        await expect(service.deleteByKey(mockIdentity,mockResource)).rejects.toThrow(mockError);
-      })
-  })
+      await expect(
+        service.deleteByKey(mockIdentity, mockResource),
+      ).rejects.toThrow(mockError);
+    });
+  });
 });
