@@ -34,6 +34,7 @@ export interface LambdaApiConstructProps {
   readonly vpcSubnets?: ec2.SubnetSelection;
   readonly securityGroups?: ec2.ISecurityGroup[];
   readonly reservedConcurrentExecutions?: number;
+  readonly cachingEnabled?:boolean
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -67,6 +68,7 @@ export class LambdaApiConstruct extends Construct {
       vpcSubnets,
       securityGroups,
       reservedConcurrentExecutions = 10,
+      cachingEnabled = false
     } = props;
 
     const fullFunctionName = developerId
@@ -162,8 +164,17 @@ export class LambdaApiConstruct extends Construct {
     }
 
     if (api) {
+      const isGetMethod = httpMethod === 'GET';
+      const useCacheing = isGetMethod && cachingEnabled
+
       const integration = new apigateway.LambdaIntegration(this.function, {
         proxy: true,
+        cacheKeyParameters: useCacheing
+          ? [
+              'method.request.header.requesting-service',
+              'method.request.header.requesting-service-user-id',
+            ]
+          : undefined,
       });
 
       const pathParts = routePath.split('/').filter((p) => p.length > 0);
@@ -180,7 +191,14 @@ export class LambdaApiConstruct extends Construct {
 
       resource.addMethod(httpMethod, integration, {
         authorizationType: apigateway.AuthorizationType.IAM,
+        requestParameters: useCacheing
+          ? {
+              'method.request.header.requesting-service': false,
+              'method.request.header.requesting-service-user-id': false,
+            }
+          : undefined,
       });
+      
     }
   }
 }

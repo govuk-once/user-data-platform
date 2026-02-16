@@ -93,6 +93,8 @@ export class MainStack extends Stack {
     cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
 
+    const cachingEnabled = true;
+
     const kmsConstruct = new KmsConstruct(this, 'Kms', {
       developerId,
       environment,
@@ -156,7 +158,7 @@ export class MainStack extends Stack {
         : [],
       crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
-      cachingEnabled: environment !== 'dev' ? true : false,
+      cachingEnabled,
     });
 
     this.api = apiGateway.api;
@@ -198,6 +200,7 @@ export class MainStack extends Stack {
         },
         vpc,
         securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+        cachingEnabled,
       });
 
       lambdasList.push(lambda.function);
