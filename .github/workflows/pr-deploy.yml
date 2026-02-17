@@ -187,7 +187,7 @@ jobs:
 
   perf-test:
     name: Performance tests (non-blocking)
-    needs: e2e-dev
+    needs: [deploy, e2e-tests]
     runs: ubuntu-latest
 
     steps:
@@ -200,18 +200,18 @@ jobs:
       - name: Get Perf Codebuild project name
         id: get-perf-project
         run: |
-          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name dev-perf --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectname'].OutputValue -- output text")
+          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name dev-perf --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
           echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
           echo "Perf Codebuild Project: ${PERF_PROJECT}"
 
       - name: Start Performance tests (fire-and-forget)
         env:
           PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
-        RUN: |
+        run: |
           echo "Starting performance tests: ${PERF_PROJECT}"
           BUILD_ID=$(aws codebuild start-build \
             --project-name "${PERF_PROJECT}" \
-            --environment-variable-override "name=PERF_TARGET,value=smoke, type=PLAINTEXT" \
+            --environment-variables-override "name=PERF_TARGET,value=smoke,type=PLAINTEXT" \
             --query 'build.id' --output text)
           echo "Performance test build started ${BUILD_ID}"
-          echo "Build will run independantly - failures will be notified in slack channel"
+          echo "Build will run independently - failures will be notified in slack channel"

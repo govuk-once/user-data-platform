@@ -82,7 +82,7 @@ export class CodeBuildPerfConstruct extends Construct {
         actions: [
           'logs:CreateLogGroup',
           'logs:CreateLogStream',
-          'logs:utLogEvents',
+          'logs:PutLogEvents',
         ],
         resources: [
           this.logGroup.logGroupArn,

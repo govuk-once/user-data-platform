@@ -21,7 +21,7 @@ export interface PerfStackProps extends StackProps {
 }
 
 export class PerfStack extends Stack {
-  public readonly cudebuildProject: CodeBuildPerfConstruct;
+  public readonly codebuildProject: CodeBuildPerfConstruct;
 
   constructor(scope: Construct, id: string, props: PerfStackProps) {
     super(scope, id, props);
@@ -43,7 +43,7 @@ export class PerfStack extends Stack {
       ? `${developerId}-${environment}`
       : environment;
 
-    this.cudebuildProject = new CodeBuildPerfConstruct(this, 'CodeBuild', {
+    this.codebuildProject = new CodeBuildPerfConstruct(this, 'CodeBuild', {
       developerId,
       environment,
       vpc,
@@ -63,21 +63,21 @@ export class PerfStack extends Stack {
         source: ['aws.codebuild'],
         detailType: ['Codebuild Build State Change'],
         detail: {
-          'build-status': ['FAILED', 'STAPPED', 'TIMED_OUT'],
-          'project-name': [this.cudebuildProject.project.projectName],
+          'build-status': ['FAILED', 'STOPED', 'TIMED_OUT'],
+          'project-name': [this.codebuildProject.project.projectName],
         },
       },
       targets: [new SnsTopic(warningTopic)],
     });
 
     new CfnOutput(this, 'PerfCodeBuildProjectName', {
-      value: this.cudebuildProject.project.projectName,
+      value: this.codebuildProject.project.projectName,
       description: 'Codebuild project name for performance test',
       exportName: `${id}-PerCodeBuildProjectName`,
     });
 
     new CfnOutput(this, 'PerfCodeBuildProjectArn', {
-      value: this.cudebuildProject.project.projectArn,
+      value: this.codebuildProject.project.projectArn,
       description: 'Codebuild project ARN for performance test',
       exportName: `${id}-PerCodeBuildProjectArn`,
     });
