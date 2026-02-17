@@ -200,9 +200,9 @@ jobs:
       - name: Get Perf Codebuild project name
         id: get-perf-project
         env:
-          STACK_NAME: ${{ env.DEVELOPER_ID }}-dev-pref
+          STACK_NAME: ${{ env.DEVELOPER_ID }}-dev-perf
         run: |
-          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}"  --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
+          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
           echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
           echo "Perf Codebuild Project: ${PERF_PROJECT}"
 
