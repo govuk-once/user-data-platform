@@ -182,7 +182,7 @@ jobs:
       - name: Configure Aws Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
-          role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Get Perf Codebuild project name

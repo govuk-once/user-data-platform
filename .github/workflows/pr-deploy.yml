@@ -184,3 +184,34 @@ jobs:
                 issue_number: context.issue.number,
                 body: `## E2E tests results ${emoji}\n\n**status:** ${status}\n**BUILD ID** \`${buildid}\``
             })
+
+  perf-test:
+    name: Performance tests (non-blocking)
+    needs: e2e-dev
+    runs: ubuntu-latest
+
+    steps:
+      - name: Configure Aws Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Perf Codebuild project name
+        id: get-perf-project
+        run: |
+          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name dev-perf --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectname'].OutputValue -- output text")
+          echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
+          echo "Perf Codebuild Project: ${PERF_PROJECT}"
+
+      - name: Start Performance tests (fire-and-forget)
+        env:
+          PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
+        RUN: |
+          echo "Starting performance tests: ${PERF_PROJECT}"
+          BUILD_ID=$(aws codebuild start-build \
+            --project-name "${PERF_PROJECT}" \
+            --environment-variable-override "name=PERF_TARGET,value=smoke, type=PLAINTEXT" \
+            --query 'build.id' --output text)
+          echo "Performance test build started ${BUILD_ID}"
+          echo "Build will run independantly - failures will be notified in slack channel"
