@@ -166,19 +166,36 @@ export class LambdaApiConstruct extends Construct {
     if (api) {
       const isGetMethod = httpMethod === 'GET';
       const useCacheing = isGetMethod && cachingEnabled;
+      const pathParts = routePath.split('/').filter((p) => p.length > 0);
+      let resource: apigateway.IResource = api.root;
+
+      const pathParms = pathParts
+        .filter((p) => p.startsWith('{') && p.endsWith('}'))
+        .map((p) => p.replace(/[{}+]/g, ''));
+
+      const cacheKeyParameters: string[] = [];
+      const requestParameters: Record<string, boolean> = {};
+
+      if (useCacheing) {
+        for (const param of pathParms) {
+          cacheKeyParameters.push(`method.request.path.${param}`);
+          requestParameters[`method.request.path.${param}`] = true;
+        }
+        cacheKeyParameters.push(`method.request.header.requesting-service`);
+        requestParameters[`method.request.header.requesting-service`] = true;
+
+        cacheKeyParameters.push(
+          `method.request.header.requesting-service-user-id`,
+        );
+        requestParameters[`method.request.header.requesting-service-user-id`] =
+          true;
+      }
 
       const integration = new apigateway.LambdaIntegration(this.function, {
         proxy: true,
-        cacheKeyParameters: useCacheing
-          ? [
-              'method.request.header.requesting-service',
-              'method.request.header.requesting-service-user-id',
-            ]
-          : undefined,
+        cacheKeyParameters:
+          cacheKeyParameters.length > 0 ? cacheKeyParameters : undefined,
       });
-
-      const pathParts = routePath.split('/').filter((p) => p.length > 0);
-      let resource: apigateway.IResource = api.root;
 
       for (const part of pathParts) {
         const existingResource = resource.getResource(part);
@@ -191,13 +208,10 @@ export class LambdaApiConstruct extends Construct {
 
       resource.addMethod(httpMethod, integration, {
         authorizationType: apigateway.AuthorizationType.IAM,
-        requestParameters: useCacheing
-          ? {
-              'method.request.header.requesting-service': false,
-              'method.request.header.requesting-service-user-id': false,
-            }
-          : undefined,
-        apiKeyRequired: true,
+        requestParameters:
+          Object.keys(requestParameters).length > 0
+            ? requestParameters
+            : undefined,
       });
     }
   }

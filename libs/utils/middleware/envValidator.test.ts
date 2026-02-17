@@ -5,10 +5,10 @@ import {
   envValidator,
   getValidatedEnv,
   RequestWithEnv,
-} from './env-validator';
+} from './envValidator';
 import { APIGatewayProxyResult, Context } from 'aws-lambda';
-import { Logger } from '../logger/src/Logger';
-import createHttpError from 'http-errors';
+import { MissingEnvironmentVariablesError, UDP_ERROR_TYPES } from '../Errors';
+import { Logger } from '../logger/Logger';
 
 const createMockContext = (): Context => ({
   callbackWaitsForEmptyEventLoop: true,
@@ -61,8 +61,13 @@ describe('env validator middleware', () => {
         body: JSON.stringify({ success: true }),
       })).use(envValidator({ required: ['TABLE_NAME', 'KMS_KEY_ID'] }));
 
+      const expectedError = new MissingEnvironmentVariablesError(
+        `Missing required environment variables: KMS_KEY_ID`,
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        ['KMS_KEY_ID'],
+      );
       await expect(handler({}, createMockContext())).rejects.toThrow(
-        createHttpError.BadRequest,
+        expectedError,
       );
     });
 
@@ -74,8 +79,13 @@ describe('env validator middleware', () => {
         body: JSON.stringify({ success: true }),
       })).use(envValidator({ required: ['TABLE_NAME', 'KMS_KEY_ID'] }));
 
+      const expectedError = new MissingEnvironmentVariablesError(
+        `Missing required environment variables: TABLE_NAME, KMS_KEY_ID`,
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        ['TABLE_NAME', 'KMS_KEY_ID'],
+      );
       await expect(handler({}, createMockContext())).rejects.toThrow(
-        createHttpError.BadRequest,
+        expectedError,
       );
     });
 
@@ -93,8 +103,8 @@ describe('env validator middleware', () => {
         await handler({}, createMockContext());
         expect.fail('should have thrown');
       } catch (error) {
-        expect(error).toBeInstanceOf(createHttpError.BadRequest);
-        const configError = error as Error;
+        expect(error).toBeInstanceOf(MissingEnvironmentVariablesError);
+        const configError = error as MissingEnvironmentVariablesError;
         expect(configError.message).toEqual(
           'Missing required environment variables: VAR1, VAR2, VAR3',
         );

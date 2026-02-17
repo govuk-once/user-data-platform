@@ -39,70 +39,60 @@ paths:
               properties:
                 appId:
                   type: string
-                  minLength: 1
-                  description: The Pairwise ID
-                  example: 123456-789910-11121314-15
+                  description: The Users Identifier for the GOVUK App
+                  example: 8538bc99-3596-4eb3-8101-263e70519315
               required:
                 - appId
       responses:
-        '201':
-          description: Sucesss
+        '200':
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  message:
+                    type: string
+                    description: Server response message
+                    example: User successfully created
+                required:
+                  - message
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 201
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    minLength: 1
-                    description: message
-                    example: User Successfully Created
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Unauthorized
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: &a1
+                      - headers.requesting-service
+                      - body.configuration
                 required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
-        '422':
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Unprocessable Entity
-                required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '500':
           description: Internal Server Error
           content:
@@ -110,12 +100,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
   /v1/identity/{serviceName}/{identifier}:
     post:
       summary: Create Identity Record
@@ -128,19 +132,19 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The provided User Identifier for the given service
+            example: 8538bc99-3596-4eb3-8101-263e70519315
           required: true
-          description: The One login
+          description: The provided User Identifier for the given service
           name: identifier
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The name of the service for which the id belongs
+            description: The name of the service for which the identifier belongs
             example: app
           required: true
-          description: The name of the service for which the id belongs
+          description: The name of the service for which the identifier belongs
           name: serviceName
           in: path
       requestBody:
@@ -151,9 +155,8 @@ paths:
               properties:
                 appId:
                   type: string
-                  minLength: 1
-                  description: The AppId from the app
-                  example: '123'
+                  description: The Users Identifier for the GOVUK App
+                  example: 8538bc99-3596-4eb3-8101-263e70519315
                 accessToken:
                   type: string
                   description: The access token for the service from one login
@@ -166,84 +169,56 @@ paths:
                   type: string
                   description: The idToken for the service from one login
                   example: flex
-                ttl:
-                  type: number
-                  description: The Time to live to handle auto expiry/deletion of data
-                  example: flex
               required:
                 - appId
       responses:
-        '201':
-          description: Sucesss
+        '200':
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  message:
+                    type: string
+                    description: Server response message
+                    example: User successfully created
+                required:
+                  - message
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 201
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    minLength: 1
-                    description: message
-                    example: Identity Successfully created
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Unauthorized
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Not Found
-                required:
-                  - body
-        '422':
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Unprocessable Entity
-                required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '500':
           description: Internal Server Error
           content:
@@ -251,12 +226,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
     get:
       summary: Read Identity Record
       description: Read Identity Record
@@ -268,90 +257,87 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The provided User Identifier for the given service
+            example: 8538bc99-3596-4eb3-8101-263e70519315
           required: true
-          description: The One login
+          description: The provided User Identifier for the given service
           name: identifier
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The name of the service for which the id belongs
+            description: The name of the service for which the identifier belongs
             example: app
           required: true
-          description: The name of the service for which the id belongs
+          description: The name of the service for which the identifier belongs
           name: serviceName
           in: path
       responses:
         '200':
-          description: Sucesss
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  serviceId:
+                    type: string
+                    description: The Identifer for the requested service
+                    example: ca07a074-ed4b-4426-951e-961bedd80493
+                  serviceName:
+                    type: string
+                    minLength: 1
+                    description: The service name for the identity record
+                    example: DVLA
+                  accessToken:
+                    type: string
+                    description: The access token for the service from one login
+                    example: flex
+                  refreshToken:
+                    type: string
+                    description: The refresh token for the service from one login
+                    example: flex
+                  idToken:
+                    type: string
+                    description: The idToken for the service from one login
+                    example: flex
+                required:
+                  - serviceId
+                  - serviceName
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 200
-                  body:
-                    type: object
-                    properties:
-                      appId:
-                        type: string
-                        minLength: 1
-                        description: The AppId from the app
-                        example: '123'
-                      serviceName:
-                        type: string
-                        minLength: 1
-                        description: The service name of the identity record
-                        example: flex
-                      accessToken:
-                        type: string
-                        description: The access token for the service from one login
-                        example: flex
-                      refreshToken:
-                        type: string
-                        description: The refresh token for the service from one login
-                        example: flex
-                      idToken:
-                        type: string
-                        description: The idToken for the service from one login
-                        example: flex
-                    required:
-                      - appId
-                      - serviceName
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    description: Error message
-                    example: Unauthorized
-                required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Forbidden
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '404':
           description: Not Found
           content:
@@ -359,12 +345,19 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  identifier:
                     type: string
-                    description: Error message
-                    example: Not Found
+                    minLength: 1
+                    description: The provided User Identifier for the given service
+                    example: 8538bc99-3596-4eb3-8101-263e70519315
+                  serviceName:
+                    type: string
+                    minLength: 1
+                    description: The name of the service for which the identifier belongs
+                    example: app
                 required:
-                  - body
+                  - identifier
+                  - serviceName
         '500':
           description: Internal Server Error
           content:
@@ -372,12 +365,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
     delete:
       summary: Delete Identity Record
       description: Delete Identity Record
@@ -389,67 +396,69 @@ paths:
         - schema:
             type: string
             minLength: 1
-            description: The One login
-            example: '123'
+            description: The provided User Identifier for the given service
+            example: 8538bc99-3596-4eb3-8101-263e70519315
           required: true
-          description: The One login
+          description: The provided User Identifier for the given service
           name: identifier
           in: path
         - schema:
             type: string
             minLength: 1
-            description: The name of the service for which the id belongs
+            description: The name of the service for which the identifier belongs
             example: app
           required: true
-          description: The name of the service for which the id belongs
+          description: The name of the service for which the identifier belongs
           name: serviceName
           in: path
       responses:
         '200':
-          description: Sucesss
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  message:
+                    type: string
+                    description: Server response message
+                    example: User successfully created
+                required:
+                  - message
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 200
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    minLength: 1
-                    description: message
-                    example: Successfully deleted Identity
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Unauthorized
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '404':
           description: Not Found
           content:
@@ -457,12 +466,19 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  identifier:
                     type: string
-                    description: Error message
-                    example: Not Found
+                    minLength: 1
+                    description: The provided User Identifier for the given service
+                    example: 8538bc99-3596-4eb3-8101-263e70519315
+                  serviceName:
+                    type: string
+                    minLength: 1
+                    description: The name of the service for which the identifier belongs
+                    example: app
                 required:
-                  - body
+                  - identifier
+                  - serviceName
         '500':
           description: Internal Server Error
           content:
@@ -470,12 +486,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
   /v1/{resourcePath+}:
     post:
       summary: Create Resource path data Record
@@ -528,8 +558,10 @@ paths:
                       description: The UDP mechanism to execute at expiry
                       example: DELETE
                     expiresAt:
-                      type: number
-                      description: The expiry time for the data in EPOCH Timestamp no MS
+                      type: integer
+                      minimum: 1771320585
+                      exclusiveMinimum: true
+                      description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
                 data:
                   type: object
@@ -539,77 +571,53 @@ paths:
               required:
                 - data
       responses:
-        '201':
-          description: Sucesss
+        '200':
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  message:
+                    type: string
+                    description: Server response message
+                    example: User successfully created
+                required:
+                  - message
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 201
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    minLength: 1
-                    description: message
-                    example: Entity saved successfully
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Unauthorized
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Not Found
-                required:
-                  - body
-        '422':
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Unprocessable Entity
-                required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '500':
           description: Internal Server Error
           content:
@@ -617,12 +625,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
     get:
       summary: Read resource path data Record
       description: Read resource path data Record
@@ -660,71 +682,128 @@ paths:
           in: header
       responses:
         '200':
-          description: Sucesss
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
-                    type: number
-                    description: The status code of the response
-                    example: 200
-                  body:
+                  data:
                     type: object
-                    properties:
-                      data:
-                        type: object
-                        properties: {}
-                        description: The data that was saved
-                        example:
-                          additionalProp1: string
-                          additionalProp2: string
-                          additionalProp3: string
-                    required:
-                      - data
+                    properties: {}
+                    additionalProperties:
+                      nullable: true
                 required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
+                  - data
+        '400':
+          description: Bad Request
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    description: Error message
-                    example: Unauthorized
-                required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Forbidden
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '404':
           description: Not Found
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Not Found
-                required:
-                  - body
+                anyOf:
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Bad Request Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: Record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - IDENTITY_NOT_FOUND
+                        description: Identity Not Found Type
+                        example: IDENTITY_NOT_FOUND
+                      serviceName:
+                        type: string
+                        description: Provided service name
+                        example: app
+                      serviceUserId:
+                        type: string
+                        description: Provided service user Id
+                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - serviceName
+                      - serviceUserId
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Bad Request Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: Record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - DATA_NOT_FOUND
+                        description: Data Not Found Type
+                        example: DATA_NOT_FOUND
+                      serviceName:
+                        type: string
+                        description: Provided service name
+                        example: app
+                      serviceUserId:
+                        type: string
+                        description: Provided service user Id
+                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                      resourcePath:
+                        type: string
+                        description: Provided resource path
+                        example: /v1/notifications/preferences
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - serviceName
+                      - serviceUserId
+                      - resourcePath
         '500':
           description: Internal Server Error
           content:
@@ -732,12 +811,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
     delete:
       summary: Delete resource path Record
       description: Delete resource path Record
@@ -775,63 +868,127 @@ paths:
           in: header
       responses:
         '200':
-          description: Sucesss
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  statusCode:
+                  message:
+                    type: string
+                    description: Server response message
+                    example: User successfully created
+                required:
+                  - message
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
                     type: number
-                    description: The status code of the response
-                    example: 200
-                  body:
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
                     type: string
-                    minLength: 1
-                    description: message
-                    example: Entity Successfully deleted
-                required:
-                  - statusCode
-                  - body
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Unauthorized
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
                 required:
-                  - body
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Forbidden
-                required:
-                  - body
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '404':
           description: Not Found
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  body:
-                    type: string
-                    description: Error message
-                    example: Not Found
-                required:
-                  - body
+                anyOf:
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Bad Request Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: Record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - IDENTITY_NOT_FOUND
+                        description: Identity Not Found Type
+                        example: IDENTITY_NOT_FOUND
+                      serviceName:
+                        type: string
+                        description: Provided service name
+                        example: app
+                      serviceUserId:
+                        type: string
+                        description: Provided service user Id
+                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - serviceName
+                      - serviceUserId
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Bad Request Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: Record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - DATA_NOT_FOUND
+                        description: Data Not Found Type
+                        example: DATA_NOT_FOUND
+                      serviceName:
+                        type: string
+                        description: Provided service name
+                        example: app
+                      serviceUserId:
+                        type: string
+                        description: Provided service user Id
+                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                      resourcePath:
+                        type: string
+                        description: Provided resource path
+                        example: /v1/notifications/preferences
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - serviceName
+                      - serviceUserId
+                      - resourcePath
         '500':
           description: Internal Server Error
           content:
@@ -839,9 +996,23 @@ paths:
               schema:
                 type: object
                 properties:
-                  body:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
                     type: string
-                    description: Error message
-                    example: Internal Server Error
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
                 required:
-                  - body
+                  - errorCode
+                  - errorMessage
+                  - errorType
