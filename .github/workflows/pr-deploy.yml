@@ -188,7 +188,7 @@ jobs:
   perf-test:
     name: Performance tests (non-blocking)
     needs: [deploy, e2e-tests]
-    runs: ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Configure Aws Credentials
@@ -207,10 +207,13 @@ jobs:
       - name: Start Performance tests (fire-and-forget)
         env:
           PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
+          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
+          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
         run: |
           echo "Starting performance tests: ${PERF_PROJECT}"
           BUILD_ID=$(aws codebuild start-build \
             --project-name "${PERF_PROJECT}" \
+            --source-location-overisde "${SOURCE_BUCKET/${SOURCE_PATH}}" \
             --environment-variables-override "name=PERF_TARGET,value=smoke,type=PLAINTEXT" \
             --query 'build.id' --output text)
           echo "Performance test build started ${BUILD_ID}"
