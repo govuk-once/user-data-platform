@@ -559,7 +559,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1771260400
+                      minimum: 1771320585
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -742,7 +742,7 @@ paths:
                         enum:
                           - 404
                         description: Bad Request Code
-                        example: 400
+                        example: 404
                       errorMessage:
                         type: string
                         description: The error message
@@ -774,7 +774,7 @@ paths:
                         enum:
                           - 404
                         description: Bad Request Code
-                        example: 400
+                        example: 404
                       errorMessage:
                         type: string
                         description: The error message
@@ -927,7 +927,7 @@ paths:
                         enum:
                           - 404
                         description: Bad Request Code
-                        example: 400
+                        example: 404
                       errorMessage:
                         type: string
                         description: The error message
@@ -959,7 +959,7 @@ paths:
                         enum:
                           - 404
                         description: Bad Request Code
-                        example: 400
+                        example: 404
                       errorMessage:
                         type: string
                         description: The error message

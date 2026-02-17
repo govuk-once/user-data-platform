@@ -31,7 +31,7 @@ export const unauthorizedResponseSchema = z.object({
 
 export const forbiddenResponseSchema = z.object({
   errorCode: z
-    .literal(400)
+    .literal(403)
     .openapi({ description: 'Forbidden Code', example: 403 }),
   errorType: z
     .literal('FORBIDDEN')
@@ -41,7 +41,7 @@ export const forbiddenResponseSchema = z.object({
 const baseNotFoundResponseSchema = z.object({
   errorCode: z
     .literal(404)
-    .openapi({ description: 'Bad Request Code', example: 400 }),
+    .openapi({ description: 'Bad Request Code', example: 404 }),
   errorMessage: z.string().openapi({
     description: 'The error message',
     example: 'Record not found',

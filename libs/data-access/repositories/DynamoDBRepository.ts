@@ -129,7 +129,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     });
 
     return this.encryption
-      ? ((await this.encryption.service.encryptFields(
+      ? ((await this.encryption.service.decryptFields(
           item as Record<string, unknown> & EncryptedData,
           this.encryption.dataFields,
         )) as T)

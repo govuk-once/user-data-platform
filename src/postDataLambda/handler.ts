@@ -45,27 +45,22 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.headers['requesting-service'],
-        event.headers['requesting-service-user-id'],
-      );
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-    await getFactory()
-      .getService('data')
-      .save(identity, event.pathParameters.resourcePath, event.body);
+  await getFactory()
+    .getService('data')
+    .save(identity, event.pathParameters.resourcePath, event.body);
 
-    tracer.putAnnotation('putEntitySuccess', true);
-    return {
-      statusCode: 200,
-      body: { message: 'Entity saved successfully' } satisfies PostDataResponse,
-    };
-  } catch (error) {
-    tracer.putAnnotation('putEntitySuccess', false);
-    throw error;
-  }
+  tracer.putAnnotation('putEntitySuccess', true);
+  return {
+    statusCode: 200,
+    body: { message: 'Entity saved successfully' } satisfies PostDataResponse,
+  };
 };
 
 export const handler = middy()

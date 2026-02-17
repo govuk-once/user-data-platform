@@ -42,7 +42,6 @@ export function udpErrorHandling(
             statusCode: 400,
             body: responseBody,
           };
-          console.log({ ...request.response });
           return;
         }
 
