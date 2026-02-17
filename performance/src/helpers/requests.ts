@@ -1,6 +1,6 @@
 import http, { RefinedResponse, ResponseType } from 'k6/http';
 import { check } from 'k6';
-import { config } from 'src/config';
+import { config } from '../config';
 import { signedHeaders } from './auth';
 
 function buildUrl(path: string): string {

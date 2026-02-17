@@ -1,7 +1,9 @@
 import { build } from 'esbuild';
-import { readdirSync } from 'fs';
+import { readdirSync, existsSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileUrlToPath(inport.meta.url));
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const srcDir = resolve(__dirname, '..', 'src');
 const senariosDir = resolve(srcDir, 'scenarios');
 
@@ -9,10 +11,10 @@ const rootEntries = readdirSync(srcDir)
   .filter((file) => file.endsWith('.ts') && !file.startsWith('_'))
   .map((file) => resolve(srcDir, file));
 
-const scenarioEntries = existsSync(scenarioEntries)
-  ? readdirSync(scenarioEntries)
+const scenarioEntries = existsSync(senariosDir)
+  ? readdirSync(senariosDir)
       .filter((file) => file.endsWith('.ts') && !file.startsWith('_'))
-      .map((file) => resolve(scenarioEntries, file))
+      .map((file) => resolve(senariosDir, file))
   : [];
 
 await build({

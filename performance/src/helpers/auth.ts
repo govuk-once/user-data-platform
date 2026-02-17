@@ -1,6 +1,6 @@
 import { AWSConfig, SignatureV4 } from 'k6/experimental/aws';
 
-import { config } from 'src/config';
+import { config } from '../config';
 
 const awsConfig = new AWSConfig({
   region: config.awsRegion,
