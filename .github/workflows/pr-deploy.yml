@@ -215,8 +215,6 @@ jobs:
           echo "Starting performance tests: ${PERF_PROJECT}"
           BUILD_ID=$(aws codebuild start-build \
             --project-name "${PERF_PROJECT}" \
-            --source-type-override S3 \
-            --source-location-overide "${SOURCE_BUCKET}/${SOURCE_PATH}" \
             --environment-variables-override "name=PERF_TARGET,value=smoke,type=PLAINTEXT" \
             --query 'build.id' --output text)
           echo "Performance test build started ${BUILD_ID}"
