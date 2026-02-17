@@ -1,29 +1,57 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 import {
   CreateUserInput,
   IdentityInput,
   IdentityRecordEntity,
 } from '../types/Entity';
-import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { DynamoDBIdentityService } from './DynamoDbIdentityService';
+import { mockClient } from 'aws-sdk-client-mock';
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { ServiceFactory } from '../factory/ServiceFactory';
+import {
+  BaseUDPError,
+  IdentityLinkingInvalidIdentitesError,
+  IdentityRecordNotFoundError,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 
 vi.mock('uuid', () => ({
   v4: vi.fn(() => 'mock-string-uuid4'),
 }));
 
+const dynamoMock = mockClient(DynamoDBDocumentClient);
+
+const getCommandCall = (command: any, callNumber: number) => {
+  return dynamoMock.commandCalls(command)[callNumber - 1].args[0].input;
+};
+
 describe('Identity Service', () => {
-  let mockRepository: DynamoDBRepository<IdentityRecordEntity>;
-  let service: DynamoDBIdentityService<IdentityRecordEntity>;
+  const tableName = 'test-data-service';
+  const identityTableName = 'test-identity-service';
+
+  const mockAppIdentityRecord: IdentityRecordEntity = {
+    pk: `app#test`,
+    sk: 'mock-string-uuid4',
+    serviceName: 'app',
+    serviceId: 'test',
+    udpId: 'mock-string-uuid4',
+  };
+
+  const service: DynamoDBIdentityService<IdentityRecordEntity> =
+    new ServiceFactory({
+      tableName,
+      identityTableName,
+    }).getService('identity');
 
   beforeEach(() => {
-    mockRepository = {
-      get: vi.fn(),
-      getByPk: vi.fn(),
-      save: vi.fn(),
-      delete: vi.fn(),
-      skBeginswith: vi.fn(),
-    } as unknown as DynamoDBRepository<IdentityRecordEntity>;
-    service = new DynamoDBIdentityService(mockRepository);
+    dynamoMock.reset();
   });
 
   describe('Create App User', () => {
@@ -31,18 +59,30 @@ describe('Identity Service', () => {
       const input: CreateUserInput = {
         appId: 'test',
       };
+      const pk = `app#${input.appId}`;
+
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [],
+      });
+      dynamoMock.on(PutCommand).resolves({});
 
       const result = await service.createAppUser(input);
 
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        pk: `app#test`,
-        sk: 'mock-string-uuid4',
-        serviceName: 'app',
-        serviceId: 'test',
-        udpId: 'mock-string-uuid4',
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
       });
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
-
+      expect(getCommandCall(PutCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        Item: {
+          pk: pk,
+          sk: mockAppIdentityRecord.sk,
+        },
+      });
       expect(result).toEqual({ created: true, udpId: 'mock-string-uuid4' });
     });
 
@@ -50,27 +90,51 @@ describe('Identity Service', () => {
       const input: CreateUserInput = {
         appId: 'test',
       };
+      const pk = `app#${input.appId}`;
 
-      vi.mocked(mockRepository.getByPk).mockResolvedValue({
-        pk: `app#test`,
-        sk: 'mock-string-uuid4',
-        serviceName: 'app',
-        serviceId: 'test',
-        udpId: 'mock-string-uuid4',
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [mockAppIdentityRecord],
       });
 
       const result = await service.createAppUser(input);
 
-      expect(mockRepository.save).not.toHaveBeenCalledWith({
-        pk: `app#test`,
-        sk: 'mock-string-uuid4',
-        serviceName: 'app',
-        serviceId: 'test',
-        udpId: 'mock-string-uuid4',
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
       });
-      expect(mockRepository.save).not.toHaveBeenCalledTimes(1);
-
+      expect(dynamoMock.commandCalls(PutCommand).length).toEqual(0);
       expect(result).toEqual({ created: false, udpId: '' });
+    });
+
+    it('should throw the underlying error from a repository failure', async () => {
+      const input: CreateUserInput = {
+        appId: 'test',
+      };
+      const pk = `app#${input.appId}`;
+      const mockError = new BaseUDPError(
+        'error',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+      );
+
+      dynamoMock.on(QueryCommand).rejects(mockError);
+
+      await expect(service.createAppUser(input)).rejects.toThrowError(
+        mockError,
+      );
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
+      });
+      expect(dynamoMock.commandCalls(PutCommand).length).toEqual(0);
     });
   });
 
@@ -81,162 +145,279 @@ describe('Identity Service', () => {
         serviceId: 'test-service-id',
         serviceName: 'test-service',
       };
+      const pk = `app#${input.appId}`;
 
-      vi.mocked(mockRepository.getByPk).mockResolvedValue({
-        pk: `app#test`,
-        sk: 'mock-string-uuid4',
-        serviceName: 'app',
-        serviceId: 'test',
-        udpId: 'mock-string-uuid4',
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [mockAppIdentityRecord],
       });
+      dynamoMock.on(PutCommand).resolves({});
 
       await service.linkIdentity(input);
 
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        pk: `test-service#test-service-id`,
-        sk: 'mock-string-uuid4',
-        serviceName: 'test-service',
-        serviceId: 'test-service-id',
-        udpId: 'mock-string-uuid4',
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
       });
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should return an error if the user doesnt exist', async () => {
+    it('should link the identity if the user exists with TTL', async () => {
+      const ttl = Math.floor(new Date('01/01/2030').getTime() / 1000);
+      const input: IdentityInput = {
+        appId: 'test',
+        serviceId: 'test-service-id',
+        serviceName: 'test-service',
+        ttl,
+      };
+      const pk = `app#${input.appId}`;
+
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [{ ...mockAppIdentityRecord, ttl }],
+      });
+      dynamoMock.on(PutCommand).resolves({});
+
+      await service.linkIdentity(input);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
+      });
+    });
+
+    it('should throw the underlying error if the save rejects', async () => {
       const input: IdentityInput = {
         appId: 'test',
         serviceId: 'test-service-id',
         serviceName: 'test-service',
       };
 
-      vi.mocked(mockRepository.getByPk).mockResolvedValue(null);
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [mockAppIdentityRecord],
+      });
+      const mockError = new Error('A big scary error');
+      dynamoMock.on(PutCommand).rejects(mockError);
 
-      await expect(service.linkIdentity(input)).rejects.toThrow(
-        'Identity not found with service: app and id: test',
-      );
+      await expect(service.linkIdentity(input)).rejects.toThrowError(mockError);
+    });
+
+    it('should return an error if the app user doesnt exist', async () => {
+      const input: IdentityInput = {
+        appId: 'test',
+        serviceId: 'test-service-id',
+        serviceName: 'test-service',
+      };
+      const appServiceName = 'app';
+
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [],
+      });
+
+      try {
+        await service.linkIdentity(input);
+        expect.fail('The error should have been thrown');
+      } catch (error) {
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${appServiceName} and id: ${input.appId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          appServiceName,
+          input.appId,
+        );
+
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
+    });
+
+    it('should return an error if the app user id equals the service id', async () => {
+      const input: IdentityInput = {
+        appId: 'test',
+        serviceId: 'test',
+        serviceName: 'test-service',
+      };
+
+      try {
+        await service.linkIdentity(input);
+        expect.fail('The error should have been thrown');
+      } catch (error) {
+        const expectedError = new IdentityLinkingInvalidIdentitesError(
+          'The provided AppId and ServiceId for linking should not be the same value',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          input.appId,
+          input.serviceId,
+        );
+
+        expect(error).instanceOf(IdentityLinkingInvalidIdentitesError);
+        expect(error).toEqual(expectedError);
+      }
     });
   });
 
   describe('Get Identity Record', () => {
     it('Should return the Identity Record if it extists', async () => {
-      const mockEntity: IdentityRecordEntity = {
-        pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        udpId: 'test-id',
-        serviceId: 'test',
-        serviceName: 'test',
-      };
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+      const pk = serviceName.concat('#', serviceId);
+      const user = { ...mockAppIdentityRecord, pk, serviceName, serviceId };
 
-      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(mockEntity);
+      dynamoMock.on(QueryCommand).resolves({ Items: [user] });
 
-      const result = await service.getById(
-        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-      );
+      const result = await service.getByServiceId(serviceName, serviceId);
 
-      expect(result).toEqual(mockEntity);
-      expect(mockRepository.skBeginswith).toHaveBeenCalledWith({
-        pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
       });
-      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(user);
     });
 
-    it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
-      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
+    it('Should throw a IdentityRecordNotFoundError if the Identity Record does not exist', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+      try {
+        await service.getByServiceId(serviceName, serviceId);
+        expect.fail('An error should have been thrown');
+      } catch (error) {
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          serviceName,
+          serviceId,
+        );
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
+    });
+
+    it('Should throw the underlying error if the repository.getByPl() call fails', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+
+      const mockError = new BaseUDPError(
+        'Error',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+      );
+      dynamoMock.on(QueryCommand).rejects(mockError);
 
       await expect(
-        service.getById('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
-      ).rejects.toThrow('Identity record not found');
-
-      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(1);
-    });
-
-    it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
-      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
-
-      await expect(service.getById('')).rejects.toThrow(
-        'A valid identifier must be provided',
-      );
-
-      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(0);
+        service.getByServiceId(serviceName, serviceId),
+      ).rejects.toThrowError(mockError);
     });
   });
 
   describe('Delete Identity Record', () => {
     it('Should delete the Identity Record if it extists', async () => {
-      vi.mocked(mockRepository.delete).mockResolvedValue(true);
-      vi.mocked(mockRepository.getByPk).mockResolvedValue({
-        pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        serviceId: '',
-        serviceName: '',
-        udpId: '',
-      });
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+      const pk = serviceName.concat('#', serviceId);
+      const identity = { ...mockAppIdentityRecord, pk, serviceName, serviceId };
 
-      await service.deleteById('app', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
+      dynamoMock.on(QueryCommand).resolves({ Items: [identity] });
+      dynamoMock.on(DeleteCommand).resolves({});
 
-      expect(mockRepository.delete).toHaveBeenCalledWith({
-        pk: 'IDENTITY_RECORD#',
-        sk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+      const result = await service.deleteById(serviceName, serviceId);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+        },
+        Limit: 1,
       });
-      expect(mockRepository.delete).toHaveBeenCalledTimes(1);
+      expect(getCommandCall(DeleteCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        Key: { pk, sk: identity.sk },
+        ConditionExpression: 'attribute_exists(pk)',
+      });
+      expect(result).toBeTruthy();
     });
 
-    it('Should throw a NotFound Error if the Identity Record does not exist', async () => {
-      vi.mocked(mockRepository.delete).mockRejectedValue(null);
-      vi.mocked(mockRepository.skBeginswith).mockResolvedValue(null);
+    it('Should throw a IdentityRecordNotFoundError if the Identity Record does not exist', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+      try {
+        await service.deleteById(serviceName, serviceId);
+        expect.fail('An error should have been thrown');
+      } catch (error) {
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          serviceName,
+          serviceId,
+        );
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
+    });
+
+    it('Should throw a IdentityRecordNotFoundError if the Delete Record does not return true', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+      const pk = serviceName.concat('#', serviceId);
+      const identity = { ...mockAppIdentityRecord, pk, serviceName, serviceId };
+
+      const mockError = new Error('Entity does not exist');
+      mockError.name = 'ConditionalCheckFailedException';
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [identity] });
+      dynamoMock.on(DeleteCommand).rejects(mockError);
+
+      try {
+        await service.deleteById(serviceName, serviceId);
+        expect.fail('An error should have been thrown');
+      } catch (error) {
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          serviceName,
+          serviceId,
+        );
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
+    });
+
+    it('Should throw the underlying error if the repository.getByPl() call fails', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+
+      const mockError = new BaseUDPError(
+        'Error',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+      );
+      dynamoMock.on(QueryCommand).rejects(mockError);
 
       await expect(
-        service.deleteById('app', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
-      ).rejects.toThrow(
-        'Identity not found with service: app and id: a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-      );
-
-      expect(mockRepository.delete).toHaveBeenCalledTimes(0);
-    });
-
-    it('Should throw a BadRequest Error if the Identifier is not provided', async () => {
-      vi.mocked(mockRepository.get).mockResolvedValue(null);
-
-      await expect(service.deleteById('', '')).rejects.toThrow(
-        'A valid identifier must be provided',
-      );
-
-      expect(mockRepository.skBeginswith).toHaveBeenCalledTimes(0);
+        service.deleteById(serviceName, serviceId),
+      ).rejects.toThrowError(mockError);
     });
   });
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const service = new DynamoDBIdentityService(mockRepository);
-      expect(service).toBeInstanceOf(DynamoDBIdentityService);
-    });
-  });
-
-  describe('Create App User', () => {
-    it('Should create a new user when no user exists', async () => {
-      const input: CreateUserInput = {
-        appId: 'test-app-id',
-      };
-
-      vi.mocked(mockRepository.getByPk).mockResolvedValue(null);
-      vi.mocked(mockRepository.save).mockResolvedValue(undefined);
-
-      const result = await service.createAppUser(input);
-
-      expect(mockRepository.getByPk).toHaveBeenCalledWith(`app#test-app-id`);
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        pk: `app#test-app-id`,
-        sk: `mock-string-uuid4`,
-        udpId: 'mock-string-uuid4',
-        serviceId: 'test-app-id',
-        serviceName: 'app',
-      });
-
-      expect(result).toEqual({
-        udpId: 'mock-string-uuid4',
-        created: true,
-      });
+      const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =
+        new ServiceFactory({
+          tableName,
+          identityTableName,
+        }).getService('identity');
+      expect(testServiceConstructor).toBeInstanceOf(DynamoDBIdentityService);
     });
   });
 });

@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.base",
-  "compilerOptions": {
-    "outDir": "../../dist/libs/data-access",
-    "types": ["node", "vitest/globals"]
-  },
-  "include": ["**/*.test.ts"]
-}

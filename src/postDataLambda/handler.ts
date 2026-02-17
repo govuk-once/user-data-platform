@@ -1,21 +1,18 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import {
   injectLambdaContext,
   getLogger,
   getTracer,
   captureLambdaHandler,
-  routes,
-  zodValidator,
   createEnvValidator,
-  generateErrorResponseFromHttpError,
+  udpErrorHandling,
+  zodValidator,
+  PostDataResponse,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
-import createHttpError from 'http-errors';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
 
@@ -48,46 +45,25 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    if (!event.body) {
-      throw createHttpError.BadRequest();
-    }
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.headers['requesting-service'],
-        event.headers['requesting-service-user-id'],
-      );
+  await getFactory()
+    .getService('data')
+    .save(identity, event.pathParameters.resourcePath, event.body);
 
-    await getFactory()
-      .getService('data')
-      .save(identity, event.pathParameters.resourcePath, event.body);
-
-    tracer.putAnnotation('putEntitySuccess', true);
-    return {
-      statusCode: 201,
-      body: { message: 'Entity saved successfully' },
-    };
-  } catch (error) {
-    tracer.putAnnotation('putEntitySuccess', false);
-    let response = {
-      statusCode: 500,
-      errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error',
-    };
-    if (createError.isHttpError(error)) {
-      response = generateErrorResponseFromHttpError(error);
-    }
-    return {
-      statusCode: response.statusCode,
-      body: response,
-    };
-  }
+  tracer.putAnnotation('putEntitySuccess', true);
+  return {
+    statusCode: 200,
+    body: { message: 'Entity saved successfully' } satisfies PostDataResponse,
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -95,15 +71,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      pathParameters: routes.createData.params,
-      headers: routes.createData.headers,
-      body: routes.createData.body,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -115,4 +82,8 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling(logger))
+  .use(jsonBodyParser())
+  .use(zodValidator('postData', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);

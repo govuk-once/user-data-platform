@@ -1,6 +1,10 @@
 import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
 import { EncryptionService } from '../services/EncryptionService';
-import { EncryptionConfig, IdentityRecordEntity } from '../types/Entity';
+import {
+  DynamoDBDataEntity,
+  EncryptionConfig,
+  IdentityRecordEntity,
+} from '../types/Entity';
 import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -69,7 +73,7 @@ export class ServiceFactory {
 
   private createDataService() {
     const encryption = this.getEncryptionConfig(['data']);
-    const repository = new DynamoDBRepository<IdentityRecordEntity>(
+    const repository = new DynamoDBRepository<DynamoDBDataEntity>(
       this.tableName,
       this.docClient,
       encryption,

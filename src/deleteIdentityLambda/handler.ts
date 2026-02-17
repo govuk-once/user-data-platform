@@ -1,17 +1,16 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  createEnvValidator,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+  DeleteIdentityResponse,
 } from '@libs/utils';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
@@ -45,39 +44,29 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  tracer.putAnnotation('stack', stack);
+  await getFactory()
+    .getService('identity')
+    .deleteById(
+      event.pathParameters.serviceName,
+      event.pathParameters.identifier,
+    );
 
-  try {
-    await getFactory()
-      .getService('identity')
-      .deleteById(
-        event.pathParameters.serviceName,
-        event.pathParameters.identifier,
-      );
-
-    return {
-      statusCode: 200,
-      body: 'Successfully Deleted Identity',
-    };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-
-    throw new createError.InternalServerError();
-  }
+  return {
+    statusCode: 200,
+    body: {
+      message: 'Successfully Deleted Identity',
+    } satisfies DeleteIdentityResponse,
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  .use(
-    zodValidator({
-      pathParameters: routes.deleteIdentity.params,
-    }),
-  )
-  .use(httpErrorHandler())
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(
     httpResponseSerializer({
       serializers: [
@@ -89,4 +78,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling(logger))
+  .use(zodValidator('deleteIdentity', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Logger } from '../src/logger';
 import { Logger as PowerToolLogger } from '@aws-lambda-powertools/logger';
+import { Logger } from './Logger';
 
 describe('Logger', () => {
   const serviceName = 'test-service';
@@ -144,7 +144,7 @@ describe('Logger', () => {
         environment: 'test',
         serviceName: 'test-service',
         username: 'alice',
-        password: 'super-secret',
+        password: 'super-secret', // pragma: allowlist secret
       };
 
       logger.info('user login', fields);
@@ -156,7 +156,7 @@ describe('Logger', () => {
       expect(loggedFields).toEqual({
         environment: 'test',
         username: 'alice',
-        password: '***REDACTED***',
+        password: '***REDACTED***', // pragma: allowlist secret
         serviceName: 'test-service',
       });
       // original object must not be mutated
@@ -172,7 +172,7 @@ describe('Logger', () => {
       const fields = {
         user: {
           id: '123',
-          password: 'nested-secret',
+          password: 'nested-secret', // pragma: allowlist secret
           profile: {
             email: 'test@example.com',
           },
@@ -188,7 +188,7 @@ describe('Logger', () => {
         serviceName: 'test-service',
         user: {
           id: '123',
-          password: '***REDACTED***',
+          password: '***REDACTED***', // pragma: allowlist secret
           profile: {
             email: 'test@example.com',
           },

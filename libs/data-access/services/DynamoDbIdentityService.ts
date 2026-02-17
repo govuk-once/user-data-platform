@@ -4,12 +4,14 @@ import {
   IdentityInput,
   IdentityRecordEntity,
 } from '../types/Entity';
-import { Logger } from '@libs/utils';
+import {
+  IdentityLinkingInvalidIdentitesError,
+  IdentityRecordNotFoundError,
+  Logger,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 import { Repository } from '../repositories/Repository';
-import createHttpError from 'http-errors';
 import { v4 as uuidv4 } from 'uuid';
-
-const PK_CONSTANT = 'IDENTITY_RECORD#';
 
 /**
  * Service class for DynamoDB Identity entity operations with business logic.
@@ -29,12 +31,14 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
   public async linkIdentity(input: IdentityInput) {
     if (input.appId === input.serviceId) {
-      throw createHttpError.BadRequest(
-        'AppId and serviceId should not be the same',
+      throw new IdentityLinkingInvalidIdentitesError(
+        'The provided AppId and ServiceId for linking should not be the same value',
+        UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+        input.appId,
+        input.serviceId,
       );
     }
     const entity = await this.createFromInput(input);
-    this.validateEntity(entity);
     await this.repository.save(entity);
   }
 
@@ -60,7 +64,6 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       udpId,
       serviceId: input.appId,
       serviceName: 'app',
-      ...(input.ttl !== undefined ? { ttl: input.ttl } : {}),
     } as unknown as T;
 
     this.logger?.debug('Creating new app user', {
@@ -80,60 +83,27 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     return { udpId, created: true };
   }
 
-  public async getByServiceId(
-    serviceName: string,
-    serviceId: string,
-    throwNotFound = true,
-  ) {
+  public async getByServiceId(serviceName: string, serviceId: string) {
     const pk = `${serviceName.toLowerCase()}#${serviceId}`;
 
     this.logger?.debug('Getting service user', { pk });
 
     const user = await this.repository.getByPk(pk);
 
-    if (throwNotFound && !user) {
-      throw createHttpError.NotFound(
+    if (!user) {
+      throw new IdentityRecordNotFoundError(
         `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+        UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+        serviceName,
+        serviceId,
       );
     }
 
-    if (user) {
-      return user;
-    }
-  }
-
-  public async getById(serviceId: string, throwNotFound = true) {
-    if (!serviceId) {
-      throw createHttpError.BadRequest(
-        `A valid identifier must be provided ${serviceId}`,
-      );
-    }
-
-    const result = await this.repository.skBeginswith({
-      pk: PK_CONSTANT,
-      sk: serviceId,
-    } as Partial<T>);
-
-    if (!result) {
-      if (throwNotFound) {
-        throw createHttpError.NotFound('Identity record not found');
-      }
-      return null;
-    }
-
-    return result;
+    return user;
   }
 
   public async deleteById(serviceName: string, serviceId: string) {
-    if (!serviceId) {
-      throw createHttpError.BadRequest(`A valid identifier must be provided`);
-    }
-
     const identifier = await this.getByServiceId(serviceName, serviceId);
-
-    if (!identifier) {
-      throw createHttpError.NotFound();
-    }
 
     const result = await this.repository.delete({
       pk: identifier.pk,
@@ -141,18 +111,18 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     } as Partial<T>);
 
     if (!result) {
-      throw createHttpError.NotFound('Identity record not found');
+      throw new IdentityRecordNotFoundError(
+        `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+        UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+        serviceName,
+        serviceId,
+      );
     }
 
     return result;
   }
 
   private async createFromInput(input: IdentityInput): Promise<T> {
-    if (!input.appId || !input.serviceId) {
-      throw createHttpError.BadRequest(
-        'Missing required field serviceId or appId',
-      );
-    }
     // look up the udp id by app id
     const appIdentifier = await this.getByServiceId('app', input.appId);
 
@@ -164,11 +134,5 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       udpId: appIdentifier.udpId,
       ...(input.ttl ? { ttl: input.ttl } : {}),
     } as T;
-  }
-
-  private validateEntity(entity: T) {
-    if (!entity.sk) {
-      throw createHttpError('Service Id must be set');
-    }
   }
 }

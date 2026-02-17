@@ -5,13 +5,13 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBEntity } from '../types/Entity';
 import { DynamoDBRepository } from './DynamoDBRepository';
-import { DeleteError, GetError, SaveError } from '../errors/Errors';
 import { EncryptionService } from '../services/EncryptionService';
-import { Logger } from '@libs/utils';
+import { Logger, InvalidDynamoKeyError, UDP_ERROR_TYPES } from '@libs/utils';
 import { LogLevel } from '@aws-lambda-powertools/logger';
 
 const logger = new Logger(
@@ -39,20 +39,6 @@ describe('DynamoDBRepository', () => {
   const getSavedItem = (callIndex = 0) => {
     const input = dynamoMock.call(callIndex).args[0].input as { Item: any };
     return input.Item;
-  };
-
-  const expectErrorWithCause = <T extends Error>(
-    error: unknown,
-    errorType: new (...args: any[]) => T,
-    expectedMessage?: string,
-  ) => {
-    expect(error).toBeInstanceOf(errorType);
-    const typedError = error as T & { cause: Error };
-    expect(typedError.cause).toBeDefined();
-    expect(typedError.cause).toBeInstanceOf(Error);
-    if (expectedMessage) {
-      expect(typedError.cause.message).toBe(expectedMessage);
-    }
   };
 
   beforeEach(() => {
@@ -175,96 +161,95 @@ describe('DynamoDBRepository', () => {
       });
     });
 
-    it('should throw GetError when DynamoDB operation fails', async () => {
+    it('should throw the original error when DynamoDB operation fails', async () => {
       const mockError = new Error('DynamoDB error');
       dynamoMock.on(GetCommand).rejects(mockError);
 
-      const loggerSpy = vi.spyOn(logger, 'error');
-
       await expect(
         repository.get({
           pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           sk: 'topics',
         }),
-      ).rejects.toThrow(GetError);
-      await expect(
-        repository.get({
-          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-          sk: 'topics',
-        }),
-      ).rejects.toThrow(
-        'Failed to get item with id a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d#topics: DynamoDB error',
-      );
-
-      expect(loggerSpy).toHaveBeenCalled();
+      ).rejects.toThrow(mockError);
     });
 
-    it('should throw GetError when pk is missing', async () => {
-      const getWithoutPk = () =>
-        repository.get({ sk: 'topics' } as Partial<TestEntity>);
+    it('should throw an InvalidDynamoKeyError when pk is missing', async () => {
+      try {
+        await repository.get({ sk: 'topics' } as Partial<TestEntity>);
 
-      await expect(getWithoutPk()).rejects.toThrow(GetError);
-      await expect(getWithoutPk()).rejects.toThrow(
-        'Both pk and sk are required for composite key entities',
-      );
+        expect.fail('Error should have been thrown');
+      } catch (error) {
+        const expectedError = new InvalidDynamoKeyError(
+          'Both pk and sk are required for composite key entities',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          undefined,
+          'topics',
+        );
+
+        expect(error).instanceOf(InvalidDynamoKeyError);
+        expect(error as InvalidDynamoKeyError).toEqual(expectedError);
+      }
     });
 
-    it('should throw GetError when sk is missing', async () => {
-      const getWithoutSk = () =>
-        repository.get({
+    it('should throw an InvalidDynamoKeyError when sk is missing', async () => {
+      try {
+        await repository.get({
           pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         } as Partial<TestEntity>);
 
-      await expect(getWithoutSk()).rejects.toThrow(GetError);
-      await expect(getWithoutSk()).rejects.toThrow(
-        'Both pk and sk are required for composite key entities',
-      );
+        expect.fail('Error should have been thrown');
+      } catch (error) {
+        const expectedError = new InvalidDynamoKeyError(
+          'Both pk and sk are required for composite key entities',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          undefined,
+        );
+
+        expect(error).instanceOf(InvalidDynamoKeyError);
+        expect(error as InvalidDynamoKeyError).toEqual(expectedError);
+      }
     });
 
-    it('should throw GetError when pk is undefined', async () => {
-      const getWithUndefinedPk = () =>
-        repository.get({ pk: undefined, sk: 'topics' } as Partial<TestEntity>);
+    it('should throw an InvalidDynamoKeyError when pk is undefined', async () => {
+      try {
+        await repository.get({
+          pk: undefined,
+          sk: 'topics',
+        } as Partial<TestEntity>);
 
-      await expect(getWithUndefinedPk()).rejects.toThrow(GetError);
-      await expect(getWithUndefinedPk()).rejects.toThrow(
-        'Both pk and sk are required for composite key entities',
-      );
+        expect.fail('Error should have been thrown');
+      } catch (error) {
+        const expectedError = new InvalidDynamoKeyError(
+          'Both pk and sk are required for composite key entities',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          undefined,
+          'topics',
+        );
+
+        expect(error).instanceOf(InvalidDynamoKeyError);
+        expect(error as InvalidDynamoKeyError).toEqual(expectedError);
+      }
     });
 
-    it('should throw GetError when sk is undefined', async () => {
-      const getWithUndefinedSk = () =>
-        repository.get({
+    it('should throw an InvalidDynamoKeyError when sk is undefined', async () => {
+      try {
+        await repository.get({
           pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           sk: undefined,
         } as Partial<TestEntity>);
 
-      await expect(getWithUndefinedSk()).rejects.toThrow(GetError);
-      await expect(getWithUndefinedSk()).rejects.toThrow(
-        'Both pk and sk are required for composite key entities',
-      );
-    });
-
-    it('should include cause in GetError when DynamoDB fails', async () => {
-      const mockError = new Error('Network timeout');
-      dynamoMock.on(GetCommand).rejects(mockError);
-
-      try {
-        await repository.get({
-          pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-          sk: 'topics',
-        });
-        expect.fail('Should have thrown GetError');
+        expect.fail('Error should have been thrown');
       } catch (error) {
-        expectErrorWithCause(error, GetError, 'Network timeout');
-      }
-    });
+        const expectedError = new InvalidDynamoKeyError(
+          'Both pk and sk are required for composite key entities',
+          UDP_ERROR_TYPES.INTERNAL_SERVER_ERROR,
+          'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          undefined,
+        );
 
-    it('should include cause in GetError when keys are invalid', async () => {
-      try {
-        await repository.get({ sk: 'topics' } as Partial<TestEntity>);
-        expect.fail('Should have thrown GetError');
-      } catch (error) {
-        expectErrorWithCause(error, GetError);
+        expect(error).instanceOf(InvalidDynamoKeyError);
+        expect(error as InvalidDynamoKeyError).toEqual(expectedError);
       }
     });
   });
@@ -371,7 +356,7 @@ describe('DynamoDBRepository', () => {
       });
     });
 
-    it('should throw SaveError when DynamoDB operation fails', async () => {
+    it('should throw the original error when DynamoDB operation fails', async () => {
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
         sk: 'topics',
@@ -383,28 +368,7 @@ describe('DynamoDBRepository', () => {
       const mockError = new Error('DynamoDB error');
       dynamoMock.on(PutCommand).rejects(mockError);
 
-      await expect(repository.save(entity)).rejects.toThrow(SaveError);
-      await expect(repository.save(entity)).rejects.toThrow(
-        'Failed to save item with id a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d#topics: DynamoDB error',
-      );
-    });
-
-    it('should include cause in SaveError when DynamoDB fails', async () => {
-      const entity: TestEntity = {
-        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-        sk: 'topics',
-        data: { name: 'John' },
-      };
-
-      const mockError = new Error('Write capacity exceeded');
-      dynamoMock.on(PutCommand).rejects(mockError);
-
-      try {
-        await repository.save(entity);
-        expect.fail('Should have thrown SaveError');
-      } catch (error) {
-        expectErrorWithCause(error, SaveError, 'Write capacity exceeded');
-      }
+      await expect(repository.save(entity)).rejects.toThrow(mockError);
     });
 
     it('should overwrite existing entity with same pk and sk', async () => {
@@ -461,7 +425,22 @@ describe('DynamoDBRepository', () => {
       });
     });
 
-    it('should throw a DeleteError when entity fails to delete', async () => {
+    it('should return null when a conditional check exception is thrown by the DynamoClient', async () => {
+      const mockError = new Error('Network timeout');
+      mockError.name = 'ConditionalCheckFailedException';
+      const entity: TestEntity = {
+        pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        sk: 'topics',
+      };
+
+      dynamoMock.on(DeleteCommand).rejects(mockError);
+      const response = await repository.delete(entity);
+
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should throw original error when entity fails to delete', async () => {
       const mockError = new Error('Network timeout');
       const entity: TestEntity = {
         pk: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
@@ -469,13 +448,119 @@ describe('DynamoDBRepository', () => {
       };
 
       dynamoMock.on(DeleteCommand).rejects(mockError);
+      await expect(repository.delete(entity)).rejects.toThrow(mockError);
+    });
+  });
 
-      try {
-        await repository.delete(entity);
-        expect.fail('Should have thrown GetError');
-      } catch (error) {
-        expectErrorWithCause(error, DeleteError, 'Network timeout');
-      }
+  describe('getByPk', () => {
+    it('should throw the original error if the DynamoDB operation fails', async () => {
+      const pk = 'pk';
+      const mockError = new Error('This call has failed');
+
+      dynamoMock.on(QueryCommand).rejects(mockError);
+
+      await expect(repository.getByPk(pk)).rejects.toThrow(mockError);
+    });
+
+    it('should return null if the DynamoDB response is undefined', async () => {
+      const pk = 'pk';
+      const mockResponse = { Items: undefined };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.getByPk(pk);
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should return null if the DynamoDB response is an empty list', async () => {
+      const pk = 'pk';
+      const mockResponse = { Items: [] };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.getByPk(pk);
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should return the item if the DynamoDB response is valid', async () => {
+      const pk = 'pk';
+      const mockResponse = { Items: [{ pk: 'pk', sk: 'sk', test: '123' }] };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.getByPk(pk);
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toEqual({ ...mockResponse.Items[0] });
+    });
+  });
+
+  describe('skBeginsWith', () => {
+    /*
+      throws error if db error
+      returns null if response undefined
+      returns null if items list empty
+      returns items
+    */
+    it('should throw the original error if the DynamoDB operation fails', async () => {
+      const pk = 'pk';
+      const sk = 'sk';
+      const mockError = new Error('This call has failed');
+
+      dynamoMock.on(QueryCommand).rejects(mockError);
+
+      await expect(repository.skBeginswith({ pk, sk })).rejects.toThrow(
+        mockError,
+      );
+    });
+
+    it('should return null if the DynamoDB response is undefined', async () => {
+      const pk = 'pk';
+      const sk = 'sk';
+      const mockResponse = { Items: undefined };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.skBeginswith({ pk, sk });
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should return null if the DynamoDB response is an empty list', async () => {
+      const pk = 'pk';
+      const sk = 'sk';
+      const mockResponse = { Items: [] };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.skBeginswith({ pk, sk });
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should return null if the DynamoDB list response holds undefined', async () => {
+      const pk = 'pk';
+      const sk = 'sk';
+      const mockResponse = { Items: [undefined] };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.skBeginswith({ pk, sk });
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toBeNull();
+    });
+
+    it('should return the item if the DynamoDB response is valid', async () => {
+      const pk = 'pk';
+      const sk = 'sk';
+      const mockResponse = { Items: [{ pk: 'pk', sk: 'sk#123', test: '123' }] };
+
+      dynamoMock.on(QueryCommand).resolves(mockResponse);
+
+      const response = await repository.skBeginswith({ pk, sk });
+      expect(dynamoMock.calls()).toHaveLength(1);
+      expect(response).toEqual({ ...mockResponse.Items[0] });
     });
   });
 

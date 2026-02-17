@@ -1,21 +1,19 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
-  CreateIdentityRequestSchema,
-  createEnvValidator,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+  CreateIdentityRequest,
+  CreateIdentityResponse,
 } from '@libs/utils';
-import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -47,33 +45,24 @@ function getFactory() {
   return factory;
 }
 
-type CreateItemBody = z.infer<typeof CreateIdentityRequestSchema>;
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const input = {
-      ...(event.body as unknown as CreateItemBody),
-      serviceId: event.pathParameters.identifier,
-      serviceName: event.pathParameters.serviceName,
-    } as unknown as IdentityInput;
+  const input = {
+    ...(event.body as unknown as CreateIdentityRequest),
+    serviceId: event.pathParameters.identifier,
+    serviceName: event.pathParameters.serviceName,
+  } as unknown as IdentityInput;
 
-    await getFactory().getService('identity').linkIdentity(input);
+  await getFactory().getService('identity').linkIdentity(input);
 
-    return {
-      statusCode: 201,
-      body: { message: 'Identity Successfully created' },
-    };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-
-    throw new createError.InternalServerError();
-  }
+  return {
+    statusCode: 200,
+    body: {
+      message: 'Identity successfully created',
+    } satisfies CreateIdentityResponse,
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -81,14 +70,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      pathParameters: routes.createIdentity.params,
-      body: routes.createIdentity.body,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -100,4 +81,8 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling(logger))
+  .use(jsonBodyParser())
+  .use(zodValidator('createIdentity', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);

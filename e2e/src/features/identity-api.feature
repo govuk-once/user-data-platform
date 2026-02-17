@@ -10,17 +10,17 @@ Feature: identity Api
     Scenario: Successfully create initial app User
         When I send a post to '/v1/user' with the body '{"appId":"123", "serviceName": "app"}'
         Then I should recieve a successful response
-        Then the response status should be 201
+        Then the response status should be 200
 
     Scenario: Successfully link initial app User to another service
         When I send a post to '/v1/identity/service2/321' with the body '{"appId":"123"}'
         Then I should recieve a successful response
-        Then the response status should be 201
+        Then the response status should be 200
 
     Scenario: Successfully re link a user
        When I send a post to '/v1/identity/service2/321' with the body '{"appId":"123"}'
        Then I should recieve a successful response
-       Then the response status should be 201
+       Then the response status should be 200
 
     Scenario: Returns a 404 if the appId isnt found when linking
         When I send a post to '/v1/identity/service2/321' with the body '{"appId":"doesnt-exist"}'

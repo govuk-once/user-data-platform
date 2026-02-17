@@ -1,18 +1,16 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import {
-  createEnvValidator,
-  responseSanitiser,
-  zodValidator,
   getLogger,
   getTracer,
   captureLambdaHandler,
   injectLambdaContext,
-  routes,
-  generateErrorResponseFromHttpError,
+  createEnvValidator,
+  responseSanitiser,
+  udpErrorHandling,
+  zodValidator,
+  GetDataResponse,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -47,40 +45,24 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.headers['requesting-service'],
-        event.headers['requesting-service-user-id'],
-      );
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-    const entity = await getFactory()
-      .getService('data')
-      .getByKey(identity, event.pathParameters.resourcePath);
+  const entity = await getFactory()
+    .getService('data')
+    .getByKey(identity, event.pathParameters.resourcePath);
 
-    return {
-      statusCode: 200,
-      body: entity,
-    };
-  } catch (error) {
-    let response = {
-      statusCode: 500,
-      errorType: 'INTERNAL_SERVER_ERROR',
-      errorMessage: 'Internal Server Error',
-    };
-    if (createError.isHttpError(error)) {
-      response = generateErrorResponseFromHttpError(error);
-    }
-    return {
-      statusCode: response.statusCode,
-      body: response,
-    };
-  }
+  return {
+    statusCode: 200,
+    body: entity satisfies GetDataResponse,
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -88,13 +70,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(
-    zodValidator({
-      pathParameters: routes.readData.params,
-      headers: routes.readData.headers,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -108,4 +83,7 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
+  .use(udpErrorHandling(logger))
+  .use(zodValidator('getData', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);

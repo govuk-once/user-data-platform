@@ -1,21 +1,19 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory, IdentityInput } from '@libs/data-access';
 import {
-  createEnvValidator,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  routes,
-  CreateUserSchema,
+  createEnvValidator,
+  udpErrorHandling,
+  zodValidator,
+  CreateUserRequest,
+  CreateUserResponse,
 } from '@libs/utils';
-import { z } from 'zod';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
   required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
@@ -47,39 +45,29 @@ function getFactory() {
   return factory;
 }
 
-type CreateUserBody = z.infer<typeof CreateUserSchema>;
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const input = {
-      ...(event.body as unknown as CreateUserBody),
-    } as unknown as IdentityInput;
+  const input = {
+    ...(event.body as unknown as CreateUserRequest),
+  } as unknown as IdentityInput;
 
-    const result = await getFactory()
-      .getService('identity')
-      .createAppUser(input);
+  const result = await getFactory().getService('identity').createAppUser(input);
 
-    if (result.created) {
-      return {
-        statusCode: 201,
-        body: { message: 'User Successfully Created' },
-      };
-    }
-
+  if (result.created) {
     return {
       statusCode: 200,
-      body: { message: 'User already exists' },
+      body: {
+        message: 'User successfully created',
+      } satisfies CreateUserResponse,
     };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-    throw new createError.InternalServerError();
   }
+
+  return {
+    statusCode: 200,
+    body: { message: 'User already exists' },
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -87,13 +75,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(jsonBodyParser())
-  .use(
-    zodValidator({
-      body: routes.createUser.body,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -105,4 +86,8 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(udpErrorHandling(logger))
+  .use(jsonBodyParser())
+  .use(zodValidator('createUser', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);

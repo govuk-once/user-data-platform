@@ -1,11 +1,10 @@
-import { Logger } from '@libs/utils';
+import { DataRecordNotFoundError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import { Repository } from '../repositories/Repository';
 import {
   DataInput,
   DynamoDBDataEntity,
   IdentityRecordEntity,
 } from '../types/Entity';
-import createHttpError from 'http-errors';
 
 /**
  * Service class for DynamoDB Data entity operations with business logic.
@@ -28,22 +27,23 @@ export class DynamoDbDataService {
     resourcePath: string,
     input: DataInput,
   ) {
-    this.validate(identity, resourcePath, input);
     const entity = await this.createFromInput(identity, resourcePath, input);
     await this.repository.save(entity);
   }
 
   public async getByKey(identity: IdentityRecordEntity, resourcePath: string) {
-    this.validate(identity, resourcePath);
-
     const result = await this.repository.get({
       pk: identity.udpId,
       sk: resourcePath,
     });
 
     if (!result) {
-      throw createHttpError.NotFound(
-        `Resource with path ${resourcePath}:identity ${identity.serviceId} not found`,
+      throw new DataRecordNotFoundError(
+        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
+        UDP_ERROR_TYPES.DATA_NOT_FOUND,
+        identity.serviceName,
+        identity.serviceId,
+        resourcePath,
       );
     }
 
@@ -54,16 +54,18 @@ export class DynamoDbDataService {
     identity: IdentityRecordEntity,
     resourcePath: string,
   ) {
-    this.validate(identity, resourcePath);
-
     const result = await this.repository.delete({
       pk: identity.udpId,
       sk: resourcePath,
     });
 
     if (!result) {
-      throw createHttpError.NotFound(
-        `Resource with path ${resourcePath}:identity ${identity.serviceId} not found`,
+      throw new DataRecordNotFoundError(
+        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
+        UDP_ERROR_TYPES.DATA_NOT_FOUND,
+        identity.serviceName,
+        identity.serviceId,
+        resourcePath,
       );
     }
 
@@ -85,28 +87,5 @@ export class DynamoDbDataService {
       ...(data ? { data } : {}),
       ...(ttl ? { ttl } : {}),
     };
-  }
-
-  private validate(
-    identity: IdentityRecordEntity,
-    resourcePath: string,
-    input?: DataInput,
-  ) {
-    if (!identity.udpId) {
-      throw createHttpError.BadRequest('Unable to resolve identity');
-    }
-
-    if (!resourcePath) {
-      throw createHttpError.BadRequest(`resourcePath is required`);
-    }
-
-    if (input?.configuration?.expiresAt !== undefined) {
-      const nowInSeconds = Math.floor(Date.now() / 1000);
-      if (input.configuration.expiresAt <= nowInSeconds) {
-        throw createHttpError.BadRequest(
-          `TTL must be a future timestamp in seconds since epoch`,
-        );
-      }
-    }
   }
 }

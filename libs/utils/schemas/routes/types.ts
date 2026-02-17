@@ -2,8 +2,9 @@ import { z } from 'zod';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export interface SuccessResponse<T> {
+export interface HttpResponse<T> {
   status: number;
+  description: string;
   schema: T;
 }
 
@@ -28,8 +29,8 @@ export interface RouteConfig<
   headers?: THeaders;
   body?: TBody;
   query?: TQuery;
-  response: TResponse;
-  successResponses: SuccessResponse<TResponse>[];
+  successResponses: HttpResponse<TResponse>[];
+  errorResponses: HttpResponse<TResponse>[];
 }
 
 export type RouteParams<T extends RouteConfig> = T['params'] extends z.ZodAny
