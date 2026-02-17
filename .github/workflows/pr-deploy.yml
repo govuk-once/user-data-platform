@@ -209,7 +209,7 @@ jobs:
       - name: Start Performance tests (fire-and-forget)
         env:
           PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
-         SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
+          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
           SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
         run: |
           echo "Starting performance tests: ${PERF_PROJECT}"
