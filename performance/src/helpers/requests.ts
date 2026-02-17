@@ -1,0 +1,127 @@
+import http, { RefinedResponse, ResponseType } from 'k6/http';
+import { check } from 'k6';
+import { config } from 'src/config';
+import { signedHeaders } from './auth';
+
+function buildUrl(path: string): string {
+  const base = config.apiBaseUrl.replace(/\/+$/, '');
+  const normalised = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalised}`;
+}
+
+function mergeHeaders(
+  signed: Record<string, string>,
+  extra?: Record<string, string>,
+): Record<string, string> {
+  if (!extra) return signed;
+  return { ...signed, ...extra };
+}
+
+export function getData(
+  path: string,
+  headers?: Record<string, string>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/${path}`);
+  const reqHeaders = mergeHeaders(signedHeaders('GET', url), headers);
+  const res = http.get(url, { headers: reqHeaders });
+
+  check(res, {
+    ['GET /v1/${path status is 200']: (r) => r.status === 200,
+  });
+
+  return res;
+}
+
+export function getIdentity(
+  service: string,
+  id: string,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/identity/${service}/${id}`);
+  const headers = signedHeaders('GET', url);
+  const res = http.get(url, { headers });
+
+  check(res, {
+    [`GET identity v1/identity/${service}/${id} status is 200`]: (r) =>
+      r.status === 200,
+  });
+
+  return res;
+}
+
+export function postData(
+  path: string,
+  body: Record<string, unknown>,
+  headers?: Record<string, string>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/${path}`);
+  const reqHeeaders = mergeHeaders(signedHeaders('POST', url), headers);
+  const res = http.post(url, JSON.stringify(body), { headers: reqHeeaders });
+
+  check(res, {
+    [`POST  /v1/${path} status is 200`]: (r) => r.status === 200,
+  });
+
+  return res;
+}
+
+export function postIdentity(
+  service: string,
+  id: string,
+  body: Record<string, unknown>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/identity/${service}/${id}`);
+  const headers = signedHeaders('POST', url);
+  const res = http.post(url, JSON.stringify(body), { headers });
+
+  check(res, {
+    [`POST identity /v1/identity/${service}/${id} status is 200`]: (r) =>
+      r.status === 200,
+  });
+
+  return res;
+}
+
+export function postUser(
+  body: Record<string, unknown>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/user`);
+  const headers = signedHeaders('POST', url);
+  const res = http.post(url, JSON.stringify(body), { headers });
+
+  check(res, {
+    [`POST /v1/user status is 200`]: (r) => r.status === 200,
+  });
+
+  return res;
+}
+
+export function deleteData(
+  path: string,
+  headers?: Record<string, string>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/${path}`);
+  const reqHeaders = mergeHeaders(signedHeaders('DELETE', url), headers);
+  const res = http.del(url, null, { headers: reqHeaders });
+
+  check(res, {
+    [`DELETE /v1/user status is 200`]: (r) => r.status === 200,
+  });
+
+  return res;
+}
+
+export function deleteIdentity(
+  service: string,
+  id: string,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/identity/${service}/${id}`);
+  const headers = signedHeaders('DELETE', url);
+  const res = http.del(url, null, { headers });
+
+  check(res, {
+    [`DELETE identity /v1/identity/${service}/${id} status is 200`]: (r) =>
+      r.status === 200,
+  });
+
+  return res;
+}

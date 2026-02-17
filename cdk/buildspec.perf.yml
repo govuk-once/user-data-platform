@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - curl -sL https://github.com/grafana/k6/releases/download/v0.55.0/K6-v0.55.0-linux-amd64.tar.gz | tar xz
+      - mv k6-v0.55.0-linux-amd64/k6 /ur/local/bin
+      - k6 version
+
+  pre_build:
+    commands:
+      - echo "Settin up performance tests"
+
+  build:
+    commands:
+      - echo "Run Performance tests"
+      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke}
+      - echo "Perf tests started"
