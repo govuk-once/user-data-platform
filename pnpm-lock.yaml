@@ -167,6 +167,9 @@ importers:
       aws-sdk-client-mock:
         specifier: ^4.1.0
         version: 4.1.0
+      aws-sdk-client-mock-vitest:
+        specifier: ^7.0.1
+        version: 7.0.1(@smithy/types@4.12.0)(aws-sdk-client-mock@4.1.0)(vitest@4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2))
       esbuild:
         specifier: 0.27.0
         version: 0.27.0
@@ -200,6 +203,16 @@ importers:
       vitest:
         specifier: 4.0.9
         version: 4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  performance:
+    dependencies:
+      k6:
+        specifier: ^0.0.0
+        version: 0.0.0
+    devDependencies:
+      '@types/k6':
+        specifier: ^0.54.0
+        version: 0.54.2
 
 packages:
   '@asteasolutions/zod-to-openapi@8.4.0':
@@ -4011,6 +4024,12 @@ packages:
         integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==,
       }
 
+  '@types/k6@0.54.2':
+    resolution:
+      {
+        integrity: sha512-B5LPxeQm97JnUTpoKNE1UX9jFp+JiJCAXgZOa2P7aChxVoPQXKfWMzK+739xHq3lPkKj1aV+HeOxkP56g/oWBg==,
+      }
+
   '@types/mime@1.3.5':
     resolution:
       {
@@ -4719,6 +4738,17 @@ packages:
         integrity: sha512-9GNFMRrEMG5y3Jvv+V4azWvc+qNWdWLTjDdhf/zgMlz8haaaLWv0xeAIWxz9PuWUBawsVxy0zZotjCdR3Xq+2w==,
       }
     hasBin: true
+
+  aws-sdk-client-mock-vitest@7.0.1:
+    resolution:
+      {
+        integrity: sha512-uvMZKOT6i7dDxdHM/8ksZ7Z3m27ZZNRNm8r+zzFTT0cXmW2xG5/ttUtQDEImthZ5QARA325ll1wMCBGQ0+8WrQ==,
+      }
+    engines: { node: ^20.0.0 || ^22.0.0 || >=24.0.0 }
+    peerDependencies:
+      '@smithy/types': '>=3.5.0'
+      aws-sdk-client-mock: '>=2.2.0'
+      vitest: '>=3.2.0'
 
   aws-sdk-client-mock@4.1.0:
     resolution:
@@ -6639,6 +6669,12 @@ packages:
     resolution:
       {
         integrity: sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==,
+      }
+
+  k6@0.0.0:
+    resolution:
+      {
+        integrity: sha512-GAQSWayS2+LjbH5bkRi+pMPYyP1JSp7o+4j58ANZ762N/RH/SdlAT3CHHztnn8s/xgg8kYNM24Gd2IPo9b5W+g==,
       }
 
   keyv@4.5.4:
@@ -12078,6 +12114,8 @@ snapshots:
       '@types/ms': 2.1.0
       '@types/node': 24.10.1
 
+  '@types/k6@0.54.2': {}
+
   '@types/mime@1.3.5': {}
 
   '@types/ms@2.1.0': {}
@@ -12515,6 +12553,13 @@ snapshots:
       commander: 3.0.2
       js-yaml: 3.14.2
       watchpack: 2.4.4
+
+  aws-sdk-client-mock-vitest@7.0.1(@smithy/types@4.12.0)(aws-sdk-client-mock@4.1.0)(vitest@4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)):
+    dependencies:
+      '@smithy/types': 4.12.0
+      '@vitest/expect': 4.0.9
+      aws-sdk-client-mock: 4.1.0
+      vitest: 4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)
 
   aws-sdk-client-mock@4.1.0:
     dependencies:
@@ -13847,6 +13892,8 @@ snapshots:
     dependencies:
       jwa: 2.0.1
       safe-buffer: 5.2.1
+
+  k6@0.0.0: {}
 
   keyv@4.5.4:
     dependencies:

@@ -4,6 +4,7 @@ import { repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
+import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 
 const app = new App();
 
@@ -99,5 +100,22 @@ if (!skipMainStack) {
   });
 
   e2eStack.addDependency(mainStack);
+
+  const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
+    developerId,
+    environment,
+    env: awsEnv,
+    description: `Performance test stack${developerId ? ` for ${developerId}` : ''}`,
+    vpc: vpcStack.vpc,
+    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
+    apiEndpoint: mainStack.api.url,
+    apiId: mainStack.api.restApiId,
+    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
+    sourceBucketName: e2eStack.sourceBucket.bucketName,
+    warningTopic: monitoringStack.warningTopic,
+  });
+
+  perStack.addDependency(mainStack);
 }
 app.synth();

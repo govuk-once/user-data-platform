@@ -1,6 +1,6 @@
 {
   "name": "user-data-platform",
-  "version": "1.17.0",
+  "version": "1.18.1",
   "team": "udp",
   "repository": {
     "type": "git",
@@ -37,6 +37,7 @@
     "@vitest/coverage-v8": "4.0.9",
     "aws-cdk": "^2.1034.0",
     "aws-sdk-client-mock": "^4.1.0",
+    "aws-sdk-client-mock-vitest": "^7.0.1",
     "esbuild": "0.27.0",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",

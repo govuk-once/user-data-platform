@@ -184,3 +184,15 @@ jobs:
                 issue_number: context.issue.number,
                 body: `## E2E tests results ${emoji}\n\n**status:** ${status}\n**BUILD ID** \`${buildid}\``
             })
+
+  perf-test:
+    name: 'Performance Tests'
+    needs: [deploy, e2e-tests]
+    uses: './.github/workflows/__perf-tests.yml'
+    with:
+      environment: 'dev'
+      stack-prefix: ${{ env.DEVELOPER_ID }}
+      aws-region: ${{ env.AWS_REGION }}
+      perf-target: 'smoke'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}

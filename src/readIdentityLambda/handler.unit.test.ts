@@ -1,29 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './handler';
-import { beforeEach } from 'node:test';
-import createHttpError from 'http-errors';
+
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { mockClient } from 'aws-sdk-client-mock';
+import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
+
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 process.env['TABLE_NAME'] = 'test-table';
 process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
 
-const mockGet = vi.fn();
-
-// Mock the data-access library
-vi.mock('@libs/data-access', () => ({
-  ServiceFactory: class {
-    getService() {
-      return {
-        getByServiceId: mockGet,
-      };
-    }
-  },
-  DynamoDBIdentityService: class {
-    getById = mockGet;
-  },
-  DynamoDBRepository: class {},
-}));
+const mockAppService = 'app';
+const mockAppId = 'app123';
+const mockUdpId = 'abc123';
+const mockAppIdentity: IdentityRecordEntity = {
+  pk: `app#${mockAppId}`,
+  sk: mockUdpId,
+  serviceName: mockAppService,
+  serviceId: mockAppId,
+  udpId: mockUdpId,
+};
 
 describe('readIdentityLambda', () => {
   const mockContext: Context = {
@@ -43,16 +41,17 @@ describe('readIdentityLambda', () => {
   };
 
   beforeEach(() => {
+    dynamoMock.reset();
     vi.resetAllMocks();
   });
 
   describe('Bad Request 400', () => {
-    it('Should throw a bad request if the identifier adn serviceName is not set in the path params', async () => {
+    it('Should throw a bad request if the identifier and serviceName is not set in the path params', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
-          'requesting-service': 'app',
-          'requesting-service-user-id': 'test-user-id',
+          'requesting-service': mockAppService,
+          'requesting-service-user-id': mockAppId,
         },
         requestContext: {} as any,
         isBase64Encoded: false,
@@ -69,9 +68,12 @@ describe('readIdentityLambda', () => {
       const result = await handler(event, mockContext);
 
       expect(result.statusCode).toBe(400);
-      expect(result.body).toBe(
-        'Validation Failed identifier: is required,serviceName: is required',
-      );
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+        errorMessage: 'Validation Errors',
+        errorPaths: ['identifier', 'serviceName'],
+      });
     });
   });
 
@@ -80,99 +82,94 @@ describe('readIdentityLambda', () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
-          'requesting-service': 'app',
-          'requesting-service-user-id': 'test-user-id',
+          'requesting-service': mockAppService,
+          'requesting-service-user-id': mockAppId,
         },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: '/identity/user-guid-123',
+        rawPath: `/v1/identity/${mockAppService}/${mockAppId}`,
         pathParameters: {
-          identifier: 'test-user-id',
-          serviceName: 'service1',
+          identifier: mockAppId,
+          serviceName: mockAppService,
         },
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
+        routeKey: 'POST /v1/identity/{serviceName}/{identifier}',
       };
 
-      const record = {
-        pk: 'test',
-        sk: 'test',
-        serviceName: 'app',
-        serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
-        accessToken: '',
-        idToken: '',
-        refreshToken: '',
-      };
-
-      mockGet.mockResolvedValue(record);
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
 
       const result = await handler(event, mockContext);
 
-      expect(mockGet).toHaveBeenCalled();
-
-      expect(result?.statusCode).toBe(200);
-      expect(result.body).toEqual(
-        JSON.stringify({
-          serviceName: 'app',
-          serviceId: '24f2323e32-e232-e23e23-e23e23e23d',
-          accessToken: '',
-          idToken: '',
-          refreshToken: '',
-        }),
-      );
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toMatchObject({
+        serviceName: mockAppService,
+        serviceId: mockAppId,
+      });
     });
+  });
 
-    it('Should return a 404 if app user cannot be found', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-          'requesting-service': 'app',
-          'requesting-service-user-id': 'test-user-id',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        pathParameters: {
-          identifier: 'test-user-id',
-          serviceName: 'service1',
-        },
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-      };
+  it('Should return a 404 if app user cannot be found', async () => {
+    const event: APIGatewayProxyEventV2 = {
+      headers: {
+        'Content-Type': 'application/json',
+        'requesting-service': mockAppService,
+        'requesting-service-user-id': mockAppId,
+      },
+      requestContext: {} as any,
+      isBase64Encoded: false,
+      rawPath: '/user/user-guid-123',
+      pathParameters: {
+        identifier: mockAppId,
+        serviceName: mockAppService,
+      },
+      rawQueryString: '',
+      version: '2.0',
+      routeKey: 'POST /identity/{identifier}',
+    };
 
-      mockGet.mockRejectedValue(createHttpError.NotFound());
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
 
-      const result = await handler(event, mockContext);
+    const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(404);
+    expect(result.statusCode).toBe(404);
+    expect(JSON.parse(result.body)).toMatchObject({
+      errorCode: 404,
+      errorType: 'IDENTITY_NOT_FOUND',
+      errorMessage: `Identity not found with service: ${mockAppService} and id: ${mockAppId}`,
+      serviceName: mockAppService,
+      serviceUserId: mockAppId,
     });
+  });
 
-    it('Should return a 500 if theres any unknown error', async () => {
-      const event: APIGatewayProxyEventV2 = {
-        headers: {
-          'Content-Type': 'application/json',
-          'requesting-service': 'app',
-          'requesting-service-user-id': 'test-user-id',
-        },
-        requestContext: {} as any,
-        isBase64Encoded: false,
-        rawPath: '/user/user-guid-123',
-        pathParameters: {
-          identifier: 'test-user-id',
-          serviceName: 'service1',
-        },
-        rawQueryString: '',
-        version: '2.0',
-        routeKey: 'POST /identity/{identifier}',
-      };
+  it('Should return a 500 if theres any unknown error', async () => {
+    const event: APIGatewayProxyEventV2 = {
+      headers: {
+        'Content-Type': 'application/json',
+        'requesting-service': mockAppService,
+        'requesting-service-user-id': mockAppId,
+      },
+      requestContext: {} as any,
+      isBase64Encoded: false,
+      rawPath: '/user/user-guid-123',
+      pathParameters: {
+        identifier: 'test-user-id',
+        serviceName: 'service1',
+      },
+      rawQueryString: '',
+      version: '2.0',
+      routeKey: 'POST /identity/{identifier}',
+    };
 
-      mockGet.mockRejectedValue(Error('Unknown'));
+    dynamoMock.on(QueryCommand).rejects(new Error('DB Failure'));
 
-      const result = await handler(event, mockContext);
+    const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(500);
+    expect(result.statusCode).toBe(500);
+    expect(JSON.parse(result.body)).toMatchObject({
+      errorCode: 500,
+      errorType: 'INTERNAL_SERVER_ERROR',
+      errorMessage: 'Internal Server Error - unexpected error of name: Error',
     });
   });
 });

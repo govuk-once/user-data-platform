@@ -17,11 +17,3 @@ export { DynamoDBIdentityService } from './services/DynamoDbIdentityService';
 
 // Factories
 export * from './factory/ServiceFactory';
-
-// Errors
-export {
-  RepositoryError,
-  NotFoundError,
-  SaveError,
-  GetError,
-} from './errors/Errors';

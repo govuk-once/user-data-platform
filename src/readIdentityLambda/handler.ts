@@ -1,18 +1,17 @@
 import middy from '@middy/core';
-import httpErrorHandler from '@middy/http-error-handler';
 import httpResponseSerializer from '@middy/http-response-serializer';
 import type { APIGatewayProxyEventV2 } from 'aws-lambda';
-import createError from 'http-errors';
 import { ServiceFactory } from '@libs/data-access';
 import {
-  createEnvValidator,
-  responseSanitiser,
-  routes,
-  zodValidator,
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
+  createEnvValidator,
+  responseSanitiser,
+  udpErrorHandling,
+  zodValidator,
+  ReadIdentityResponse,
 } from '@libs/utils';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
@@ -47,29 +46,20 @@ function getFactory() {
 }
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  try {
-    const identity = await getFactory()
-      .getService('identity')
-      .getByServiceId(
-        event.pathParameters.serviceName,
-        event.pathParameters.identifier,
-      );
+  const identity = await getFactory()
+    .getService('identity')
+    .getByServiceId(
+      event.pathParameters.serviceName,
+      event.pathParameters.identifier,
+    );
 
-    return {
-      statusCode: 200,
-      body: identity,
-    };
-  } catch (error) {
-    if (createError.isHttpError(error)) {
-      throw error;
-    }
-
-    throw new createError.InternalServerError();
-  }
+  return {
+    statusCode: 200,
+    body: identity satisfies ReadIdentityResponse,
+  };
 };
 
 export const handler = middy()
-  .use(envMiddleware)
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
@@ -77,12 +67,6 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(
-    zodValidator({
-      pathParameters: routes.readIdentity.params,
-    }),
-  )
-  .use(httpErrorHandler())
   .use(
     httpResponseSerializer({
       serializers: [
@@ -95,4 +79,7 @@ export const handler = middy()
     }),
   )
   .use(responseSanitiser({}))
+  .use(udpErrorHandling(logger))
+  .use(zodValidator('readIdentity', logger))
+  .use(envMiddleware)
   .handler(lambdaHandler);
