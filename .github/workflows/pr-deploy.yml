@@ -191,8 +191,8 @@ jobs:
     uses: './.github/workflows/__perf-tests.yml'
     with:
       environment: dev
-      stack-prefix: ${{ env.DEVELOPER_ID }}
-      aws-region: ${{ env.AWS_REGION }}
+      stack-prefix: pr-${{ github.event.pull_request.number }}-dev
+      aws-region: 'eu-west-2'
       perf-target: 'smoke'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}

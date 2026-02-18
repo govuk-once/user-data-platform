@@ -9,7 +9,7 @@ on:
         type: string
       stack-prefix:
         description: 'CFN stack prefix (eg dev, pr-123)'
-        required: true,
+        required: true
         type: string
       perf-target:
         description: 'Performacne target for test run'
@@ -40,7 +40,7 @@ jobs:
       - name: Get Perf Codebuild project name
         id: get-perf-project
         env:
-          STACK_NAME: ${{ inputs.stack-prefix }}-dev-perf
+          STACK_NAME: ${{ inputs.stack-prefix }}-perf
         run: |
           PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
           echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
