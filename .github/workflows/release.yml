@@ -175,7 +175,7 @@ jobs:
 
   perf-test-dev:
     name: 'Performance Tests'
-    needs: [deploy, e2e-tests]
+    needs: [deploy-dev, e2e-dev]
     uses: './.github/workflows/__perf-tests.yml'
     with:
       environment: dev
@@ -332,7 +332,7 @@ jobs:
 
   perf-test-staging:
     name: 'Performance Tests'
-    needs: [deploy, e2e-tests]
+    needs: [deploy-staging, e2e-staging]
     uses: './.github/workflows/__perf-tests.yml'
     with:
       environment: stag
