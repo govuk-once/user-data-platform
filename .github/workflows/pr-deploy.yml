@@ -190,7 +190,7 @@ jobs:
     needs: [deploy, e2e-tests]
     uses: './.github/workflows/__perf-tests.yml'
     with:
-      environment: 'dev'
+      environment: dev
       stack-prefix: ${{ env.DEVELOPER_ID }}
       aws-region: ${{ env.AWS_REGION }}
       perf-target: 'smoke'
