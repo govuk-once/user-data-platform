@@ -180,7 +180,7 @@ jobs:
     with:
       environment: dev
       stack-prefix: dev
-      aws-region: ${{ env.AWS_REGION }}
+      aws-region: 'eu-west-2'
       perf-target: 'smoke'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
@@ -337,7 +337,7 @@ jobs:
     with:
       environment: stag
       stack-prefix: stag
-      aws-region: ${{ env.AWS_REGION }}
+      aws-region: 'eu-west-2'
       perf-target: 'smoke'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
