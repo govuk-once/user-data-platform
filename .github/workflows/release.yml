@@ -173,6 +173,18 @@ jobs:
             esac
           done
 
+  perf-test-dev:
+    name: 'Performance Tests'
+    needs: [deploy-dev, e2e-dev]
+    uses: './.github/workflows/__perf-test.yml'
+    with:
+      environment: dev
+      stack-prefix: dev
+      aws-region: 'eu-west-2'
+      perf-target: 'smoke'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+
   deploy-staging:
     name: Deploy to staging
     needs: e2e-dev
@@ -317,6 +329,18 @@ jobs:
                 ;;
             esac
           done
+
+  perf-test-staging:
+    name: 'Performance Tests'
+    needs: [deploy-staging, e2e-staging]
+    uses: './.github/workflows/__perf-test.yml'
+    with:
+      environment: stag
+      stack-prefix: stag
+      aws-region: 'eu-west-2'
+      perf-target: 'smoke'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   # Temp disable until defined and permissions correct on repo
   # deploy-production:
