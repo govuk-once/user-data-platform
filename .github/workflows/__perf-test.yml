@@ -58,7 +58,7 @@ jobs:
           echo "Starting performance tests: ${PERF_PROJECT}"
           BUILD_ID=$(aws codebuild start-build \
             --project-name "${PERF_PROJECT}" \
-            --environment-variables-override "name=PERF_TARGET,value={PERF_TARGET},type=PLAINTEXT" \
+            --environment-variables-override "name=PERF_TARGET,value=${PERF_TARGET},type=PLAINTEXT" \
             --query 'build.id' --output text)
           echo "Performance test build started ${BUILD_ID}"
           echo "Build will run independently - failures will be notified in slack channel"
