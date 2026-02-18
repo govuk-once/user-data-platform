@@ -186,36 +186,13 @@ jobs:
             })
 
   perf-test:
-    name: Performance tests (non-blocking)
+    name: 'Performance Tests'
     needs: [deploy, e2e-tests]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Configure Aws Credentials
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Get Perf Codebuild project name
-        id: get-perf-project
-        env:
-          STACK_NAME: ${{ env.DEVELOPER_ID }}-dev-perf
-        run: |
-          PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
-          echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
-          echo "Perf Codebuild Project: ${PERF_PROJECT}"
-
-      - name: Start Performance tests (fire-and-forget)
-        env:
-          PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
-          SOURCE_BUCKET: ${{ needs.deploy.outputs.source-bucket }}
-          SOURCE_PATH: ${{ needs.deploy.outputs.source-path }}
-        run: |
-          echo "Starting performance tests: ${PERF_PROJECT}"
-          BUILD_ID=$(aws codebuild start-build \
-            --project-name "${PERF_PROJECT}" \
-            --environment-variables-override "name=PERF_TARGET,value=smoke,type=PLAINTEXT" \
-            --query 'build.id' --output text)
-          echo "Performance test build started ${BUILD_ID}"
-          echo "Build will run independently - failures will be notified in slack channel"
+    uses: './.github/workflows/__perf-tests.yml'
+    with:
+      environment: 'dev'
+      stack-prefix: ${{ env.DEVELOPER_ID }}
+      aws-region: ${{ env.AWS_REGION }}
+      perf-target: 'smoke'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
