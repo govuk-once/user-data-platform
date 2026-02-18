@@ -188,7 +188,7 @@ jobs:
   perf-test:
     name: 'Performance Tests'
     needs: [deploy, e2e-tests]
-    uses: './.github/workflows/__perf-tests.yml'
+    uses: './.github/workflows/__perf-test.yml'
     with:
       environment: dev
       stack-prefix: pr-${{ github.event.pull_request.number }}-dev
