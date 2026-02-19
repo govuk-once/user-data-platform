@@ -1,4 +1,4 @@
-import { AWSConfig, SignatureV4 } from 'k6/experimental/aws';
+import { AWSConfig, SignatureV4 } from 'https://jslib.k6.io/aws/0.14.0/signature.js';
 
 import { config } from '../config';
 

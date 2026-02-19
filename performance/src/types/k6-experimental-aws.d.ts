@@ -1,4 +1,4 @@
-declare module 'k6/experimental/aws' {
+declare module 'https://jslib.k6.io/aws/0.14.0/signature.js' {
   export class AWSConfig {
     region: string;
     accessKeyId: string;
