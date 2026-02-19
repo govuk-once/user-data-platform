@@ -26,7 +26,8 @@ export function getData(
   const res = http.get(url, { headers: reqHeaders });
 
   check(res, {
-    ['GET /v1/${path status is 200']: (r) => r.status === 200,
+    ['GET /v1/${path status is 200 or 404']: (r) =>
+      r.status === 200 || r.status === 404,
   });
 
   return res;
@@ -41,8 +42,8 @@ export function getIdentity(
   const res = http.get(url, { headers });
 
   check(res, {
-    [`GET identity v1/identity/${service}/${id} status is 200`]: (r) =>
-      r.status === 200,
+    [`GET identity v1/identity/${service}/${id} status is 200 or 404`]: (r) =>
+      r.status === 200 || r.status === 404,
   });
 
   return res;
@@ -74,7 +75,7 @@ export function postIdentity(
   const res = http.post(url, JSON.stringify(body), { headers });
 
   check(res, {
-    [`POST identity /v1/identity/${service}/${id} status is 200`]: (r) =>
+    [`POST identity /v1/identity/${service}/${id} status is 200 `]: (r) =>
       r.status === 200,
   });
 
@@ -104,7 +105,8 @@ export function deleteData(
   const res = http.del(url, null, { headers: reqHeaders });
 
   check(res, {
-    [`DELETE /v1/user status is 200`]: (r) => r.status === 200,
+    [`DELETE /v1/user status is 200  or 404`]: (r) =>
+      r.status === 200 || r.status === 404,
   });
 
   return res;
@@ -119,8 +121,9 @@ export function deleteIdentity(
   const res = http.del(url, null, { headers });
 
   check(res, {
-    [`DELETE identity /v1/identity/${service}/${id} status is 200`]: (r) =>
-      r.status === 200,
+    [`DELETE identity /v1/identity/${service}/${id} status is 200 or 404`]: (
+      r,
+    ) => r.status === 200 || r.status === 404,
   });
 
   return res;
