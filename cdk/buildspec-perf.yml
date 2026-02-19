@@ -16,5 +16,5 @@ phases:
   build:
     commands:
       - echo "Run Performance tests"
-      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke}
+      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
       - echo "Perf tests started"
