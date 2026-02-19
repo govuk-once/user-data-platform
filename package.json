@@ -60,7 +60,7 @@
     "@aws-sdk/client-dynamodb": "^3.940.0",
     "@aws-sdk/client-ec2": "^3.976.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.975.0",
-    "@aws-sdk/client-kms": "^3.940.0",
+    "@aws-sdk/client-kms": "^3.993.0",
     "@aws-sdk/client-secrets-manager": "^3.975.0",
     "@aws-sdk/credential-providers": "^3.975.0",
     "@aws-sdk/lib-dynamodb": "^3.940.0",
