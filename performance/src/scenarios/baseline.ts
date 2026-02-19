@@ -44,7 +44,7 @@ export const options: Options = {
   },
   thresholds: {
     'http_req_duration{scenario:baseline}': [`p(95)<${nfr.P95_LATENCY_MS}`],
-    'failed{scenario:baseline}': [`rate<${nfr.MAX_ERROR_RATE}`],
+    'http_req_failed{scenario:baseline}': [`rate<${nfr.MAX_ERROR_RATE}`],
   },
 };
 
