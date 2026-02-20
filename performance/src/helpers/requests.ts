@@ -25,6 +25,8 @@ export function getData(
   const reqHeaders = mergeHeaders(signedHeaders('GET', url), headers);
   const res = http.get(url, { headers: reqHeaders });
 
+  console.log(`status: ${res.status} : ${res.body}`);
+
   check(res, {
     ['GET /v1/${path status is 200 or 404']: (r) =>
       r.status === 200 || r.status === 404,
@@ -40,6 +42,8 @@ export function getIdentity(
   const url = buildUrl(`/v1/identity/${service}/${id}`);
   const headers = signedHeaders('GET', url);
   const res = http.get(url, { headers });
+
+  console.log(`status: ${res.status} : ${res.body}`);
 
   check(res, {
     [`GET identity v1/identity/${service}/${id} status is 200 or 404`]: (r) =>
@@ -58,6 +62,8 @@ export function postData(
   const reqHeeaders = mergeHeaders(signedHeaders('POST', url), headers);
   const res = http.post(url, JSON.stringify(body), { headers: reqHeeaders });
 
+  console.log(`status: ${res.status} : ${res.body}`);
+
   check(res, {
     [`POST  /v1/${path} status is 200`]: (r) => r.status === 200,
   });
@@ -74,6 +80,8 @@ export function postIdentity(
   const headers = signedHeaders('POST', url);
   const res = http.post(url, JSON.stringify(body), { headers });
 
+  console.log(`status: ${res.status} : ${res.body}`);
+
   check(res, {
     [`POST identity /v1/identity/${service}/${id} status is 200 `]: (r) =>
       r.status === 200,
@@ -88,6 +96,8 @@ export function postUser(
   const url = buildUrl(`/v1/user`);
   const headers = signedHeaders('POST', url);
   const res = http.post(url, JSON.stringify(body), { headers });
+
+  console.log(`status: ${res.status} : ${res.body}`);
 
   check(res, {
     [`POST /v1/user status is 200`]: (r) => r.status === 200,
@@ -104,6 +114,8 @@ export function deleteData(
   const reqHeaders = mergeHeaders(signedHeaders('DELETE', url), headers);
   const res = http.del(url, null, { headers: reqHeaders });
 
+  console.log(`status: ${res.status} : ${res.body}`);
+
   check(res, {
     [`DELETE /v1/user status is 200  or 404`]: (r) =>
       r.status === 200 || r.status === 404,
@@ -119,6 +131,8 @@ export function deleteIdentity(
   const url = buildUrl(`/v1/identity/${service}/${id}`);
   const headers = signedHeaders('DELETE', url);
   const res = http.del(url, null, { headers });
+
+  console.log(`status: ${res.status} : ${res.body}`);
 
   check(res, {
     [`DELETE identity /v1/identity/${service}/${id} status is 200 or 404`]: (
