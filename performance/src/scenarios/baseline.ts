@@ -98,7 +98,7 @@ export default function () {
       getData(user.dataPath, user.headers);
       break;
     case 'getIdentity':
-      getIdentity(SERVICE_NAME, user.appId);
+      getIdentity(SERVICE_NAME, `identity-${user.appId}`);
       break;
     case 'postData':
       postData(
@@ -108,7 +108,7 @@ export default function () {
       );
       break;
     case 'postIdentity':
-      postIdentity(SERVICE_NAME, user.appId, { appId: user.appId });
+      postIdentity(SERVICE_NAME, `identity-${user.appId}`, { appId: user.appId });
       break;
     case 'postUser':
       const newAppId = `${TEST_PREFIX}-new-${vuId}-${iter}`;
@@ -122,7 +122,7 @@ export default function () {
       deleteData(user.dataPath, user.headers);
       break;
     case 'deleteIdentity':
-      deleteIdentity(SERVICE_NAME, user.appId);
+      deleteIdentity(SERVICE_NAME, `identity-${user.appId}`);
       break;
   }
 }
