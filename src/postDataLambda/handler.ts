@@ -11,6 +11,7 @@ import {
   udpErrorHandling,
   zodValidator,
   PostDataResponse,
+  responseSanitiser,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -52,14 +53,14 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       event.headers['requesting-service-user-id'],
     );
 
-  await getFactory()
+  const record = await getFactory()
     .getService('data')
     .save(identity, event.pathParameters.resourcePath, event.body);
 
   tracer.putAnnotation('putEntitySuccess', true);
   return {
     statusCode: 200,
-    body: { message: 'Entity saved successfully' } satisfies PostDataResponse,
+    body: record satisfies PostDataResponse,
   };
 };
 
@@ -82,6 +83,7 @@ export const handler = middy()
       defaultContentType: 'application/json',
     }),
   )
+  .use(responseSanitiser({}))
   .use(udpErrorHandling(logger))
   .use(jsonBodyParser())
   .use(zodValidator('postData', logger))

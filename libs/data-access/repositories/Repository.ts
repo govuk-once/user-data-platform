@@ -34,7 +34,7 @@ export interface Repository<T extends Entity> {
    * @param entity - The entity to save
    * @returns A promise that resolves when the save operation is complete
    */
-  save(entity: T): Promise<void>;
+  save(entity: T): Promise<T>;
 
   /**
    * Saves an entity to the repository.

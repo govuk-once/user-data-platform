@@ -1,9 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
-import {
-  defaultSucccessResponseSchema,
-  DefaultSuccessResponse,
-} from '../../defaults/success';
 
 extendZodWithOpenApi(z);
 
@@ -13,6 +9,18 @@ extendZodWithOpenApi(z);
 */
 
 const getCurrentTime = Math.floor(Date.now() / 1000);
+
+const dataObjectSchema = z
+  .object()
+  .required()
+  .openapi({
+    description: 'The free form JSON data to store on your key',
+    example: {
+      isEnabled: true,
+      identifier: 'abc123',
+    },
+  })
+  .loose();
 
 export const postDataRequestSchema = z.object({
   configuration: z
@@ -28,20 +36,10 @@ export const postDataRequestSchema = z.object({
       }),
     })
     .optional(),
-  data: z
-    .object()
-    .required()
-    .openapi({
-      description: 'The free form JSON data to store on your key',
-      example: {
-        isEnabled: true,
-        identifier: 'abc123',
-      },
-    })
-    .loose(),
+  data: dataObjectSchema,
 });
 
-export const postDataResponseSchema = defaultSucccessResponseSchema;
+export const postDataResponseSchema = dataObjectSchema;
 
 export type PostDataRequest = z.infer<typeof postDataRequestSchema>;
-export type PostDataResponse = DefaultSuccessResponse;
+export type PostDataResponse = z.infer<typeof postDataResponseSchema>;
