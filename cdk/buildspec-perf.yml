@@ -1,5 +1,11 @@
 version: 0.2
 
+env:
+  exported-variables:
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
 phases:
   install:
     runtime-versions:
@@ -12,6 +18,9 @@ phases:
   pre_build:
     commands:
       - echo "Settin up performance tests"
+      - eval $(node performance/scripts/resolve-credentials.mjs)
+      - echo "AWS crednetials resolved"
+
 
   build:
     commands:
