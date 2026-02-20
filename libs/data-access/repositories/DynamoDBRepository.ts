@@ -192,7 +192,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
    * @param entity - The entity to save
    * @returns A promise that resolves when the save operation is complete
    */
-  async save(entity: T): Promise<void> {
+  async save(entity: T): Promise<T> {
     this.logger?.debug('Saving item to DynamoDB', {
       operation: 'save',
       tableName: this.tableName,
@@ -219,6 +219,8 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       pk: entity.pk,
       sk: entity.sk,
     });
+
+    return entity;
   }
 
   /**

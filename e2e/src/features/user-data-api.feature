@@ -17,7 +17,7 @@ Feature: User Data API
         And I set header 'requesting-service-user-id' to '123'
         When I send a post to '/v1/topics' with the body '{"data": {"test":"data"} }'
         Then I should recieve a successful response
-        Then the response will contain message 'Entity saved successfully'
+        Then the response body contains '{"data":{"test":"data"}}'
 
     Scenario: Successfully Retrive data
         Given I set header 'requesting-service' to 'app'

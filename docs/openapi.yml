@@ -6,7 +6,7 @@
 openapi: 3.0.3
 info:
   title: User Data platform API
-  version: 1.18.1
+  version: 1.19.0
   description: Private Api for the User data Platform
 tags:
   - name: identity
@@ -559,7 +559,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1771409301
+                      minimum: 1771518730
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -577,13 +577,9 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  message:
-                    type: string
-                    description: Server response message
-                    example: User successfully created
-                required:
-                  - message
+                properties: {}
+                additionalProperties:
+                  nullable: true
         '400':
           description: Bad Request
           content:

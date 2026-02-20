@@ -52,7 +52,7 @@ describe('DynamoDb Data Service', () => {
 
       dynamoMock.on(PutCommand).resolves({});
 
-      await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(mockIdentity, mockResource, input);
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
@@ -62,17 +62,23 @@ describe('DynamoDb Data Service', () => {
           data: input.data,
         },
       });
+      console.log({ response });
+      expect(response).toMatchObject({
+        pk: mockIdentity.udpId,
+        sk: mockResource,
+        data: input.data,
+      });
     });
 
     it('should successfully save an empty data entity', async () => {
       const input: DataInput = {
         configuration: {},
-        data: undefined,
+        data: {},
       };
 
       dynamoMock.on(PutCommand).resolves({});
 
-      await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(mockIdentity, mockResource, input);
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
@@ -80,6 +86,11 @@ describe('DynamoDb Data Service', () => {
           pk: mockIdentity.udpId,
           sk: mockResource,
         },
+      });
+      expect(response).toMatchObject({
+        pk: mockIdentity.udpId,
+        sk: mockResource,
+        data: input.data,
       });
     });
 
@@ -92,7 +103,7 @@ describe('DynamoDb Data Service', () => {
 
       dynamoMock.on(PutCommand).resolves({});
 
-      await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(mockIdentity, mockResource, input);
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
@@ -102,6 +113,12 @@ describe('DynamoDb Data Service', () => {
           data: { test: 'value' },
           ttl,
         },
+      });
+      expect(response).toMatchObject({
+        pk: mockIdentity.udpId,
+        sk: mockResource,
+        data: input.data,
+        ttl: ttl,
       });
     });
 

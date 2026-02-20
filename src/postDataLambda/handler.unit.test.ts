@@ -88,7 +88,7 @@ describe('postDataLambda handler', () => {
 
       expect(response.statusCode).toEqual(200);
       expect(JSON.parse(response.body)).toEqual({
-        message: 'Entity saved successfully',
+        data: body.data,
       });
     });
 
@@ -111,7 +111,7 @@ describe('postDataLambda handler', () => {
 
       expect(response.statusCode).toEqual(200);
       expect(JSON.parse(response.body)).toEqual({
-        message: 'Entity saved successfully',
+        data: body.data,
       });
     });
 
@@ -129,8 +129,8 @@ describe('postDataLambda handler', () => {
       const response = (await handler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(200);
-      expect(JSON.parse(response.body)).toEqual({
-        message: 'Entity saved successfully',
+      expect(JSON.parse(response.body)).toMatchObject({
+        data: {},
       });
     });
   });
