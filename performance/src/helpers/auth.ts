@@ -1,4 +1,7 @@
-import { AWSConfig, SignatureV4 } from 'https://jslib.k6.io/aws/0.14.0/signature.js';
+import {
+  AWSConfig,
+  SignatureV4,
+} from 'https://jslib.k6.io/aws/0.14.0/signature.js';
 
 import { config } from '../config';
 
@@ -19,12 +22,24 @@ const signer = new SignatureV4({
   },
 });
 
+function parseUrl(url: string) {
+  const match = url.match(/^(https?:)\/\/([^/:]+)(:\d+)?(\/[^?]*)?(\?.*)?$/);
+  if (!match) throw new Error(`Invalid URL: ${url}`);
+  const protocol = match[1];
+  const hostname = match[2];
+  const port = match[3] ? match[3].slice(1) : '';
+  const pathname = match[4] || '/';
+  const search = match[5] || '';
+  const host = port ? `${hostname}:${port}` : hostname;
+  return { protocol, hostname, host, pathname, search };
+}
+
 export function signedHeaders(
   method: string,
   url: string,
   body?: Record<string, unknown>,
 ): Record<string, string> {
-  const parsedUrl = new URL(url);
+  const parsedUrl = parseUrl(url);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
