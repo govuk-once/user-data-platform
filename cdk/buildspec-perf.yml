@@ -11,9 +11,10 @@ phases:
 
   pre_build:
     commands:
-      - echo "Settin up performance tests"
+      - echo "Setting up performance tests"
+      - rm -rf performance/dist
       - eval $(node performance/scripts/resolve-credentials.mjs)
-      - echo "AWS crednetials resolved"
+      - echo "AWS credentials resolved"
 
   build:
     commands:
