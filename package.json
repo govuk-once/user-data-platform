@@ -27,7 +27,7 @@
     "@nx/node": "22.3.3",
     "@nx/vite": "22.3.3",
     "@swc-node/register": "~1.9.1",
-    "@swc/core": "~1.5.7",
+    "@swc/core": "~1.15.11",
     "@swc/helpers": "~0.5.11",
     "@types/aws-lambda": "8.10.159",
     "@types/http-errors": "^2.0.5",
