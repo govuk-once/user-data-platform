@@ -67,7 +67,6 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
-      reservedConcurrentExecutions = 10,
       cachingEnabled = false,
     } = props;
 
@@ -126,7 +125,7 @@ export class LambdaApiConstruct extends Construct {
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
-      reservedConcurrentExecutions,
+      ...(environment === 'dev' ? {} : {reservedConcurrentExecutions: 10}),
     });
 
     if (dynamoDBtable) {
