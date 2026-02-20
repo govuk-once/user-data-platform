@@ -6,7 +6,7 @@ import { signedHeaders } from './auth';
 function buildUrl(path: string): string {
   const base = config.apiBaseUrl.replace(/\/+$/, '');
   const normalised = path.replace(/^\/+/, '');
-  return `${base}${normalised}`;
+  return `${base}/${normalised}`;
 }
 
 function mergeHeaders(
