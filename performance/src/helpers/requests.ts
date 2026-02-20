@@ -59,7 +59,7 @@ export function postData(
   headers?: Record<string, string>,
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/${path}`);
-  const reqHeeaders = mergeHeaders(signedHeaders('POST', url), headers);
+  const reqHeeaders = mergeHeaders(signedHeaders('POST', url, body), headers);
   const res = http.post(url, JSON.stringify(body), { headers: reqHeeaders });
 
   console.log(`status: ${res.status} : ${res.body}`);
@@ -77,7 +77,7 @@ export function postIdentity(
   body: Record<string, unknown>,
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/identity/${service}/${id}`);
-  const headers = signedHeaders('POST', url);
+  const headers = signedHeaders('POST', url, body);
   const res = http.post(url, JSON.stringify(body), { headers });
 
   console.log(`status: ${res.status} : ${res.body}`);
@@ -94,7 +94,7 @@ export function postUser(
   body: Record<string, unknown>,
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/user`);
-  const headers = signedHeaders('POST', url);
+  const headers = signedHeaders('POST', url, body);
   const res = http.post(url, JSON.stringify(body), { headers });
 
   console.log(`status: ${res.status} : ${res.body}`);
