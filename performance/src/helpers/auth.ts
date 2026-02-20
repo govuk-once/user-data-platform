@@ -1,4 +1,5 @@
 import crypto from 'k6/crypto';
+import encoding from 'k6/encoding';
 import { config } from '../config';
 
 const credentials = {
@@ -18,8 +19,9 @@ function parseUrl(url: string) {
   return { hostname, host, pathname, search };
 }
 
-function hmacBinary(key: string | ArrayBuffer, data: string): ArrayBuffer {
-  return crypto.hmac('sha256', key, data, 'binary');
+function hmacBase64(key: string | ArrayBuffer, data: string): ArrayBuffer {
+  const b64 = crypto.hmac('sha256', key, data, 'base64');
+  return encoding.b64decode(b64);
 }
 
 function sha256Hex(data: string): string {
@@ -32,10 +34,10 @@ function getSignatureKey(
   region: string,
   service: string,
 ): ArrayBuffer {
-  const kDate = hmacBinary(`AWS4${secretKey}`, dateStamp);
-  const kRegion = hmacBinary(kDate, region);
-  const kService = hmacBinary(kRegion, service);
-  return hmacBinary(kService, 'aws4_request');
+  const kDate = hmacBase64(`AWS4${secretKey}`, dateStamp);
+  const kRegion = hmacBase64(kDate, region);
+  const kService = hmacBase64(kRegion, service);
+  return hmacBase64(kService, 'aws4_request');
 }
 
 function toAmzDate(date: Date): { amzDate: string; dateStamp: string } {
@@ -60,40 +62,30 @@ export function signedHeaders(
   const region = config.awsRegion;
   const service = 'execute-api';
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    host: parsedUrl.host,
-    'x-amz-date': amzDate,
-  };
+  const canonicalEntries: [string, string][] = [
+    ['accept', 'application/json'],
+    ['content-type', 'application/json'],
+    ['host', parsedUrl.host],
+    ['x-amz-date', amzDate],
+  ];
 
   if (credentials.sessionToken) {
-    headers['x-amz-security-token'] = credentials.sessionToken;
+    canonicalEntries.push(['x-amz-security-token', credentials.sessionToken]);
+    canonicalEntries.sort((a, b) => a[0].localeCompare(b[0]));
   }
 
-  const signedHeaderKeys = Object.keys(headers)
-    .map((k) => k.toLowerCase())
-    .sort();
-  const signedHeadersStr = signedHeaderKeys.join(';');
-
+  const signedHeadersStr = canonicalEntries.map(([k]) => k).join(';');
   const canonicalHeaders =
-    signedHeaderKeys
-      .map(
-        (k) =>
-          `${k}:${headers[k] || headers[Object.keys(headers).find((h) => h.toLowerCase() === k)!]}`,
-      )
-      .join('\n') + '\n';
+    canonicalEntries.map(([k, v]) => `${k}:${v.trim()}`).join('\n') + '\n';
 
   const payloadHash = sha256Hex(bodyStr);
-
-  const canonicalPath = parsedUrl.pathname;
   const canonicalQuerystring = parsedUrl.search
     ? parsedUrl.search.slice(1)
     : '';
 
   const canonicalRequest = [
     method,
-    canonicalPath,
+    parsedUrl.pathname,
     canonicalQuerystring,
     canonicalHeaders,
     signedHeadersStr,
@@ -122,9 +114,18 @@ export function signedHeaders(
     `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${credentialScope}, ` +
     `SignedHeaders=${signedHeadersStr}, Signature=${signature}`;
 
-  return {
-    ...headers,
+  const result: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    host: parsedUrl.host,
+    'x-amz-date': amzDate,
     Authorization: authorization,
     'x-api-key': config.apiKey,
   };
+
+  if (credentials.sessionToken) {
+    result['x-amz-security-token'] = credentials.sessionToken;
+  }
+
+  return result;
 }

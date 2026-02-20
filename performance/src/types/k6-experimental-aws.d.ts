@@ -1,11 +1,21 @@
+
 declare module 'k6/crypto' {
   function hmac(
     algorithm: string,
     key: string | ArrayBuffer,
     data: string,
     outputEncoding: string,
-  ): ArrayBuffer;
+  ): string;
   function sha256(data: string, outputEncoding: string): string;
-  function hexEncode(data: ArrayBuffer): string;
-  export default { hmac, sha256, hexEncode };
+  const _default: { hmac: typeof hmac; sha256: typeof sha256 };
+  export default _default;
+}
+
+declare module 'k6/encoding' {
+  function b64decode(
+    data: string,
+    encoding?: string,
+  ): ArrayBuffer;
+  const _default: { b64decode: typeof b64decode };
+  export default _default;
 }
