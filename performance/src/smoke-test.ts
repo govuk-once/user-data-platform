@@ -28,9 +28,9 @@ const dataHeaders = {
 export default function () {
   postUser({ appId: APP_ID, serviceName: 'app' });
 
-  postData('/smoke/topics', { data: { test: 'smoke' } }, dataHeaders);
-  getData('/smoke/topics', dataHeaders);
-  deleteData('/smoke/topics', dataHeaders);
+  postData('topics', { data: { test: 'smoke' } }, dataHeaders);
+  getData('topics', dataHeaders);
+  deleteData('topics', dataHeaders);
 
   postIdentity('smoke-svc', APP_ID, { appId: APP_ID });
   getIdentity('smoke-svc', APP_ID);

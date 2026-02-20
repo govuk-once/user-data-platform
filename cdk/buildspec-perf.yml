@@ -15,9 +15,8 @@ phases:
       - eval $(node performance/scripts/resolve-credentials.mjs)
       - echo "AWS crednetials resolved"
 
-
   build:
     commands:
-      - echo "Run Performance tests"
+      - echo "Running Performance tests"
       - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
-      - echo "Perf tests started"
+      - echo "Performance tests completed"

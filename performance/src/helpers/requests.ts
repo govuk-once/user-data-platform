@@ -5,7 +5,7 @@ import { signedHeaders } from './auth';
 
 function buildUrl(path: string): string {
   const base = config.apiBaseUrl.replace(/\/+$/, '');
-  const normalised = path.startsWith('/') ? path : `/${path}`;
+  const normalised = path.replace(/^\/+/, '');
   return `${base}${normalised}`;
 }
 

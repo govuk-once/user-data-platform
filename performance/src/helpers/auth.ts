@@ -18,7 +18,7 @@ function parseUrl(url: string) {
   return { hostname, host, pathname, search };
 }
 
-function hmac(key: string | ArrayBuffer, data: string): ArrayBuffer {
+function hmacBinary(key: string | ArrayBuffer, data: string): ArrayBuffer {
   return crypto.hmac('sha256', key, data, 'binary');
 }
 
@@ -32,10 +32,10 @@ function getSignatureKey(
   region: string,
   service: string,
 ): ArrayBuffer {
-  const kDate = hmac(`AWS4${secretKey}`, dateStamp);
-  const kRegion = hmac(kDate, region);
-  const kService = hmac(kRegion, service);
-  return hmac(kService, 'aws4_request');
+  const kDate = hmacBinary(`AWS4${secretKey}`, dateStamp);
+  const kRegion = hmacBinary(kDate, region);
+  const kService = hmacBinary(kRegion, service);
+  return hmacBinary(kService, 'aws4_request');
 }
 
 function toAmzDate(date: Date): { amzDate: string; dateStamp: string } {
@@ -116,7 +116,7 @@ export function signedHeaders(
     service,
   );
 
-  const signature = crypto.hexEncode(hmac(signingKey, stringToSign));
+  const signature = crypto.hmac('sha256', signingKey, stringToSign, 'hex');
 
   const authorization =
     `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${credentialScope}, ` +
