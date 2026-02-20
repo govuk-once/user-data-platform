@@ -114,11 +114,6 @@ export function signedHeaders(
     `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${credentialScope}, ` +
     `SignedHeaders=${signedHeadersStr}, Signature=${signature}`;
 
-  console.log(`DEBUG URL:${url}`)
-  console.log(`DEBUG CanonicalRequest:${canonicalRequest}`)
-  console.log(`DEBUG StringToSign:${stringToSign}`)
-  console.log(`DEBUG Auth:${authorization}`)
-
   const result: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',

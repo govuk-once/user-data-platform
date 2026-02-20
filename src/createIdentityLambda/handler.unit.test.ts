@@ -132,7 +132,6 @@ describe('createItentityHandler', () => {
 
       const result = await handler(event, mockContext);
 
-      console.log({ result });
       expect(result.statusCode).toBe(500);
       expect(JSON.parse(result.body)).toMatchObject({
         errorCode: 500,
