@@ -52,8 +52,8 @@ export const routes: Record<string, RouteConfig> = {
     body: createUserRequestSchema,
     successResponses: [
       {
-        status: 200,
-        description: 'OK',
+        status: 204,
+        description: 'No Content',
         schema: CreateUserResponseSchema,
       },
     ],

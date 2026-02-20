@@ -19,7 +19,7 @@ export const createUserRequestSchema = z.object({
   }),
 });
 
-export const CreateUserResponseSchema = defaultSucccessResponseSchema;
+export const CreateUserResponseSchema = z.object({}).strict().required();
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
-export type CreateUserResponse = DefaultSuccessResponse;
+export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>;

@@ -108,7 +108,7 @@ describe('createItentityHandler', () => {
       });
     });
 
-    it('Should return a 200 if the user already exists', async () => {
+    it('Should return a 204 if the user already exists', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -128,13 +128,11 @@ describe('createItentityHandler', () => {
 
       const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toMatchObject({
-        message: 'User already exists',
-      });
+      expect(result.statusCode).toBe(204);
+      expect(JSON.parse(result.body)).toMatchObject({});
     });
 
-    it('Should return a 200 if the user is created', async () => {
+    it('Should return a 204 if the user is created', async () => {
       const event: APIGatewayProxyEventV2 = {
         headers: {
           'Content-Type': 'application/json',
@@ -155,10 +153,8 @@ describe('createItentityHandler', () => {
 
       const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toMatchObject({
-        message: 'User successfully created',
-      });
+      expect(result.statusCode).toBe(204);
+      expect(JSON.parse(result.body)).toMatchObject({});
     });
   });
 });
