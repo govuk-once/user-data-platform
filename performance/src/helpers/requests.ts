@@ -89,6 +89,8 @@ export function postUser(
   const headers = signedHeaders('POST', url, body);
   const res = http.post(url, JSON.stringify(body), { headers });
 
+  console.log({res, url, body})
+
   check(res, {
     [`POST /v1/user status is 200`]: (r) => r.status === 200,
   });
