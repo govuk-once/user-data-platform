@@ -112,7 +112,7 @@ export default function () {
         appId: user.appId,
       });
       break;
-    case 'postUser':
+    case 'postUser': {
       const newAppId = `${TEST_PREFIX}-new-${vuId}-${iter}`;
       const newUser = createTestUser(newAppId);
 
@@ -120,6 +120,7 @@ export default function () {
 
       pool.push(newUser);
       break;
+    }
     case 'deleteData':
       deleteData(user.dataPath, user.headers);
       break;
