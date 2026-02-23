@@ -50,20 +50,11 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     ...(event.body as unknown as CreateUserRequest),
   } as unknown as IdentityInput;
 
-  const result = await getFactory().getService('identity').createAppUser(input);
-
-  if (result.created) {
-    return {
-      statusCode: 200,
-      body: {
-        message: 'User successfully created',
-      } satisfies CreateUserResponse,
-    };
-  }
+  await getFactory().getService('identity').createAppUser(input);
 
   return {
-    statusCode: 200,
-    body: { message: 'User already exists' },
+    statusCode: 204,
+    body: {} satisfies CreateUserResponse,
   };
 };
 
