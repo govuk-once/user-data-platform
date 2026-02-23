@@ -19,6 +19,7 @@ export const options: Options = {
 };
 
 const APP_ID = 'smoke-test-user';
+const IDENTITY_ID = 'smoke-test-identity';
 
 const dataHeaders = {
   'requesting-service': 'app',
@@ -28,13 +29,13 @@ const dataHeaders = {
 export default function () {
   postUser({ appId: APP_ID, serviceName: 'app' });
 
-  postData('/smoke/topics', { data: { test: 'smoke' } }, dataHeaders);
-  getData('/smoke/topics', dataHeaders);
-  deleteData('/smoke/topics', dataHeaders);
+  postData('topics', { data: { test: 'smoke' } }, dataHeaders);
+  getData('topics', dataHeaders);
+  deleteData('topics', dataHeaders);
 
-  postIdentity('smoke-svc', APP_ID, { appId: APP_ID });
-  getIdentity('smoke-svc', APP_ID);
-  deleteIdentity('smoke-svc', APP_ID);
+  postIdentity('smoke-svc', IDENTITY_ID, { appId: APP_ID });
+  getIdentity('smoke-svc', IDENTITY_ID);
+  deleteIdentity('smoke-svc', IDENTITY_ID);
 
   deleteIdentity('app', APP_ID);
 }

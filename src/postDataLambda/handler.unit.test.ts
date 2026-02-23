@@ -143,7 +143,6 @@ describe('postDataLambda handler', () => {
 
       const result = await handler(event, mockContext);
 
-      console.log({ result });
       expect(result.statusCode).toBe(400);
       expect(JSON.parse(result.body)).toMatchObject({
         errorCode: 400,

@@ -19,6 +19,14 @@
         "command": "k6 run dist/smoke-test.js",
         "cwd": "performance"
       }
+    },
+    "baseline": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/baseline.js",
+        "cwd": "performance"
+      }
     }
   }
 }

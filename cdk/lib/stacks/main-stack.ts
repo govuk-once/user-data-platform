@@ -176,7 +176,7 @@ export class MainStack extends Stack {
       environment,
       namePrefix: 'api',
       apiGatewayStageArn: apiGateway.stageArn,
-      rateLimiting: { enabled: true, limit: 2000 },
+      rateLimiting: { enabled: true, limit: 50000 },
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
       kmsKey: kmsConstruct.key,
@@ -224,7 +224,7 @@ export class MainStack extends Stack {
     };
 
     const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
-      test: { rateLimit: 50, burstLimit: 100 },
+      test: { rateLimit: 100, burstLimit: 200 },
     };
 
     for (const [consumerName, consumerConfig] of Object.entries(

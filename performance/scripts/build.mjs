@@ -23,8 +23,8 @@ await build({
   bundle: true,
   platform: 'browser',
   target: 'es2020',
-  format: 'cjs',
-  external: ['k6', 'k6/*'],
+  format: 'esm',
+  external: ['k6', 'k6/*', 'https://jslib.k6.io/*'],
   sourcemap: false,
   minify: false,
 });

@@ -41,7 +41,7 @@ export class WafConstruct extends Construct {
       environment,
       namePrefix = 'api',
       apiGatewayStageArn,
-      rateLimiting = { enabled: true, limit: 2000 },
+      rateLimiting = { enabled: true, limit: 10000 },
       sqlInjectionRule = { enabled: true, action: 'block' },
       commonRuleSet = { enabled: true, action: 'block' },
       knownBadInputRuleSet = { enabled: true, action: 'block' },

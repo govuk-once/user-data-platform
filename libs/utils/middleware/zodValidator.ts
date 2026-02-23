@@ -85,8 +85,14 @@ export function zodValidator(
           ) as Record<string, string | undefined>;
         }
         if (schemas.headers) {
+          const normalizedHeader: Record<string, string | undefined> = {};
+          for (const [key, value] of Object.entries(
+            request.event.headers ?? {},
+          )) {
+            normalizedHeader[key.toLowerCase()] = value;
+          }
           request.event.headers = schemas.headers.parse(
-            request.event.headers,
+            normalizedHeader,
           ) as Record<string, string | undefined>;
         }
         if (schemas.body) {
