@@ -13,7 +13,7 @@ phases:
     commands:
       - echo "Setting up performance tests"
       - rm -rf performance/dist
-      - eval $(node performance/scripts/resolve-credentials.mjs)
+      - set +x && eval "$(node performance/scripts/resolve-credentials.mjs)" > /dev/null 2>&1 && set -x"
       - echo "AWS credentials resolved"
 
   build:
