@@ -125,7 +125,7 @@ export class LambdaApiConstruct extends Construct {
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
-      ...(environment === 'dev' ? {} : { reservedConcurrentExecutions: 10 }),
+      ...(environment === 'dev' ? {} : { reservedConcurrentExecutions: 50 }),
     });
 
     if (dynamoDBtable) {

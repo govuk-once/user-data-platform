@@ -108,13 +108,15 @@ export default function () {
       );
       break;
     case 'postIdentity':
-      postIdentity(SERVICE_NAME, `identity-${user.appId}`, { appId: user.appId });
+      postIdentity(SERVICE_NAME, `identity-${user.appId}`, {
+        appId: user.appId,
+      });
       break;
     case 'postUser':
       const newAppId = `${TEST_PREFIX}-new-${vuId}-${iter}`;
       const newUser = createTestUser(newAppId);
 
-      postUser({ appId: newUser, serviceName: 'app' });
+      postUser({ appId: newAppId, serviceName: 'app' });
 
       pool.push(newUser);
       break;
