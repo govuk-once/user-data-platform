@@ -338,7 +338,7 @@ jobs:
       environment: stag
       stack-prefix: stag
       aws-region: 'eu-west-2'
-      perf-target: 'smoke'
+      perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
