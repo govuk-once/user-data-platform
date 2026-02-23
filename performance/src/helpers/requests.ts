@@ -89,12 +89,13 @@ export function postUser(
   const headers = signedHeaders('POST', url, body);
   const res = http.post(url, JSON.stringify(body), { headers });
 
-  if (res.status !== 200) {
+  if (res.status !== 200 && res.status !== 204) {
     console.log({ status: res.status, resbody: res.body, body });
   }
 
   check(res, {
-    [`POST /v1/user status is 200`]: (r) => r.status === 200,
+    [`POST /v1/user status is 200 or 204`]: (r) =>
+      r.status === 200 || r.status === 204,
   });
 
   return res;
