@@ -1,5 +1,7 @@
 import { Options } from 'k6/options';
 import exec from 'k6/execution';
+import http from 'k6/http';
+
 import { nfr } from '../config';
 import {
   postUser,
@@ -47,6 +49,8 @@ export const options: Options = {
     'http_req_failed{scenario:baseline}': [`rate<${nfr.MAX_ERROR_RATE}`],
   },
 };
+
+http.setResponseCallback(http.expectedStatuses(200, 204, 404));
 
 const TEST_PREFIX = 'perf-baseline';
 const SERVICE_NAME = 'perf-svc';
