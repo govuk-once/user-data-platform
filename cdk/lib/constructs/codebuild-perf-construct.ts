@@ -93,6 +93,19 @@ export class CodeBuildPerfConstruct extends Construct {
 
     codeBuildRole.addToPolicy(
       new PolicyStatement({
+        sid: 'CloudWatchPutMetrics',
+        actions: ['cloudwatch:PutMetricData'],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'cloudwatch:namespace': 'UDP/PerformanceTests',
+          },
+        },
+      }),
+    );
+
+    codeBuildRole.addToPolicy(
+      new PolicyStatement({
         sid: 'VpcNetworking',
         actions: [
           'ec2:CreateNetworkInterface',
@@ -198,6 +211,7 @@ export class CodeBuildPerfConstruct extends Construct {
       API_BASE_URL: { value: apiEndpoint },
       AWS_REGION: { value: awsRegion },
       PERF_TARGET: { value: 'smoke' },
+      ENVIRONMENT: { value: environment },
     };
 
     if (e2eTestConsumerApiKeyValue) {

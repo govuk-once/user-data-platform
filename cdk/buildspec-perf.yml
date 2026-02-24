@@ -21,3 +21,8 @@ phases:
       - echo "Running Performance tests"
       - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
       - echo "Performance tests completed"
+
+  post-build:
+    commands:
+      - chrod +x oerformance/scripts/publish-metrics.sh
+      - oerformance/scripts/publish-metrics.sh

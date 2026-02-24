@@ -193,6 +193,6 @@ jobs:
       environment: dev
       stack-prefix: pr-${{ github.event.pull_request.number }}-dev
       aws-region: 'eu-west-2'
-      perf-target: 'smoke'
+      perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}

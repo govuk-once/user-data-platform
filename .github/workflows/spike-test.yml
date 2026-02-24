@@ -1,0 +1,20 @@
+name: Spike Test (Manual)
+
+on:
+  workflow-dispatch:
+    inputs:
+      stack-prefix:
+        description: 'Cloudformation stack prefix (e.g) staging)'
+        required: true
+        type: string
+
+jobs:
+  spike-test:
+    uses: ./.github/workflows/__perf-test.yml
+    with:
+      environment: staging
+      aws-region: eu-west-2
+      stack-prefix: ${{ inputs.stack-prefix }}
+      perf-targe: read-heavy-spike
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}

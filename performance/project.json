@@ -27,6 +27,14 @@
         "command": "k6 run dist/scenarios/baseline.js",
         "cwd": "performance"
       }
+    },
+    "read-heavy-spike": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/read-heavy-spike.js",
+        "cwd": "performance"
+      }
     }
   }
 }
