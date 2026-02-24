@@ -32,7 +32,7 @@ aws cloudwatch put-metric-data \
         "MetricName=P95Latency=${P95_LATENCY},Unit=Milliseconds,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
         "MetricName=ErrorRate=${ERROR_RATE},Unit=None,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
         "MetricName=TotalRequests=${TOTAL_REQUESTS},Unit=Count,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
-        "MetricName=AvgRPS=${AVG_RPS},Unit=Count/Second,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" 
+        "MetricName=AvgRPS=${AVG_RPS},Unit=Count/Second,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]"
 
 
 echo "metrics published successfully"

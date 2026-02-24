@@ -150,6 +150,3 @@ export const options: Options = {
     'http_req_failed{scenario:baseline}': [`rate<${nfr.MAX_ERROR_RATE}`],
   },
 };
-
-
-
