@@ -53,7 +53,7 @@ export function createScenarioRunner(config: ScenarioConfig): {
 
   function pickOperation(): string {
     const rand = Math.random() * 100;
-    for (const entry of TRAFFIC_WEIGHTS) {
+    for (const entry of trafficWeights) {
       if (rand < entry.cumulative) return entry.op;
     }
     return 'getData';
@@ -62,7 +62,7 @@ export function createScenarioRunner(config: ScenarioConfig): {
   function getUserPool(vuid: number): TestUser[] {
     let pool = vuUserPools.get(vuid);
     if (!pool) {
-      const appId = `${TEST_PREFIX}-vu-${vuid}`;
+      const appId = `${testPrefix}-vu-${vuid}`;
       const user = createTestUser(appId);
       postUser({ appId, serviceName: 'app' });
       pool = [user];
@@ -102,7 +102,7 @@ export function createScenarioRunner(config: ScenarioConfig): {
         });
         break;
       case 'postUser': {
-        const newAppId = `${TEST_PREFIX}-new-${vuId}-${iter}`;
+        const newAppId = `${testPrefix}-new-${vuId}-${iter}`;
         const newUser = createTestUser(newAppId);
 
         postUser({ appId: newAppId, serviceName: 'app' });
