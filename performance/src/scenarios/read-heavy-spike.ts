@@ -24,7 +24,14 @@ export const options: Options = {
       timeUnit: '1s',
       preAllocatedVUs: 50,
       maxVUs: 300,
-      stages: [{ duration: '1m', target: 10 }],
+      stages: [
+        { duration: '1m', target: 10 },
+        { duration: '2m', target: 50 },
+        { duration: '2m', target: 100 },
+        { duration: '2m', target: 150 },
+        { duration: '3m', target: 150 },
+        { duration: '2m', target: 10 },
+      ],
     },
   },
   thresholds: {
