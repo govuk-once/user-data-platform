@@ -1,7 +1,7 @@
 name: Spike Test (Manual)
 
 on:
-  workflow-dispatch:
+  workflow_dispatch:
 
 jobs:
   spike-test:
@@ -10,6 +10,6 @@ jobs:
       environment: staging
       aws-region: eu-west-2
       stack-prefix: staging
-      perf-targe: read-heavy-spike
+      perf-target: read-heavy-spike
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
