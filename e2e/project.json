@@ -54,6 +54,20 @@
         "cwd": "e2e",
         "parallel": false
       }
+    },
+    "seed-data": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/seed-data.ts",
+        "cwd": "e2e"
+      }
+    },
+    "cleanup-data": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/cleanup-data.ts",
+        "cwd": "e2e"
+      }
     }
   }
 }
