@@ -16,9 +16,9 @@ jobs:
   stress-test:
     uses: ./github/workflows/__perf-test.yml
     with:
-      environment: staging
+      environment: stag
       aws-region: eu-west-2
-      stack-prefix: staging
+      stack-prefix: stag
       perf-target: ${{ inputs.perf-target }}
     secrets:
       DEVELOPMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}

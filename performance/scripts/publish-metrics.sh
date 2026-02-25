@@ -3,7 +3,7 @@ set -euo pipefail
 SUMMARY_FILE="tmp/k6-summary.json"
 
 if [ ! -f "$SUMMARY_FILE" ]; then
-    echp "No k6 file found at ${SUMMARY FILE} - skipping Cloudwatch publish"
+    echo "No k6 file found at ${SUMMARY_FILE} - skipping Cloudwatch publish"
     exit 0
 fi
 
@@ -12,7 +12,7 @@ ENV="${ENVIRONMENT:-unknown}"
 SCENARIO="${PERF_TEST:-unknown}"
 
 read -r P95_LATENCY ERROR_RATE TOTAL_REQUESTS AVG_RPS <<< "$(node -e "
-    const s = JSON.parse(require('fs).readFileSync('${SUMMARY_FILE}', 'utf8'));
+    const s = JSON.parse(require('fs').readFileSync('${SUMMARY_FILE}', 'utf8'));
     const duration = s.metrics?.http_req_duration?.values || {};
     const failed = s.metrics?.http_req_failed?.values || {};
     const reqs = s.metrics?.http_reqs?.values || {};
@@ -23,16 +23,16 @@ read -r P95_LATENCY ERROR_RATE TOTAL_REQUESTS AVG_RPS <<< "$(node -e "
     console.log([p95, errorRate,totalReqs, avgRps].join(' '));
 ")"
 
-echo "Publishing metrics to Cloudwatch namespace: ${NAMEPSACE}"
+echo "Publishing metrics to Cloudwatch namespace: ${NAMESPACE}"
 
 
 aws cloudwatch put-metric-data \
-    ---namespace "${NAMESPACE}" \
+    --namespace "${NAMESPACE}" \
     --metric-data \
-        "MetricName=P95Latency=${P95_LATENCY},Unit=Milliseconds,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
-        "MetricName=ErrorRate=${ERROR_RATE},Unit=None,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
-        "MetricName=TotalRequests=${TOTAL_REQUESTS},Unit=Count,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]" \
-        "MetricName=AvgRPS=${AVG_RPS},Unit=Count/Second,Dimesions=[{Name=Environment,Value=${ENV}}, {Name=scenario,Value=${SCENARIO}}]"
+        "MetricName=P95Latency,Value=${P95_LATENCY},Unit=Milliseconds,Dimensions=[{Name=Environment,Value=${ENV}},{Name=scenario,Value=${SCENARIO}}]" \
+        "MetricName=ErrorRate,Value=${ERROR_RATE},Unit=None,Dimensions=[{Name=Environment,Value=${ENV}},{Name=scenario,Value=${SCENARIO}}]" \
+        "MetricName=TotalRequests,Value=${TOTAL_REQUESTS},Unit=Count,Dimensions=[{Name=Environment,Value=${ENV}},{Name=scenario,Value=${SCENARIO}}]" \
+        "MetricName=AvgRPS,Value=${AVG_RPS},Unit=Count/Second,Dimensions=[{Name=Environment,Value=${ENV}},{Name=scenario,Value=${SCENARIO}}]"
 
 
 echo "metrics published successfully"
