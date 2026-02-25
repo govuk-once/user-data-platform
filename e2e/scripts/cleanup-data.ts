@@ -178,6 +178,13 @@ async function scanTableForPrefix(
     const command = new ScanCommand({
       TableName: tableName,
       ExclusiveStartKey: lastEvaluatedKey,
+      FilterExpression:
+        'begins_with(pk, :pkPrefix) OR begins_with(sk, :skPrefix) OR begins_with(serviceId, :prefix)',
+      ExpressionAttributeValues: {
+        ':pkPrefix': `app#${prefixPattern}`,
+        ':skPrefix': `/test-data/${prefixPattern}`,
+        ':prefix': prefixPattern,
+      },
     });
 
     const response = await client.send(command);
@@ -185,21 +192,10 @@ async function scanTableForPrefix(
 
     if (response.Items) {
       for (const item of response.Items) {
-        // Check if pk or sk contains the test prefix
-        const pkMatches =
-          typeof item.pk === 'string' && item.pk.includes(prefixPattern);
-        const skMatches =
-          typeof item.sk === 'string' && item.sk.includes(prefixPattern);
-        const serviceIdMatches =
-          typeof item.serviceId === 'string' &&
-          item.serviceId.includes(prefixPattern);
-
-        if (pkMatches || skMatches || serviceIdMatches) {
-          items.push({
-            pk: item.pk as string,
-            sk: item.sk as string,
-          });
-        }
+        items.push({
+          pk: item.pk as string,
+          sk: item.sk as string,
+        });
       }
     }
 
