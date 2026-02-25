@@ -14,7 +14,7 @@ on:
 
 jobs:
   stress-test:
-    uses: ./github/workflows/__perf-test.yml
+    uses: ./.github/workflows/__perf-test.yml
     with:
       environment: stag
       aws-region: eu-west-2
