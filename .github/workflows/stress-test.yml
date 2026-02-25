@@ -1,0 +1,24 @@
+name: Stress Test (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      perf-target:
+        description: 'Stress test scenario to run'
+        required: true
+        type: choice
+        options:
+          - stress-reads
+          - stress-writes
+          - stress-deletes
+
+jobs:
+  stress-test:
+    uses: ././github/workflows/__perf-test.yml
+    with:
+      environment: staging
+      aws-region: eu-west-2
+      stack-prefix: staging
+      perf-target: ${{ inputs.perf-target }}
+    secrets:
+      DEVELOPMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}

@@ -35,6 +35,30 @@
         "command": "k6 run dist/scenarios/read-heavy-spike.js",
         "cwd": "performance"
       }
+    },
+    "stress-reads": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/stress-reads.js",
+        "cwd": "performance"
+      }
+    },
+    "stress-writes": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/stress-writes.js",
+        "cwd": "performance"
+      }
+    },
+    "stress-deletes": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/stress-deletes.js",
+        "cwd": "performance"
+      }
     }
   }
 }
