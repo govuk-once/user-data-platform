@@ -13,7 +13,7 @@ phases:
     commands:
       - echo "Setting up performance tests"
       - rm -rf performance/dist
-      - set +x && eval "$(node performance/scripts/resolve-credentials.mjs)" > /dev/null 2>&1 && set -x"
+      - set +x && eval "$(node performance/scripts/resolve-credentials.mjs)" > /dev/null 2>&1 && set -x
       - echo "AWS credentials resolved"
 
   build:
@@ -21,3 +21,8 @@ phases:
       - echo "Running Performance tests"
       - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
       - echo "Performance tests completed"
+
+  post_build:
+    commands:
+      - chmod +x performance/scripts/publish-metrics.sh
+      - performance/scripts/publish-metrics.sh
