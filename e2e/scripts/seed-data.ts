@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { 
-  BatchWriteCommand, 
+import {
+  BatchWriteCommand,
   DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,12 +20,14 @@ const config = {
 
 // Validate required config
 if (!config.identityTableName || !config.dataTableName) {
-  throw new Error('IDENTITY_TABLE_NAME and DYNAMODB_TABLE_NAME environment variables are required');
+  throw new Error(
+    'IDENTITY_TABLE_NAME and DYNAMODB_TABLE_NAME environment variables are required',
+  );
 }
 
 const client = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: config.awsRegion }),
-  { marshallOptions: { removeUndefinedValues: true } }
+  { marshallOptions: { removeUndefinedValues: true } },
 );
 
 interface SeedStats {
@@ -47,7 +49,7 @@ const stats: SeedStats = {
  * Sleep for exponential backoff
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -56,16 +58,18 @@ function sleep(ms: number): Promise<void> {
 async function batchWriteWithRetry(
   tableName: string,
   items: Record<string, unknown>[],
-  itemType: 'identity' | 'data'
+  itemType: 'identity' | 'data',
 ): Promise<void> {
   const batches: Record<string, unknown>[][] = [];
-  
+
   // Split into batches of 25 (DynamoDB limit)
   for (let i = 0; i < items.length; i += config.batchSize) {
     batches.push(items.slice(i, i + config.batchSize));
   }
 
-  console.log(`Writing ${items.length} ${itemType} records in ${batches.length} batches...`);
+  console.log(
+    `Writing ${items.length} ${itemType} records in ${batches.length} batches...`,
+  );
 
   for (let i = 0; i < batches.length; i++) {
     let unprocessedItems = batches[i];
@@ -74,28 +78,28 @@ async function batchWriteWithRetry(
     while (unprocessedItems.length > 0 && retryCount < config.maxRetries) {
       try {
         const requestItems = {
-          [tableName]: unprocessedItems.map(item => ({
-            PutRequest: { Item: item }
-          }))
+          [tableName]: unprocessedItems.map((item) => ({
+            PutRequest: { Item: item },
+          })),
         };
 
         const response = await client.send(
-          new BatchWriteCommand({ RequestItems: requestItems })
+          new BatchWriteCommand({ RequestItems: requestItems }),
         );
 
         // Check for unprocessed items
         const unprocessed = response.UnprocessedItems?.[tableName];
-        
+
         if (unprocessed && unprocessed.length > 0) {
-          unprocessedItems = unprocessed.map(req => req.PutRequest!.Item!);
+          unprocessedItems = unprocessed.map((req) => req.PutRequest!.Item!);
           retryCount++;
           stats.retries++;
-          
+
           // Exponential backoff
           const backoffMs = config.baseBackoffMs * Math.pow(2, retryCount);
           console.log(
             `Batch ${i + 1}/${batches.length}: ${unprocessedItems.length} unprocessed items, ` +
-            `retrying in ${backoffMs}ms (attempt ${retryCount}/${config.maxRetries})`
+              `retrying in ${backoffMs}ms (attempt ${retryCount}/${config.maxRetries})`,
           );
           await sleep(backoffMs);
         } else {
@@ -110,29 +114,33 @@ async function batchWriteWithRetry(
       } catch (error) {
         retryCount++;
         stats.retries++;
-        
+
         if (retryCount >= config.maxRetries) {
           throw new Error(
-            `Failed to write batch ${i + 1} after ${config.maxRetries} retries: ${error}`
+            `Failed to write batch ${i + 1} after ${config.maxRetries} retries: ${error}`,
           );
         }
-        
+
         const backoffMs = config.baseBackoffMs * Math.pow(2, retryCount);
         console.error(
-          `Batch ${i + 1}/${batches.length}: Error occurred, retrying in ${backoffMs}ms: ${error}`
+          `Batch ${i + 1}/${batches.length}: Error occurred, retrying in ${backoffMs}ms: ${error}`,
         );
         await sleep(backoffMs);
       }
     }
 
     if (unprocessedItems.length > 0) {
-      throw new Error(`Failed to write ${unprocessedItems.length} items after ${config.maxRetries} retries`);
+      throw new Error(
+        `Failed to write ${unprocessedItems.length} items after ${config.maxRetries} retries`,
+      );
     }
 
     // Progress update every 10 batches
     if ((i + 1) % 10 === 0) {
-      const progress = ((i + 1) / batches.length * 100).toFixed(1);
-      console.log(`Progress: ${progress}% (${i + 1}/${batches.length} batches)`);
+      const progress = (((i + 1) / batches.length) * 100).toFixed(1);
+      console.log(
+        `Progress: ${progress}% (${i + 1}/${batches.length} batches)`,
+      );
     }
 
     // Gradual ramp: small delay between batches to avoid throttling
@@ -147,11 +155,11 @@ async function batchWriteWithRetry(
  */
 function generateIdentityRecords(count: number): Record<string, unknown>[] {
   const records: Record<string, unknown>[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     const udpId = uuidv4();
     const serviceId = `${config.testPrefix}-user-${i}`;
-    
+
     records.push({
       pk: `app#${serviceId}`,
       sk: udpId,
@@ -160,7 +168,7 @@ function generateIdentityRecords(count: number): Record<string, unknown>[] {
       serviceName: 'app',
     });
   }
-  
+
   return records;
 }
 
@@ -168,16 +176,20 @@ function generateIdentityRecords(count: number): Record<string, unknown>[] {
  * Generate data records for identities with test prefix
  */
 function generateDataRecords(
-  identityRecords: Record<string, unknown>[], 
-  totalDataCount: number
+  identityRecords: Record<string, unknown>[],
+  totalDataCount: number,
 ): Record<string, unknown>[] {
   const records: Record<string, unknown>[] = [];
   const dataPerIdentity = Math.ceil(totalDataCount / identityRecords.length);
-  
+
   for (const identity of identityRecords) {
     const udpId = identity.udpId as string;
-    
-    for (let i = 0; i < dataPerIdentity && records.length < totalDataCount; i++) {
+
+    for (
+      let i = 0;
+      i < dataPerIdentity && records.length < totalDataCount;
+      i++
+    ) {
       records.push({
         pk: udpId,
         sk: `/test-data/${config.testPrefix}-resource-${i}`,
@@ -189,7 +201,7 @@ function generateDataRecords(
       });
     }
   }
-  
+
   return records;
 }
 
@@ -217,9 +229,11 @@ async function seedData(): Promise<void> {
     await batchWriteWithRetry(
       config.identityTableName!,
       identityRecords,
-      'identity'
+      'identity',
     );
-    console.log(`✓ Successfully wrote ${stats.identitiesWritten} identity records`);
+    console.log(
+      `✓ Successfully wrote ${stats.identitiesWritten} identity records`,
+    );
     console.log('');
 
     // Generate data records
@@ -229,17 +243,17 @@ async function seedData(): Promise<void> {
     console.log('');
 
     // Write data records
-    await batchWriteWithRetry(
-      config.dataTableName!,
-      dataRecords,
-      'data'
+    await batchWriteWithRetry(config.dataTableName!, dataRecords, 'data');
+    console.log(
+      `✓ Successfully wrote ${stats.dataRecordsWritten} data records`,
     );
-    console.log(`✓ Successfully wrote ${stats.dataRecordsWritten} data records`);
     console.log('');
 
     stats.endTime = Date.now();
-    const durationSeconds = ((stats.endTime - stats.startTime) / 1000).toFixed(2);
-    
+    const durationSeconds = ((stats.endTime - stats.startTime) / 1000).toFixed(
+      2,
+    );
+
     console.log('=== Seeding Complete ===');
     console.log(`Total Duration: ${durationSeconds}s`);
     console.log(`Identities Written: ${stats.identitiesWritten}`);
