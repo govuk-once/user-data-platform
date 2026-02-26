@@ -414,7 +414,7 @@ export class MonitoringStack extends Stack {
     });
   }
 
- private createPerformanceDashboard(
+  private createPerformanceDashboard(
     resourcePrefix: string,
     table: dynamodb.ITable,
     api: apigateway.RestApi,
@@ -690,10 +690,7 @@ export class MonitoringStack extends Stack {
         title: 'DynamoDB - Throttled Requests',
         left: [
           table.metricThrottledRequestsForOperations({
-            operations: [
-              dynamodb.Operation.GET_ITEM,
-              dynamodb.Operation.QUERY,
-            ],
+            operations: [dynamodb.Operation.GET_ITEM, dynamodb.Operation.QUERY],
             period: Duration.minutes(1),
             statistic: 'Sum',
             label: 'Read Throttles',
