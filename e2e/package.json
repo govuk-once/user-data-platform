@@ -1,5 +1,8 @@
 {
   "name": "@test/e2e",
   "type": "module",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "tsx": "^4.7.0"
+  }
 }
