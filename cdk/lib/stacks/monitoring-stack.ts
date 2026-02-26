@@ -11,6 +11,7 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
+import { NFR } from 'cdk/constants/nfr';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -33,6 +34,7 @@ export class MonitoringStack extends Stack {
   public readonly criticalTopic: sns.Topic;
   public readonly warningTopic: sns.Topic;
   public readonly dashboard: cloudwatch.Dashboard;
+  public readonly performanceDashboard: cloudwatch.Dashboard;
   public readonly xrayTraceGroup?: xray.CfnGroup;
 
   constructor(scope: Construct, id: string, props: MonitorStackProps) {
@@ -147,6 +149,14 @@ export class MonitoringStack extends Stack {
       this.createLambdaAlarms(fn, resourcePrefix, index);
     });
     this.addLambdaWidgets(lambdas);
+
+    this.performanceDashboard = this.createPerformanceDashboard(
+      resourcePrefix,
+      table,
+      api,
+      environment,
+      lambdas,
+    );
   }
 
   private createDyanamoDBAlarms(
@@ -256,11 +266,21 @@ export class MonitoringStack extends Stack {
         statistic,
       });
 
+    const errorRateMatric = new cloudwatch.MathExpression({
+      expression: '(errors / requests) * 100',
+      usingMetrics: {
+        errors: apiMetric('5xxError'),
+        requests: apiMetric('Count'),
+      },
+      period: Duration.minutes(1),
+      label: '%xx Error Rate (%)',
+    });
+
     new cloudwatch.Alarm(this, 'ApiGateway5xxErrors', {
       alarmName: `${resourcePrefix}-api-5xx-errors`,
-      alarmDescription: 'API Gateway 5xx error rate is high',
-      metric: apiMetric('5xxError'),
-      threshold: 10,
+      alarmDescription: `API Gateway 5xx error rate exceeds ${NFR.MAX_ERROR_RATE_PERCENT}%`,
+      metric: errorRateMatric,
+      threshold: NFR.MAX_ERROR_RATE_PERCENT,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
@@ -280,13 +300,13 @@ export class MonitoringStack extends Stack {
 
     new cloudwatch.Alarm(this, 'ApiGatewayLatency', {
       alarmName: `${resourcePrefix}-api-latency`,
-      alarmDescription: 'API Gateway p99 latency is high',
-      metric: apiMetric('Latency', 'p99'),
-      threshold: 5000,
+      alarmDescription: `API Gateway p99 latency exceeds ${NFR.P95_LATENCY_MS}`,
+      metric: apiMetric('Latency', 'p95'),
+      threshold: NFR.P95_LATENCY_MS,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
@@ -334,9 +354,9 @@ export class MonitoringStack extends Stack {
 
     new cloudwatch.Alarm(this, `${id}Errors`, {
       alarmName: `${resourcePrefix}-lambda-${index}-errors`,
-      alarmDescription: 'Lambda Errors',
+      alarmDescription: 'Lambda error count excceeds threashold',
       metric: fn.metricErrors({ period: Duration.minutes(1) }),
-      threshold: 5,
+      threshold: 2,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
@@ -345,16 +365,16 @@ export class MonitoringStack extends Stack {
 
     new cloudwatch.Alarm(this, `${id}Duration`, {
       alarmName: `${resourcePrefix}-lambda-${index}-duration`,
-      alarmDescription: 'Lambda duration is high',
+      alarmDescription: `Lambda duration is exceeds ${NFR.LAMBDA_DURATION_P95_MS}`,
       metric: fn.metricDuration({
         period: Duration.minutes(1),
-        statistic: 'p99',
+        statistic: 'p95',
       }),
-      threshold: 25000,
+      threshold: NFR.LAMBDA_DURATION_P95_MS,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
+      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
     new cloudwatch.Alarm(this, `${id}Throttles`, {
@@ -362,9 +382,9 @@ export class MonitoringStack extends Stack {
       alarmDescription: 'Lambda is being throttled',
       metric: fn.metricThrottles({
         period: Duration.minutes(1),
-        statistic: 'p99',
+        statistic: 'Sum',
       }),
-      threshold: 25000,
+      threshold: 1,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction({
@@ -392,5 +412,386 @@ export class MonitoringStack extends Stack {
         }),
       );
     });
+  }
+
+ rivate createPerformanceDashboard(
+    resourcePrefix: string,
+    table: dynamodb.ITable,
+    api: apigateway.RestApi,
+    stage: string,
+    lambdas: lambda.IFunction[],
+  ): cloudwatch.Dashboard {
+    const perfDashboard = new cloudwatch.Dashboard(
+      this,
+      'PerformanceDashboard',
+      {
+        dashboardName: `${resourcePrefix}-performance`,
+      },
+    );
+
+    const nfrLatencyAnnotation: cloudwatch.HorizontalAnnotation = {
+      value: NFR.P95_LATENCY_MS,
+      label: `NFR P95 (${NFR.P95_LATENCY_MS}ms)`,
+      color: '#d62728',
+    };
+
+    const nfrErrorRateAnnotation: cloudwatch.HorizontalAnnotation = {
+      value: NFR.MAX_ERROR_RATE_PERCENT,
+      label: `NFR Error Rate (${NFR.MAX_ERROR_RATE_PERCENT}%)`,
+      color: '#d62728',
+    };
+
+    const nfrThrottleAnnotation: cloudwatch.HorizontalAnnotation = {
+      value: 1,
+      label: 'Throttle Threshold (1)',
+      color: '#d62728',
+    };
+
+    const apiMetric = (metricName: string, statistic = 'Sum') =>
+      new cloudwatch.Metric({
+        namespace: 'AWS/ApiGateway',
+        metricName,
+        dimensionsMap: {
+          ApiName: api.restApiName,
+          Stage: stage,
+        },
+        period: Duration.minutes(1),
+        statistic,
+      });
+
+    const errorRateExpression = new cloudwatch.MathExpression({
+      expression: '(errors / requests) * 100',
+      usingMetrics: {
+        errors: apiMetric('5xxError'),
+        requests: apiMetric('Count'),
+      },
+      period: Duration.minutes(1),
+      label: '5xx Error Rate (%)',
+    });
+
+    // ── Section 1: NFR Summary ──────────────────────────────────────────
+    perfDashboard.addWidgets(
+      new cloudwatch.TextWidget({
+        markdown: '# NFR Summary',
+        width: 24,
+        height: 1,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.SingleValueWidget({
+        title: 'P95 Latency (ms)',
+        metrics: [apiMetric('Latency', 'p95')],
+        width: 8,
+        height: 4,
+      }),
+      new cloudwatch.SingleValueWidget({
+        title: 'Error Rate (%)',
+        metrics: [errorRateExpression],
+        width: 8,
+        height: 4,
+      }),
+      new cloudwatch.SingleValueWidget({
+        title: 'Request Throughput (rpm)',
+        metrics: [apiMetric('Count')],
+        width: 8,
+        height: 4,
+      }),
+    );
+
+    // ── Section 2: Latency Breakdown ────────────────────────────────────
+    perfDashboard.addWidgets(
+      new cloudwatch.TextWidget({
+        markdown: '# Latency Breakdown',
+        width: 24,
+        height: 1,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'API Gateway - End-to-End Latency',
+        left: [
+          apiMetric('Latency', 'p50'),
+          apiMetric('Latency', 'p95'),
+          apiMetric('Latency', 'p99'),
+        ],
+        leftAnnotations: [nfrLatencyAnnotation],
+        width: 12,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'API Gateway - Integration Latency',
+        left: [
+          apiMetric('IntegrationLatency', 'p50'),
+          apiMetric('IntegrationLatency', 'p95'),
+          apiMetric('IntegrationLatency', 'p99'),
+        ],
+        leftAnnotations: [nfrLatencyAnnotation],
+        width: 12,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Duration`,
+            left: [
+              fn.metricDuration({
+                period: Duration.minutes(1),
+                statistic: 'p50',
+              }),
+              fn.metricDuration({
+                period: Duration.minutes(1),
+                statistic: 'p95',
+              }),
+              fn.metricDuration({
+                period: Duration.minutes(1),
+                statistic: 'p99',
+              }),
+            ],
+            leftAnnotations: [
+              {
+                value: NFR.LAMBDA_DURATION_P95_MS,
+                label: `NFR Lambda P95 (${NFR.LAMBDA_DURATION_P95_MS}ms)`,
+                color: '#d62728',
+              },
+            ],
+            width: 12,
+          }),
+      ),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'DynamoDB - Request Latency',
+        left: [
+          table.metricSuccessfulRequestLatency({
+            dimensionsMap: {
+              TableName: table.tableName,
+              Operation: 'GetItem',
+            },
+            period: Duration.minutes(1),
+            statistic: 'p50',
+          }),
+          table.metricSuccessfulRequestLatency({
+            dimensionsMap: {
+              TableName: table.tableName,
+              Operation: 'PutItem',
+            },
+            period: Duration.minutes(1),
+            statistic: 'p50',
+          }),
+          table.metricSuccessfulRequestLatency({
+            dimensionsMap: {
+              TableName: table.tableName,
+              Operation: 'Query',
+            },
+            period: Duration.minutes(1),
+            statistic: 'p50',
+          }),
+          table.metricSuccessfulRequestLatency({
+            dimensionsMap: {
+              TableName: table.tableName,
+              Operation: 'GetItem',
+            },
+            period: Duration.minutes(1),
+            statistic: 'Average',
+          }),
+          table.metricSuccessfulRequestLatency({
+            dimensionsMap: {
+              TableName: table.tableName,
+              Operation: 'PutItem',
+            },
+            period: Duration.minutes(1),
+            statistic: 'Average',
+          }),
+        ],
+        width: 12,
+      }),
+    );
+
+    // ── Section 3: Error Analysis ───────────────────────────────────────
+    perfDashboard.addWidgets(
+      new cloudwatch.TextWidget({
+        markdown: '# Error Analysis',
+        width: 24,
+        height: 1,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'Error Rate Over Time (%)',
+        left: [errorRateExpression],
+        leftAnnotations: [nfrErrorRateAnnotation],
+        width: 12,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Error Counts by Type',
+        left: [apiMetric('4xxError'), apiMetric('5xxError')],
+        stacked: true,
+        width: 12,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Errors`,
+            left: [fn.metricErrors({ period: Duration.minutes(1) })],
+            width: 8,
+          }),
+      ),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'DynamoDB - System Errors',
+        left: [
+          table.metricSystemErrorsForOperations({
+            operations: [
+              dynamodb.Operation.GET_ITEM,
+              dynamodb.Operation.PUT_ITEM,
+              dynamodb.Operation.QUERY,
+            ],
+            period: Duration.minutes(1),
+            statistic: 'Sum',
+          }),
+        ],
+        width: 12,
+      }),
+    );
+
+    // ── Section 4: Throttling & Capacity ────────────────────────────────
+    perfDashboard.addWidgets(
+      new cloudwatch.TextWidget({
+        markdown: '# Throttling & Capacity',
+        width: 24,
+        height: 1,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'DynamoDB - Consumed Capacity',
+        left: [
+          table.metricConsumedReadCapacityUnits({
+            period: Duration.minutes(1),
+          }),
+          table.metricConsumedWriteCapacityUnits({
+            period: Duration.minutes(1),
+          }),
+        ],
+        width: 12,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'DynamoDB - Throttled Requests',
+        left: [
+          table.metricThrottledRequestsForOperations({
+            operations: [
+              dynamodb.Operation.GET_ITEM,
+              dynamodb.Operation.QUERY,
+            ],
+            period: Duration.minutes(1),
+            statistic: 'Sum',
+            label: 'Read Throttles',
+          }),
+          table.metricThrottledRequestsForOperations({
+            operations: [
+              dynamodb.Operation.PUT_ITEM,
+              dynamodb.Operation.UPDATE_ITEM,
+            ],
+            period: Duration.minutes(1),
+            statistic: 'Sum',
+            label: 'Write Throttles',
+          }),
+        ],
+        leftAnnotations: [nfrThrottleAnnotation],
+        width: 12,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Throttles`,
+            left: [fn.metricThrottles({ period: Duration.minutes(1) })],
+            leftAnnotations: [nfrThrottleAnnotation],
+            width: 8,
+          }),
+      ),
+    );
+
+    // ── Section 5: Lambda Scaling & Cold Starts ─────────────────────────
+    perfDashboard.addWidgets(
+      new cloudwatch.TextWidget({
+        markdown: '# Lambda Scaling & Cold Starts',
+        width: 24,
+        height: 1,
+      }),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Concurrent Executions`,
+            left: [
+              new cloudwatch.Metric({
+                namespace: 'AWS/Lambda',
+                metricName: 'ConcurrentExecutions',
+                dimensionsMap: { FunctionName: fn.functionName },
+                period: Duration.minutes(1),
+                statistic: 'Maximum',
+              }),
+            ],
+            width: 12,
+          }),
+      ),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Init Duration (Cold Start)`,
+            left: [
+              new cloudwatch.Metric({
+                namespace: 'AWS/Lambda',
+                metricName: 'InitDuration',
+                dimensionsMap: { FunctionName: fn.functionName },
+                period: Duration.minutes(1),
+                statistic: 'p50',
+                label: 'Init Duration p50',
+              }),
+              new cloudwatch.Metric({
+                namespace: 'AWS/Lambda',
+                metricName: 'InitDuration',
+                dimensionsMap: { FunctionName: fn.functionName },
+                period: Duration.minutes(1),
+                statistic: 'p95',
+                label: 'Init Duration p95',
+              }),
+            ],
+            width: 12,
+          }),
+      ),
+    );
+
+    perfDashboard.addWidgets(
+      ...lambdas.map(
+        (fn, index) =>
+          new cloudwatch.GraphWidget({
+            title: `Lambda ${index} - Invocations`,
+            left: [fn.metricInvocations({ period: Duration.minutes(1) })],
+            width: 8,
+          }),
+      ),
+    );
+
+    return perfDashboard;
   }
 }
