@@ -414,7 +414,7 @@ export class MonitoringStack extends Stack {
     });
   }
 
- rivate createPerformanceDashboard(
+ private createPerformanceDashboard(
     resourcePrefix: string,
     table: dynamodb.ITable,
     api: apigateway.RestApi,
