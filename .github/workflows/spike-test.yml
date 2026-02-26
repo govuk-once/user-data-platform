@@ -7,9 +7,9 @@ jobs:
   spike-test:
     uses: ./.github/workflows/__perf-test.yml
     with:
-      environment: staging
+      environment: stag
+      stack-prefix: stag
       aws-region: eu-west-2
-      stack-prefix: staging
       perf-target: read-heavy-spike
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
