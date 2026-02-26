@@ -1,5 +1,6 @@
 import {
   badRequestResponseSchema,
+  identityNotFoundResponseSchema,
   internalServerErrorResponseSchema,
 } from '../defaults/errors';
 import { identityEndpointPathSchema } from '../endpoints/identity/defaults';
@@ -143,7 +144,7 @@ export const routes: Record<string, RouteConfig> = {
       {
         status: 404,
         description: 'Not Found',
-        schema: identityEndpointPathSchema,
+        schema: identityNotFoundResponseSchema,
       },
       {
         status: 500,
@@ -184,7 +185,7 @@ export const routes: Record<string, RouteConfig> = {
       {
         status: 404,
         description: 'Not Found',
-        schema: identityEndpointPathSchema,
+        schema: identityNotFoundResponseSchema,
       },
       {
         status: 500,
