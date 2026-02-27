@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import { beforeEach, describe, vi, expect, it } from 'vitest';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
