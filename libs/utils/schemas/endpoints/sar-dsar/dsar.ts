@@ -30,5 +30,4 @@ export const startDsarResponseSchema = z.object({
   }),
 });
 
-
 export type StartDsarResponse = z.infer<typeof startDsarResponseSchema>;

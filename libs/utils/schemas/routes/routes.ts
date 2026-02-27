@@ -309,7 +309,6 @@ export const routes: Record<string, RouteConfig> = {
     name: 'startDsar',
     dynamoDbActions: [],
     identityTableActions: [],
-    queueActions: [],
     queueName: 'dsarQueue',
     authorizationScopes: ['udp/start-dsar'],
     method: 'POST',
