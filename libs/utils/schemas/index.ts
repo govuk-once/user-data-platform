@@ -13,6 +13,8 @@ export * from './endpoints/identity/readIdentity';
 export * from './endpoints/identity/createIdentity';
 export * from './endpoints/identity/deleteIdentity';
 
+export * from './endpoints/sar-dsar/dsar';
+
 export * from './routes/routes';
 export * from './routes/types';
 

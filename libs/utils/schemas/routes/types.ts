@@ -19,6 +19,7 @@ export interface RouteConfig<
   dynamoDbActions?: string[];
   identityTableActions?: string[];
   environmentVariables?: Record<string, string>;
+  queueName?: string;
   authorizationScopes?: string[];
   method: HttpMethod;
   path: string;

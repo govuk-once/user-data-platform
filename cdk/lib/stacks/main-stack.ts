@@ -13,6 +13,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 
@@ -182,8 +183,35 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
     });
 
+    const eventQueueNames = [
+      ...new Set(
+        Object.values(routes)
+          .map((r) => r.queueName)
+          .filter((q): q is string => !!q),
+      ),
+    ];
+
+    const eventQueues = new Map<string, sqs.Queue>();
+    for (const eventQueueName of eventQueueNames) {
+      const fullQueueName = developerId
+        ? `${developerId}-${eventQueueName}-queue-${environment}`
+        : `${eventQueueName}-queue-${environment}`;
+
+      const constructId = `${eventQueueName.replace(/-/g, '')}Queue`;
+      const queue = new sqs.Queue(this, constructId, {
+        queueName: fullQueueName,
+        encryption: sqs.QueueEncryption.KMS,
+        encryptionMasterKey: kmsConstruct.key,
+      });
+      eventQueues.set(eventQueueName, queue);
+    }
+
     let lambdasList = [];
     for (const route of Object.values(routes)) {
+      const routeQueue = route.queueName
+        ? eventQueues.get(route.queueName)
+        : undefined;
+
       const lambda = new LambdaApiConstruct(this, route.name, {
         developerId,
         environment,
@@ -206,6 +234,12 @@ export class MainStack extends Stack {
           STACK: stackPrefix,
           SERVICE_NAME: route.name,
         },
+        ...(routeQueue
+          ? {
+              sqsQueueUrl: routeQueue.queueUrl,
+              sqsQueueArn: routeQueue.queueArn,
+            }
+          : {}),
         vpc,
         securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
         cachingEnabled,
