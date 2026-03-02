@@ -52,8 +52,12 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     MessageBody: JSON.stringify(dsarRequest),
   });
 
+  console.log('DEBUG: command rady');
+
   try {
     await client.send(command);
+
+    console.log('DEBUG: command sent');
 
     // tracer.putAnnotation('dsarRequestSuccess', true);
     return {
@@ -61,8 +65,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       body: { dsarID } satisfies StartDsarResponse,
     };
   } catch (e) {
-    console.log(e);
-    throw e
+    console.log('Debug error', e);
+    throw e;
   }
 };
 
