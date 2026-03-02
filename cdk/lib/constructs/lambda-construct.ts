@@ -136,7 +136,7 @@ export class LambdaApiConstruct extends Construct {
       ...(environment === 'dev' ? {} : { reservedConcurrentExecutions: 50 }),
     });
 
-    if (dynamoDBtable) {
+    if (dynamoDBtable && dynamoDbActions.length > 0) {
       this.function.addToRolePolicy(
         new iam.PolicyStatement({
           actions: dynamoDbActions,
@@ -148,7 +148,7 @@ export class LambdaApiConstruct extends Construct {
       );
     }
 
-    if (identityDbTable) {
+    if (identityDbTable && identityDbActions.length > 0) {
       this.function.addToRolePolicy(
         new iam.PolicyStatement({
           actions: identityDbActions,
