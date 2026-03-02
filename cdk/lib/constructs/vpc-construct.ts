@@ -225,12 +225,12 @@ export class VpcConstuct extends Construct {
 
     this.sqsEndpoint = this.vpc.addInterfaceEndpoint('SqsEnpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SQS,
-        securityGroups: [this.vpcEndpointSecurityGroup],
-        privateDnsEnabled: true,
-        subnets: {
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-        },
-    })
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
 
     const flowLogGroup = new logs.LogGroup(this, 'FlowLogGroup', {
       logGroupName: `/aws/vpc/flow-logs-${environment}`,

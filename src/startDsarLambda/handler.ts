@@ -34,8 +34,6 @@ const client = new SQSClient({});
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   const { QUEUE_URL } = getEnv();
 
-  console.log({ QUEUE_URL });
-
   const dsarID = uuidv4();
 
   const dsarRequest = {
@@ -44,40 +42,28 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     serviceUserId: event.headers['requesting-service-user-id'],
   };
 
-  console.log({ dsarRequest });
-
   const command = new SendMessageCommand({
     QueueUrl: QUEUE_URL,
     DelaySeconds: 0,
     MessageBody: JSON.stringify(dsarRequest),
   });
 
-  console.log('DEBUG: command rady');
-
-  try {
-    await client.send(command);
-
-    console.log('DEBUG: command sent');
-
-    // tracer.putAnnotation('dsarRequestSuccess', true);
-    return {
-      statusCode: 200,
-      body: { dsarID } satisfies StartDsarResponse,
-    };
-  } catch (e) {
-    console.log('Debug error', e);
-    throw e;
-  }
+  await client.send(command);
+  tracer.putAnnotation('dsarRequestSuccess', true);
+  return {
+    statusCode: 200,
+    body: { dsarID } satisfies StartDsarResponse,
+  };
 };
 
 export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  // .use({
-  //   before: async () => {
-  //     tracer.putAnnotation('stack', stack);
-  //   },
-  // })
+  .use({
+    before: async () => {
+      tracer.putAnnotation('stack', stack);
+    },
+  })
   .use(
     httpResponseSerializer({
       serializers: [
