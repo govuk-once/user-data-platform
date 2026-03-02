@@ -55,7 +55,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   try {
     await client.send(command);
 
-    tracer.putAnnotation('dsarRequestSuccess', true);
+    // tracer.putAnnotation('dsarRequestSuccess', true);
     return {
       statusCode: 200,
       body: { dsarID } satisfies StartDsarResponse,
@@ -69,11 +69,11 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
-  .use({
-    before: async () => {
-      tracer.putAnnotation('stack', stack);
-    },
-  })
+  // .use({
+  //   before: async () => {
+  //     tracer.putAnnotation('stack', stack);
+  //   },
+  // })
   .use(
     httpResponseSerializer({
       serializers: [
