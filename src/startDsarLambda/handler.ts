@@ -62,6 +62,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     };
   } catch (e) {
     console.log(e);
+    throw e
   }
 };
 
