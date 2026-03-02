@@ -52,13 +52,17 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     MessageBody: JSON.stringify(dsarRequest),
   });
 
-  await client.send(command);
+  try {
+    await client.send(command);
 
-  tracer.putAnnotation('dsarRequestSuccess', true);
-  return {
-    statusCode: 200,
-    body: { dsarID } satisfies StartDsarResponse,
-  };
+    tracer.putAnnotation('dsarRequestSuccess', true);
+    return {
+      statusCode: 200,
+      body: { dsarID } satisfies StartDsarResponse,
+    };
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 export const handler = middy()
