@@ -34,6 +34,8 @@ const client = new SQSClient({});
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   const { QUEUE_URL } = getEnv();
 
+  console.log({ QUEUE_URL });
+
   const dsarID = uuidv4();
 
   const dsarRequest = {
@@ -41,6 +43,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     serviceName: event.headers['requesting-service'],
     serviceUserId: event.headers['requesting-service-user-id'],
   };
+
+  console.log({ dsarRequest });
 
   const command = new SendMessageCommand({
     QueueUrl: QUEUE_URL,
