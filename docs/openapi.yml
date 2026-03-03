@@ -6,7 +6,7 @@
 openapi: 3.0.3
 info:
   title: User Data platform API
-  version: 1.25.0
+  version: 1.25.1
   description: Private Api for the User data Platform
 tags:
   - name: identity
@@ -588,7 +588,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1772182938
+                      minimum: 1772538351
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1014,6 +1014,108 @@ paths:
                       - serviceName
                       - serviceUserId
                       - resourcePath
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+  /v1/dsar:
+    post:
+      summary: Start a DSAR Request
+      description: Start a DSAR Request
+      tags:
+        - DSAR
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
+          required: true
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dsarID:
+                    type: string
+                    description: UUID of the DSAR request
+                    example: 8538bc99-3596-4eb3-8101-263e70519315
+                required:
+                  - dsarID
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
         '500':
           description: Internal Server Error
           content:

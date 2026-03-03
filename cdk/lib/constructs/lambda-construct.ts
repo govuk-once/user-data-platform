@@ -35,6 +35,8 @@ export interface LambdaApiConstructProps {
   readonly securityGroups?: ec2.ISecurityGroup[];
   readonly reservedConcurrentExecutions?: number;
   readonly cachingEnabled?: boolean;
+  readonly sqsQueueUrl?: string;
+  readonly sqsQueueArn?: string;
 }
 
 export class LambdaApiConstruct extends Construct {
@@ -68,6 +70,8 @@ export class LambdaApiConstruct extends Construct {
       vpcSubnets,
       securityGroups,
       cachingEnabled = false,
+      sqsQueueUrl,
+      sqsQueueArn,
     } = props;
 
     const fullFunctionName = developerId
@@ -96,6 +100,10 @@ export class LambdaApiConstruct extends Construct {
 
     if (dbKmsKey) {
       envVars['KMS_KEY_ID'] = dbKmsKey.keyId;
+    }
+
+    if (sqsQueueUrl) {
+      envVars['QUEUE_URL'] = sqsQueueUrl;
     }
 
     // Sanitize sourcePath to prevent path traversal by using only the basename
@@ -128,7 +136,7 @@ export class LambdaApiConstruct extends Construct {
       ...(environment === 'dev' ? {} : { reservedConcurrentExecutions: 50 }),
     });
 
-    if (dynamoDBtable) {
+    if (dynamoDBtable && dynamoDbActions.length > 0) {
       this.function.addToRolePolicy(
         new iam.PolicyStatement({
           actions: dynamoDbActions,
@@ -140,7 +148,7 @@ export class LambdaApiConstruct extends Construct {
       );
     }
 
-    if (identityDbTable) {
+    if (identityDbTable && identityDbActions.length > 0) {
       this.function.addToRolePolicy(
         new iam.PolicyStatement({
           actions: identityDbActions,
@@ -148,6 +156,15 @@ export class LambdaApiConstruct extends Construct {
             identityDbTable.tableArn,
             `${identityDbTable.tableArn}/index/*`,
           ],
+        }),
+      );
+    }
+
+    if (sqsQueueArn) {
+      this.function.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['sqs:SendMessage'],
+          resources: [sqsQueueArn],
         }),
       );
     }

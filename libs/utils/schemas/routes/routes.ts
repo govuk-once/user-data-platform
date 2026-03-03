@@ -26,6 +26,10 @@ import {
 } from '../endpoints/data/postData';
 import { getDataResponseSchema } from '../endpoints/data/getData';
 import { deleteDataResponseSchema } from '../endpoints/data/deleteData';
+import {
+  startDsarHeaderSchema,
+  startDsarResponseSchema,
+} from '../endpoints/sar-dsar/dsar';
 
 export * from './types';
 
@@ -293,6 +297,38 @@ export const routes: Record<string, RouteConfig> = {
         status: 404,
         description: 'Not Found',
         schema: dataEndpointNotFoundResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  startDsar: {
+    name: 'startDsar',
+    dynamoDbActions: [],
+    identityTableActions: [],
+    queueName: 'dsarQueue',
+    authorizationScopes: ['udp/write'],
+    method: 'POST',
+    path: '/v1/dsar',
+    summary: 'Start a DSAR Request',
+    description: 'Start a DSAR Request',
+    tags: ['DSAR'],
+    headers: startDsarHeaderSchema,
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: startDsarResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
       },
       {
         status: 500,

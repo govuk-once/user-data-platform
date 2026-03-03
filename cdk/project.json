@@ -9,7 +9,8 @@
     "@src/getDataLambda",
     "@src/createIdentityLambda",
     "@src/readIdentityLambda",
-    "@src/deleteIdentityLambda"
+    "@src/deleteIdentityLambda",
+    "@src/startDsarLambda"
   ],
   "targets": {
     "diff": {
