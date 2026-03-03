@@ -23,16 +23,6 @@ jobs:
           app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
-      - name: Configure Git
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          APP_SLUG: ${{ steps.generate_token.outputs.app-slug }}
-          APP_ID: ${{ steps.get-user-id.outputs.user-id }}
-        run: |
-          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf https://github.com/
-          git config --global user.name '${APP_SLUG}[bot]'
-          git config --global user.email '${APP_ID}+${APP_SLUG}[bot]@users.noreply.github.com'
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -124,27 +114,83 @@ jobs:
           npm version "${NEW_VERSION}" --no-git-tag-version
           echo "Updated package.json to version $NEW_VERSION"
 
-      - name: Commit version bump
+      - name: Commit and push via GitHub API
         env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           NEW_VERSION: ${{ steps.new-version.outputs.version }}
         run: |
-          git add package.json
-          git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]" || echo "No changes to commit"
+          # Commits created via the GitHub Git Data API are automatically
+          # signed/verified by GitHub, satisfying org-level commit signing
+          # rulesets that block unsigned pushes from git CLI.
 
-      - name: Create and push tag
+          # 1. Get the current HEAD commit on main
+          CURRENT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" -q '.object.sha')
+          echo "Current commit: ${CURRENT_SHA}"
+
+          # 2. Create a blob for the updated package.json
+          BLOB_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/blobs" \
+            -X POST \
+            -f content="$(base64 -w 0 package.json)" \
+            -f encoding="base64" \
+            -q '.sha')
+          echo "Blob SHA: ${BLOB_SHA}"
+
+          # 3. Get the current tree
+          TREE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${CURRENT_SHA}" -q '.tree.sha')
+          echo "Tree SHA: ${TREE_SHA}"
+
+          # 4. Create a new tree with the updated package.json
+          NEW_TREE_SHA=$(jq -n \
+            --arg base_tree "${TREE_SHA}" \
+            --arg blob_sha "${BLOB_SHA}" \
+            '{base_tree: $base_tree, tree: [{path: "package.json", mode: "100644", type: "blob", sha: $blob_sha}]}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/trees" -X POST --input - -q '.sha')
+          echo "New tree SHA: ${NEW_TREE_SHA}"
+
+          # 5. Create a signed commit via the API
+          NEW_COMMIT_SHA=$(jq -n \
+            --arg message "chore: bump version to ${NEW_VERSION} [skip ci]" \
+            --arg tree "${NEW_TREE_SHA}" \
+            --arg parent "${CURRENT_SHA}" \
+            '{message: $message, tree: $tree, parents: [$parent]}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/commits" -X POST --input - -q '.sha')
+          echo "New commit SHA: ${NEW_COMMIT_SHA}"
+
+          # 6. Update the main branch to point to the new commit
+          jq -n --arg sha "${NEW_COMMIT_SHA}" '{sha: $sha}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/refs/heads/main" -X PATCH --input -
+          echo "Updated main branch to ${NEW_COMMIT_SHA}"
+
+      - name: Create and push tag via GitHub API
         env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           NEW_VERSION: ${{ steps.new-version.outputs.version }}
         run: |
-          git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
-          git push origin main
-          git push origin "v${NEW_VERSION}"
+          # Get the commit SHA that main now points to
+          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" -q '.object.sha')
+
+          # Create an annotated tag object
+          TAG_SHA=$(jq -n \
+            --arg tag "v${NEW_VERSION}" \
+            --arg message "Release version ${NEW_VERSION}" \
+            --arg object "${COMMIT_SHA}" \
+            '{tag: $tag, message: $message, object: $object, type: "commit"}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/tags" -X POST --input - -q '.sha')
+          echo "Tag SHA: ${TAG_SHA}"
+
+          # Create the tag reference
+          jq -n \
+            --arg ref "refs/tags/v${NEW_VERSION}" \
+            --arg sha "${TAG_SHA}" \
+            '{ref: $ref, sha: $sha}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/refs" -X POST --input -
           echo "Created and pushed tag v${NEW_VERSION}"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           NEW_VERSION: ${{ steps.new-version.outputs.version }}
-          BUMP_TYPE: ${{ steps.bump.output.bump }}
+          BUMP_TYPE: ${{ steps.bump.outputs.bump }}
         run: |
           gh release create "v${NEW_VERSION}" \
             --title "Release v${NEW_VERSION}" \
@@ -152,4 +198,4 @@ jobs:
 
           This release was automatically generated from commits to main.
 
-          **Version bump type**: ${BUMP}"
+          **Version bump type**: ${BUMP_TYPE}"
