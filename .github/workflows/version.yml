@@ -118,13 +118,14 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           NEW_VERSION: ${{ steps.new-version.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           # Commits created via the GitHub Git Data API are automatically
           # signed/verified by GitHub, satisfying org-level commit signing
           # rulesets that block unsigned pushes from git CLI.
 
-          # 1. Get the current HEAD commit on main
-          CURRENT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" -q '.object.sha')
+          # 1. Get the current HEAD commit
+          CURRENT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${BRANCH}" -q '.object.sha')
           echo "Current commit: ${CURRENT_SHA}"
 
           # 2. Create a blob for the updated package.json
@@ -156,18 +157,19 @@ jobs:
             | gh api "repos/${GITHUB_REPOSITORY}/git/commits" -X POST --input - -q '.sha')
           echo "New commit SHA: ${NEW_COMMIT_SHA}"
 
-          # 6. Update the main branch to point to the new commit
+          # 6. Update the branch to point to the new commit
           jq -n --arg sha "${NEW_COMMIT_SHA}" '{sha: $sha}' \
-            | gh api "repos/${GITHUB_REPOSITORY}/git/refs/heads/main" -X PATCH --input -
-          echo "Updated main branch to ${NEW_COMMIT_SHA}"
+            | gh api "repos/${GITHUB_REPOSITORY}/git/refs/heads/${BRANCH}" -X PATCH --input -
+          echo "Updated ${BRANCH} branch to ${NEW_COMMIT_SHA}"
 
       - name: Create and push tag via GitHub API
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           NEW_VERSION: ${{ steps.new-version.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          # Get the commit SHA that main now points to
-          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" -q '.object.sha')
+          # Get the commit SHA that the branch now points to
+          COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${BRANCH}" -q '.object.sha')
 
           # Create an annotated tag object
           TAG_SHA=$(jq -n \

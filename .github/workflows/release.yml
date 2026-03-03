@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - support # temporary: testing version workflow
 
 concurrency:
   group: release-${{ github.ref_name }}
