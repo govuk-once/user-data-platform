@@ -1,0 +1,63 @@
+# Ralph Loop Command
+
+Execute the setup script to initialize the Ralph loop:
+
+🔄 Ralph loop activated in this session!
+
+Iteration: 1
+Max iterations: 20
+Completion promise: TICKET_TASK_COMPLETE (ONLY output when TRUE - do not lie!)
+
+The stop hook is now active. When you try to exit, the SAME PROMPT will be
+fed back to you. You'll see your previous work in files, creating a
+self-referential loop where you iteratively improve on the same task.
+
+To monitor: head -10 .claude/ralph-loop.local.md
+
+⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
+    unless you set --max-iterations or --completion-promise.
+
+🔄
+
+Fix ticket TASK: support  https://github.com/govuk-once/user-data-platform/actions/runs/22628496132/job/65571623199  Afternoon all. We've recently found that the UDP release pipeline has stopped working. Noticeably the errors are all the same - the use of the GitHub bot to push a new version automatically is now failing to push the tag & version change due to commit signing. The ruleset this links out to: here appears to be an organisational level one. I'm curious if this is newly added or not, as this did not use to cause failures for us from the bot - for example this commit. It's currently blocking our deployments, and we're not sure if something has been changed in the rules or with the bot to know how to resolve this.  https://github.com/govuk-once/user-data-platform/commit/a0aaaf4e7e4d94f3bbe1fe90a4c4dda5a9b4c8d9  Instructions: 1. Work in this worktree (/Users/shahe.islam/work/user-data-platform-support) 2. Understand the existing codebase first 3. Implement the fix/feature 4. Write tests if applicable 5. Run tests to verify 6. Create atomic commits with descriptive messages 7. When complete, output TICKET_TASK_COMPLETE  Do not ask questions - make reasonable decisions and iterate.
+
+═══════════════════════════════════════════════════════════
+CRITICAL - Ralph Loop Completion Promise
+═══════════════════════════════════════════════════════════
+
+To complete this loop, output this EXACT text:
+  <promise>TICKET_TASK_COMPLETE</promise>
+
+STRICT REQUIREMENTS (DO NOT VIOLATE):
+  ✓ Use <promise> XML tags EXACTLY as shown above
+  ✓ The statement MUST be completely and unequivocally TRUE
+  ✓ Do NOT output false statements to exit the loop
+  ✓ Do NOT lie even if you think you should exit
+
+IMPORTANT - Do not circumvent the loop:
+  Even if you believe you're stuck, the task is impossible,
+  or you've been running too long - you MUST NOT output a
+  false promise statement. The loop is designed to continue
+  until the promise is GENUINELY TRUE. Trust the process.
+
+  If the loop should stop, the promise statement will become
+  true naturally. Do not force it by lying.
+═══════════════════════════════════════════════════════════
+
+Please work on the task. When you try to exit, the Ralph loop will feed the SAME PROMPT back to you for the next iteration. You'll see your previous work in files and git history, allowing you to iterate and improve.
+
+CRITICAL RULE: If a completion promise is set, you may ONLY output it when the statement is completely and unequivocally TRUE. Do not output false promises to escape the loop, even if you think you're stuck or should exit for other reasons. The loop is designed to continue until genuine completion.
+
+---
+
+[Request interrupted by user]
+
+---
+
+First explain the situation to me and why youre making these changes
+
+---
+
+Stop hook feedback:
+
+Fix ticket TASK: support  https://github.com/govuk-once/user-data-platform/actions/runs/22628496132/job/65571623199  Afternoon all. We've recently found that the UDP release pipeline has stopped working. Noticeably the errors are all the same - the use of the GitHub bot to push a new version automatically is now failing to push the tag & version change due to commit signing. The ruleset this links out to: here appears to be an organisational level one. I'm curious if this is newly added or not, as this did not use to cause failures for us from the bot - for example this commit. It's currently blocking our deployments, and we're not sure if something has been changed in the rules or with the bot to know how to resolve this.  https://github.com/govuk-once/user-data-platform/commit/a0aaaf4e7e4d94f3bbe1fe90a4c4dda5a9b4c8d9  Instructions: 1. Work in this worktree (/Users/shahe.islam/work/user-data-platform-support) 2. Understand the existing codebase first 3. Implement the fix/feature 4. Write tests if applicable 5. Run tests to verify 6. Create atomic commits with descriptive messages 7. When complete, output TICKET_TASK_COMPLETE  Do not ask questions - make reasonable decisions and iterate.
