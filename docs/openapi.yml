@@ -588,7 +588,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1772182938
+                      minimum: 1772538351
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1116,81 +1116,6 @@ paths:
                   - errorType
                   - errorMessage
                   - errorPaths
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - type: object
-                    properties:
-                      errorCode:
-                        type: number
-                        enum:
-                          - 404
-                        description: Bad Request Code
-                        example: 404
-                      errorMessage:
-                        type: string
-                        description: The error message
-                        example: Record not found
-                      errorType:
-                        type: string
-                        enum:
-                          - IDENTITY_NOT_FOUND
-                        description: Identity Not Found Type
-                        example: IDENTITY_NOT_FOUND
-                      serviceName:
-                        type: string
-                        description: Provided service name
-                        example: app
-                      serviceUserId:
-                        type: string
-                        description: Provided service user Id
-                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
-                    required:
-                      - errorCode
-                      - errorMessage
-                      - errorType
-                      - serviceName
-                      - serviceUserId
-                  - type: object
-                    properties:
-                      errorCode:
-                        type: number
-                        enum:
-                          - 404
-                        description: Bad Request Code
-                        example: 404
-                      errorMessage:
-                        type: string
-                        description: The error message
-                        example: Record not found
-                      errorType:
-                        type: string
-                        enum:
-                          - DATA_NOT_FOUND
-                        description: Data Not Found Type
-                        example: DATA_NOT_FOUND
-                      serviceName:
-                        type: string
-                        description: Provided service name
-                        example: app
-                      serviceUserId:
-                        type: string
-                        description: Provided service user Id
-                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
-                      resourcePath:
-                        type: string
-                        description: Provided resource path
-                        example: /v1/notifications/preferences
-                    required:
-                      - errorCode
-                      - errorMessage
-                      - errorType
-                      - serviceName
-                      - serviceUserId
-                      - resourcePath
         '500':
           description: Internal Server Error
           content:

@@ -331,11 +331,6 @@ export const routes: Record<string, RouteConfig> = {
         schema: badRequestResponseSchema,
       },
       {
-        status: 404,
-        description: 'Not Found',
-        schema: dataEndpointNotFoundResponseSchema,
-      },
-      {
         status: 500,
         description: 'Internal Server Error',
         schema: internalServerErrorResponseSchema,
