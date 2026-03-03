@@ -53,7 +53,7 @@ export class LambdaApiConstruct extends Construct {
       handler = 'index.handler',
       runtime = lambda.Runtime.NODEJS_20_X,
       timeout = Duration.seconds(30),
-      memorySize = 256,
+      memorySize = 512,
       sourcePath,
       environmentVariables = {},
       kmsKey,
