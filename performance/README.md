@@ -24,3 +24,13 @@ Builds the typescript, then run the smoke test
 ```bash
 nx run @test/performance:smoke
 ```
+
+### Cold start
+
+Measures Lambda cold-start latency by jumping from 0-100 RPS with no warm-up phase, uses intentionally loe pre-allocated VUs (10) to force reactive scaling. A custom `cold-start-latency` metric captures request durations during the first 30 sec of analysis
+
+**Pre-requisite** Ensure no traffic has hit the target environment for at least 10 mins before running, so that lambda instances have scaled to zero.
+
+```bash
+nx run @test/performance:cold-start-impact
+```

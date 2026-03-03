@@ -59,6 +59,14 @@
         "command": "k6 run dist/scenarios/stress-deletes.js",
         "cwd": "performance"
       }
+    },
+    "cold-start-impact": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/cold-start.js",
+        "cwd": "performance"
+      }
     }
   }
 }
