@@ -37,7 +37,7 @@ Feature: DSAR Api
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'dsar-e2e-user-1'
         When I send a get to '/v1/dsar' with the body '{}'
-        Then I should recieve a successful response
+        Then the response status should be 202
 
     Scenario: Verify data is deleted after DSAR
         Given I set header 'requesting-service' to 'app'

@@ -588,7 +588,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1772636551
+                      minimum: 1772636732
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1069,7 +1069,7 @@ paths:
           name: requesting-service-user-id
           in: header
       responses:
-        '200':
+        '202':
           description: OK
           content:
             application/json:

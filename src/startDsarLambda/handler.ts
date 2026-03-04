@@ -51,7 +51,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   await client.send(command);
   tracer.putAnnotation('dsarRequestSuccess', true);
   return {
-    statusCode: 200,
+    statusCode: 202,
     body: { dsarID } satisfies StartDsarResponse,
   };
 };

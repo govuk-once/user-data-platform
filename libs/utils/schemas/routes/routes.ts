@@ -319,7 +319,7 @@ export const routes: Record<string, RouteConfig> = {
     headers: startDsarHeaderSchema,
     successResponses: [
       {
-        status: 200,
+        status: 202,
         description: 'OK',
         schema: startDsarResponseSchema,
       },
