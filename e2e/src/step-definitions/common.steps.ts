@@ -94,3 +94,33 @@ Then(
     expect(data).toEqual(JSON.parse(message));
   },
 );
+
+Then(
+  'the response at {string} should eventually return status {int} within {int} seconds',
+  async function (
+    this: CustomWorld,
+    path: string,
+    expectedStatus: number,
+    timeoutSeconds: number,
+  ) {
+    const intervalMs = 3000;
+    const deadline = Date.now() + timeoutSeconds * 1000;
+
+    while (Date.now() < deadline) {
+      const response = await this.api.get(path, {
+        authenticated: this.authenticated,
+        headers: this.headers,
+      });
+
+      if (response.status === expectedStatus) {
+        this.storeResponse(response);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error(
+      `Expected status ${expectedStatus} at ${path} but did not recieve it within ${timeoutSeconds} seconds`,
+    );
+  },
+);
