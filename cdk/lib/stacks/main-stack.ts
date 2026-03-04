@@ -104,7 +104,9 @@ export class MainStack extends Stack {
     cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
 
-    const cachingEnabled = environment !== GovUkOnceEnvironments.Dev;
+    //Disabling caching temporarily -- need to seek out a better way to invalidate the caches rather than allowing default TTL to run down
+    // const cachingEnabled = environment !== GovUkOnceEnvironments.Dev;
+    const cachingEnabled = false;
 
     const kmsConstruct = new KmsConstruct(this, 'Kms', {
       developerId,
