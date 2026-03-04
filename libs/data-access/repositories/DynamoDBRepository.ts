@@ -9,7 +9,6 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { InvalidDynamoKeyError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
-import { debug } from 'console';
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.

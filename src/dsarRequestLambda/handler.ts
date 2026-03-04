@@ -1,20 +1,14 @@
 import middy from '@middy/core';
-import httpResponseSerializer from '@middy/http-response-serializer';
-import type { APIGatewayProxyEventV2, SQSEvent } from 'aws-lambda';
+import type { SQSEvent } from 'aws-lambda';
 import {
   getTracer,
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
   createEnvValidator,
-  responseSanitiser,
-  udpErrorHandling,
-  zodValidator,
 } from '@libs/utils';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 
-import { v4 as uuidv4 } from 'uuid';
-import { StartDsarResponse } from 'libs/utils/schemas/endpoints/sar-dsar/dsar';
 import { ServiceFactory } from '@libs/data-access';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
