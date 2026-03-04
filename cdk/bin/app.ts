@@ -1,5 +1,5 @@
 import { App, Aspects } from 'aws-cdk-lib';
-import { MainStack, MonitoringStack } from 'cdk/lib/stacks';
+import { MainStack, MonitoringStack, SarStack } from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
@@ -62,6 +62,23 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
+  const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DSAR procession stack${developerId ? ` for ${developerId}` : ''}`,
+    table: mainStack.table,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    dsarQueue: mainStack.dsarQueue,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+  });
+
+  sarStack.addDependency(mainStack);
+
   const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`;
 
   const monitoringStack = new MonitoringStack(
@@ -75,13 +92,13 @@ if (!skipMainStack) {
       description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: mainStack.lambdas,
+      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
       notificationEmails: [],
       kmsKeyAlias,
     },
   );
 
-  monitoringStack.addDependency(mainStack);
+  monitoringStack.addDependency(sarStack);
 
   const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
     developerId,

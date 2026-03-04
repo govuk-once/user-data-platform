@@ -10,7 +10,8 @@
     "@src/createIdentityLambda",
     "@src/readIdentityLambda",
     "@src/deleteIdentityLambda",
-    "@src/startDsarLambda"
+    "@src/startDsarLambda",
+    "@src/dsarRequestLambda"
   ],
   "targets": {
     "diff": {
@@ -68,7 +69,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk destroy --exclusively \"$DEVELOPER_ID-dev-perf\" \"$DEVELOPER_ID-dev-e2e\" \"$DEVELOPER_ID-dev-monitoring\" \"$DEVELOPER_ID-dev-main\" -c env=dev --force",
+        "command": "npx cdk destroy --exclusively \"$DEVELOPER_ID-dev-perf\" \"$DEVELOPER_ID-dev-e2e\" \"$DEVELOPER_ID-dev-monitoring\" \"$DEVELOPER_ID-dev-main\" \"$DEVELOPER_ID-dev-dsar\" -c env=dev --force",
         "cwd": "cdk"
       }
     },

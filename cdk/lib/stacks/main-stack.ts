@@ -59,6 +59,8 @@ export class MainStack extends Stack {
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
+  public readonly dbKmsKey: kms.IKey;
+  public readonly dsarQueue: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
@@ -116,6 +118,7 @@ export class MainStack extends Stack {
       environment,
       namePrefix: 'db-kms-encryption',
     });
+    this.dbKmsKey = dbKms.key;
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
@@ -249,6 +252,8 @@ export class MainStack extends Stack {
     }
 
     this.lambdas = lambdasList;
+
+    this.dsarQueue = eventQueues.get('dsarQueue')!;
 
     const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
       test: {
