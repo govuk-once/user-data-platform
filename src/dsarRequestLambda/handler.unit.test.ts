@@ -252,12 +252,10 @@ describe('dsarRequestLambda handler', () => {
       mockCountQuery(1);
       mockPageQuery([{ pk: mockUdpId, sk: '/resource/path1' }]);
 
-      sqsMock.on(SendMessageCommand).rejects(new Error('SQS Failure'))
+      sqsMock.on(SendMessageCommand).rejects(new Error('SQS Failure'));
 
       const event = createSQSEvent();
-      await expect(handler(event, mockContext)).rejects.toThrow(
-        'SQS Failure',
-      );
+      await expect(handler(event, mockContext)).rejects.toThrow('SQS Failure');
     });
   });
 });
