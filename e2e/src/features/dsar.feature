@@ -22,7 +22,7 @@ Feature: DSAR Api
         And I set header 'requesting-service-user-id' to 'dsar-e2e-user-1'
         When I send a post to '/v1/dsar-test/data2' with the body '{"data": { "key":"value2" }}'
         Then I should recieve a successful response
-    
+
     Scenario: Setup - Verify Identity exists before DSAR
         Given I send a get to '/v1/identity/app/dsar-e2e-user-1'
         Then I should recieve a successful response
@@ -43,6 +43,6 @@ Feature: DSAR Api
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'dsar-e2e-user-1'
         Then the response at '/v1/dsar-test/data1' should eventually return status 404 within 120 seconds
-    
+
     Scenario: Verify identity is deleted asfter DSAR
         Then the response at '/v1/identity/app/dsar-e2e-user-1' should eventually return status 404 within 120 seconds
