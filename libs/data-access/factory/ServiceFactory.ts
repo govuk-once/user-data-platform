@@ -21,7 +21,7 @@ export interface ServiceFactoryConfig {
 
 export class ServiceFactory {
   private tableName: string;
-  private identityTableName: string;
+  private identityTableName?: string;
   private kmsKeyId: string;
   private docClient: DynamoDBDocumentClient;
   private services: Map<string, unknown> = new Map();
@@ -83,6 +83,10 @@ export class ServiceFactory {
   }
 
   private createIdentityService() {
+    if (!this.identityTableName) {
+      throw Error('missing identity table');
+    }
+
     const encryption = this.getEncryptionConfig([
       'accessToken',
       'idToken',
