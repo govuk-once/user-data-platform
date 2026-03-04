@@ -86,5 +86,28 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(dsarRequestLambda.function);
+
+    const dsarDeleteLambda = new LambdaApiConstruct(this, 'dsarDelete', {
+      developerId,
+      environment,
+      functionName: 'dsarDeleteLambda',
+      sourcePath: 'dsarDeleteLambda',
+      kmsKey,
+      dbKmsKey,
+      dynamoDBtable: table,
+      dynamoDbActions: ['dynamodb:DeleteItem'],
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'dsarRequest',
+      },
+      vpc,
+      securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+    });
+
+    dsarRequestLambda.function.addEventSource(
+      new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
+    );
+
+    this.lambdas.push(dsarDeleteLambda.function);
   }
 }
