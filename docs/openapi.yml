@@ -115,6 +115,172 @@ paths:
                   - errorCode
                   - errorMessage
                   - errorType
+  /v1/identity/exchange:
+    get:
+      summary: Exchange Identity Record
+      description: Look up a linked identity record for a different service vai the shared udpId
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The service name to look up the linked identity for
+            example: DVLA
+          required: true
+          description: The service name to look up the linked identity for
+          name: requiredService
+          in: query
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
+          required: true
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  serviceId:
+                    type: string
+                    description: The Identifer for the requested service
+                    example: ca07a074-ed4b-4426-951e-961bedd80493
+                  serviceName:
+                    type: string
+                    minLength: 1
+                    description: The service name for the identity record
+                    example: DVLA
+                  accessToken:
+                    type: string
+                    description: The access token for the service from one login
+                    example: flex
+                  refreshToken:
+                    type: string
+                    description: The refresh token for the service from one login
+                    example: flex
+                  idToken:
+                    type: string
+                    description: The idToken for the service from one login
+                    example: flex
+                required:
+                  - serviceId
+                  - serviceName
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 404
+                    description: Bad Request Code
+                    example: 404
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: Record not found
+                  errorType:
+                    type: string
+                    enum:
+                      - IDENTITY_NOT_FOUND
+                    description: Identity Not Found Type
+                    example: IDENTITY_NOT_FOUND
+                  serviceName:
+                    type: string
+                    description: Provided service name
+                    example: app
+                  serviceUserId:
+                    type: string
+                    description: Provided service user Id
+                    example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+                  - serviceName
+                  - serviceUserId
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
   /v1/identity/{serviceName}/{identifier}:
     post:
       summary: Create Identity Record
@@ -588,7 +754,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1772718141
+                      minimum: 1772718567
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000

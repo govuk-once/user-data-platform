@@ -155,6 +155,31 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     return deletedCount;
   }
 
+  public async getLinkedIdentity(
+    serviceName: string,
+    serviceId: string,
+    requiredService: string,
+  ) {
+    const identify = await this.getByServiceId(serviceName, serviceId);
+
+    const linkedRecord = await this.repository.queryByGsi(
+      'sk-index',
+      identify.udpId,
+      requiredService,
+    );
+
+    if (!linkedRecord) {
+      throw new IdentityRecordNotFoundError(
+        `Linked identity not found for service ${requiredService}`,
+        UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+        requiredService,
+        serviceId,
+      );
+    }
+
+    return linkedRecord;
+  }
+
   private async createFromInput(input: IdentityInput): Promise<T> {
     // look up the udp id by app id
     const appIdentifier = await this.getByServiceId('app', input.appId);

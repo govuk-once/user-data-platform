@@ -62,7 +62,6 @@ describe('DynamoDb Data Service', () => {
           data: input.data,
         },
       });
-      console.log({ response });
       expect(response).toMatchObject({
         pk: mockIdentity.udpId,
         sk: mockResource,
