@@ -588,7 +588,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1772708553
+                      minimum: 1772716875
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1082,6 +1082,108 @@ paths:
                     example: 8538bc99-3596-4eb3-8101-263e70519315
                 required:
                   - dsarID
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+  /v1/sar:
+    post:
+      summary: Start a SAR Request
+      description: Start a SAR Request
+      tags:
+        - SAR
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
+          required: true
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sarID:
+                    type: string
+                    description: UUID of the SAR request
+                    example: 8538bc99-3596-4eb3-8101-263e70519315
+                required:
+                  - sarID
         '400':
           description: Bad Request
           content:
