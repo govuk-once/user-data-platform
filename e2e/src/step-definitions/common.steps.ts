@@ -97,6 +97,7 @@ Then(
 
 Then(
   'the response at {string} should eventually return status {int} within {int} seconds',
+  { timeout: 130_000 },
   async function (
     this: CustomWorld,
     path: string,
