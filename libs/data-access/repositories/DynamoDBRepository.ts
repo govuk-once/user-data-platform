@@ -263,6 +263,54 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     };
   }
 
+  async queryAllByPk(pk: string): Promise<T[]> {
+    this.logger?.debug('Query all items by pk', {
+      operation: 'queryAllByPk',
+      tableName: this.tableName,
+      pk,
+    });
+
+    const allItems: T[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      });
+
+      const response = await this.client.send(command);
+
+      if (response.Items && response.Items.length > 0) {
+        // Decrypt items if encryption is configured
+        if (this.encryption) {
+          for (const item of response.Items) {
+            const decryptedItem = (await this.encryption.service.decryptFields(
+              item as Record<string, unknown> & EncryptedData,
+              this.encryption.dataFields,
+            )) as T;
+            allItems.push(decryptedItem);
+          }
+        } else {
+          allItems.push(...(response.Items as T[]));
+        }
+      }
+
+      exclusiveStartKey = response.LastEvaluatedKey as
+        | Record<string, unknown>
+        | undefined;
+    } while (exclusiveStartKey);
+
+    this.logger?.debug('Query all by pk completed', {
+      pk,
+      totalItems: allItems.length,
+    });
+
+    return allItems;
+  }
+
   async queryBySk(sk: string): Promise<T[]> {
     this.logger?.debug('Querying items by sk using GSI', {
       operation: 'queryBySk',

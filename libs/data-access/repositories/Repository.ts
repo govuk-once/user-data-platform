@@ -52,6 +52,13 @@ export interface Repository<T extends Entity> {
   }>;
 
   /**
+   * Queries all items by partition key returning full entities
+   * @param pk - The partition key
+   * @returns A promise that resolves with all items for the given pk
+   */
+  queryAllByPk(pk: string): Promise<T[]>;
+
+  /**
    * Queries a single page of items by partition key returning only the pk and sk
    * @param sk - The Sort key value to query by
    * @returns A promise that resolves with items and optional lastEvaluatedKey fro pagination

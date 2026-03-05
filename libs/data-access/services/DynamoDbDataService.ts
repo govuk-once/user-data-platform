@@ -83,6 +83,10 @@ export class DynamoDbDataService {
     return this.repository.queryPageByPk(udpID, 100, lastEvaluatedKey);
   }
 
+  public async getAllByUdpID(udpID: string): Promise<DynamoDBDataEntity[]> {
+    return this.repository.queryAllByPk(udpID);
+  }
+
   private createFromInput(
     identity: IdentityRecordEntity,
     resourcePath: string,
