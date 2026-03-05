@@ -34,3 +34,11 @@ Measures Lambda cold-start latency by jumping from 0-100 RPS with no warm-up pha
 ```bash
 nx run @test/performance:cold-start-impact
 ```
+
+### Write Heavy Burst
+
+Validates that write-heavy traffic doesn't cause DynamoDB throttling or KMS bottlenecks. Tests write operations (postData, postIdentity, postUser) with ramping-arrival-rate from 10 RPS to 250 RPS, ensuring NFRs stay within range when write spikes above the baseline.
+
+```bash
+nx run @test/performance:write-heavy-burst
+```
