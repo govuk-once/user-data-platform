@@ -97,7 +97,11 @@ export class SarStack extends Stack {
       dynamoDBtable: table,
       dynamoDbActions: ['dynamodb:DeleteItem'],
       identityDbTable: identityTable,
-      identityDbActions: ['dynamodb:DeleteItem', 'dynamodb:Query', 'dynamodb:GetItem'],
+      identityDbActions: [
+        'dynamodb:DeleteItem',
+        'dynamodb:Query',
+        'dynamodb:GetItem',
+      ],
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
