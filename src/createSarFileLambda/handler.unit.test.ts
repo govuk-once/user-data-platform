@@ -42,17 +42,17 @@ describe('createSarFileLambda', () => {
   });
 
   const createSQSEvent = (
-    body: Record<string, unknown> = {
-      sarID: 'test-sar-id',
-      serviceName: 'test-service',
-      serviceUserId: 'test-user-id',
-    },
+    body?: Record<string, unknown>,
   ): SQSEvent => ({
     Records: [
       {
         messageId: 'test-message-id',
         receiptHandle: 'test-receipt-handle',
-        body: JSON.stringify(body),
+        body: JSON.stringify(body ?? {
+          sarID: 'test-sar-id',
+          serviceName: 'test-service',
+          serviceUserId: 'test-user-id',
+        }),
         attributes: {
           ApproximateReceiveCount: '1',
           SentTimestamp: '1234567890',
@@ -126,14 +126,15 @@ describe('createSarFileLambda', () => {
     // Verify S3 was called with correct parameters
     expect(s3Mock.calls()).toHaveLength(1);
     const s3Call = s3Mock.call(0);
-    expect(s3Call.args[0].input).toMatchObject({
+    const s3Input = s3Call.args[0].input as { Bucket: string; Key: string; Body: string; ContentType: string };
+    expect(s3Input).toMatchObject({
       Bucket: 'test-bucket',
       Key: `${mockSarId}.json`,
       ContentType: 'application/json',
     });
 
     // Verify the JSON content contains sanitized data
-    const bodyContent = s3Call.args[0].input.Body as string;
+    const bodyContent = s3Input.Body;
     const parsedData = JSON.parse(bodyContent);
     expect(parsedData).toHaveLength(2);
     expect(parsedData[0]).toHaveProperty('resourcePath', '/test/path1');
