@@ -41,18 +41,18 @@ describe('createSarFileLambda', () => {
     vi.clearAllMocks();
   });
 
-  const createSQSEvent = (
-    body?: Record<string, unknown>,
-  ): SQSEvent => ({
+  const createSQSEvent = (body?: Record<string, unknown>): SQSEvent => ({
     Records: [
       {
         messageId: 'test-message-id',
         receiptHandle: 'test-receipt-handle',
-        body: JSON.stringify(body ?? {
-          sarID: 'test-sar-id',
-          serviceName: 'test-service',
-          serviceUserId: 'test-user-id',
-        }),
+        body: JSON.stringify(
+          body ?? {
+            sarID: 'test-sar-id',
+            serviceName: 'test-service',
+            serviceUserId: 'test-user-id',
+          },
+        ),
         attributes: {
           ApproximateReceiveCount: '1',
           SentTimestamp: '1234567890',
@@ -126,7 +126,12 @@ describe('createSarFileLambda', () => {
     // Verify S3 was called with correct parameters
     expect(s3Mock.calls()).toHaveLength(1);
     const s3Call = s3Mock.call(0);
-    const s3Input = s3Call.args[0].input as { Bucket: string; Key: string; Body: string; ContentType: string };
+    const s3Input = s3Call.args[0].input as {
+      Bucket: string;
+      Key: string;
+      Body: string;
+      ContentType: string;
+    };
     expect(s3Input).toMatchObject({
       Bucket: 'test-bucket',
       Key: `${mockSarId}.json`,

@@ -55,7 +55,8 @@ function sanitizeDataRecord(record: {
   ttl?: number;
   [key: string]: unknown;
 }): Record<string, unknown> {
-  const { pk: _pk, sk, ttl: _ttl, ...sanitizedData } = record;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { pk, sk, ttl, ...sanitizedData } = record;
   return {
     resourcePath: sk,
     ...sanitizedData,
