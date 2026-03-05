@@ -65,11 +65,7 @@ export interface Repository<T extends Entity> {
    * @param skPrefix - The prefix of the sk to query
    * @returns A promise that resolves with items and optional lastEvaluatedKey fro pagination
    */
-  queryByGsi(
-    indexName: string,
-    pkValue: string,
-    skPrefix?: string,
-  ): Promise<T>;
+  queryByGsi(indexName: string, pkValue: string, skPrefix?: string): Promise<T>;
 
   /**
    * Saves an entity to the repository.
