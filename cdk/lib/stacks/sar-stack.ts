@@ -140,32 +140,28 @@ export class SarStack extends Stack {
     this.sarBucket = sarBucketConstruct.bucket;
 
     // Create SAR file lambda
-    const createSarFileLambda = new LambdaApiConstruct(
-      this,
-      'createSarFile',
-      {
-        developerId,
-        environment,
-        functionName: 'createSarFileLambda',
-        sourcePath: 'createSarFileLambda',
-        kmsKey,
-        dbKmsKey,
-        dynamoDBtable: table,
-        dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
-        identityDbTable: identityTable,
-        identityDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
-        sqsQueueUrl: sarDLQueue.queueUrl,
-        sqsQueueArn: sarDLQueue.queueArn,
-        environmentVariables: {
-          STACK: stackPrefix,
-          SERVICE_NAME: 'createSarFile',
-          BUCKET_NAME: this.sarBucket.bucketName,
-          DLQ_URL: sarDLQueue.queueUrl,
-        },
-        vpc,
-        securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+    const createSarFileLambda = new LambdaApiConstruct(this, 'createSarFile', {
+      developerId,
+      environment,
+      functionName: 'createSarFileLambda',
+      sourcePath: 'createSarFileLambda',
+      kmsKey,
+      dbKmsKey,
+      dynamoDBtable: table,
+      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+      identityDbTable: identityTable,
+      identityDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+      sqsQueueUrl: sarDLQueue.queueUrl,
+      sqsQueueArn: sarDLQueue.queueArn,
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'createSarFile',
+        BUCKET_NAME: this.sarBucket.bucketName,
+        DLQ_URL: sarDLQueue.queueUrl,
       },
-    );
+      vpc,
+      securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+    });
 
     // Add sarQueue as event source for createSarFile lambda
     createSarFileLambda.function.addEventSource(
