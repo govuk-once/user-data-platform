@@ -104,7 +104,7 @@ export class SarStack extends Stack {
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
     });
 
-    dsarRequestLambda.function.addEventSource(
+    dsarDeleteLambda.function.addEventSource(
       new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
     );
 
