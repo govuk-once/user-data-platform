@@ -11,7 +11,7 @@ import {
 import { ServiceFactory } from '@libs/data-access';
 
 const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
+  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
   optional: { KMS_KEY_ID: undefined },
 });
 
@@ -28,10 +28,10 @@ let factory: ServiceFactory | undefined;
 
 function getFactory() {
   if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID } = getEnv();
+    const { TABLE_NAME, KMS_KEY_ID, IDENTITY_TABLE_NAME } = getEnv();
     factory = new ServiceFactory({
       tableName: TABLE_NAME,
-      identityTableName: undefined,
+      identityTableName: IDENTITY_TABLE_NAME,
       kmsKeyId: KMS_KEY_ID,
       tracer,
     });
@@ -85,6 +85,15 @@ export const lambdaHandler = async (event: SQSEvent) => {
       batchNumber,
       totalBatches,
       deletedCount,
+    });
+
+    const identityService = getFactory().getService('identity');
+    const udpId = keys[0].pk;
+
+    await identityService.deleteAllByUdpId(udpId);
+    logger.info('Deleted identity records', {
+      dsarID,
+      udpId,
     });
   }
 };

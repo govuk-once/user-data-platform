@@ -122,6 +122,39 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     return result;
   }
 
+  public async deleteAllByUdpId(udpId: string): Promise<number> {
+    const identities = await this.repository.queryBySk(udpId);
+
+    if (identities.length === 0) {
+      this.logger?.debug(`No linked identities found for UDPID ${udpId}`);
+      return 0;
+    }
+
+    let deletedCount = 0;
+
+    for (const identity of identities) {
+      try {
+        await this.repository.delete({
+          pk: identity.pk,
+          sk: identity.sk,
+        } as Partial<T>);
+        deletedCount++;
+      } catch (error) {
+        if (error.name == 'ConditionalCheckFailedException') {
+          this.logger?.warn('Identity not found during bulk delete', {
+            udpId,
+            pk: identity.pk,
+            sk: identity.sk,
+          });
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return deletedCount;
+  }
+
   private async createFromInput(input: IdentityInput): Promise<T> {
     // look up the udp id by app id
     const appIdentifier = await this.getByServiceId('app', input.appId);

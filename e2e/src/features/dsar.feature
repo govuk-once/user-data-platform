@@ -23,6 +23,11 @@ Feature: DSAR Api
         When I send a post to '/v1/dsar-test/data2' with the body '{"data": { "key":"value2" }}'
         Then I should recieve a successful response
 
+    Scenario: Setup - Link a user
+        When I send a post to '/v1/identity/service2/321' with the body '{"appId":"dsar-e2e-user-1"}'
+        Then I should recieve a successful response
+        Then the response status should be 200
+
     Scenario: Setup - Verify Identity exists before DSAR
         Given I send a get to '/v1/identity/app/dsar-e2e-user-1'
         Then I should recieve a successful response

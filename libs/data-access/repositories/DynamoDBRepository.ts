@@ -263,6 +263,32 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     };
   }
 
+  async queryBySk(sk: string): Promise<T[]> {
+    this.logger?.debug('Querying items by sk using GSI', {
+      operation: 'queryBySk',
+      tableName: this.tableName,
+      sk,
+    });
+
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: 'sk-index',
+      KeyConditionExpression: 'sk = :sk',
+      ExpressionAttributeValues: {
+        ':sk': sk,
+      },
+    });
+
+    const response = await this.client.send(command);
+
+    this.logger?.debug('Query by sk completed', {
+      sk,
+      itemCount: response.Items?.length ?? 0,
+    });
+
+    return (response.Items ?? []) as T[];
+  }
+
   /**
    * Saves an entity to DynamoDB.
    * If an entity with the same key(s) exists, it will be overwritten.
@@ -310,7 +336,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     const { pk, sk } = this.validateKeys(keys);
 
     this.logger?.debug('Deleting item from DynamoDB', {
-      operation: 'get',
+      operation: 'delete',
       tableName: this.tableName,
       pk,
       sk,
