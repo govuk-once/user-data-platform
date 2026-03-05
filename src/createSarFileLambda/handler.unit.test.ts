@@ -87,7 +87,12 @@ describe('createSarFileLambda', () => {
             serviceName: 'test-service',
             serviceUserId: 'test-user-id',
           }),
-          attributes: {} as any,
+          attributes: {
+            ApproximateReceiveCount: '1',
+            SentTimestamp: '1',
+            SenderId: 'test',
+            ApproximateFirstReceiveTimestamp: '1',
+          },
           messageAttributes: {},
           md5OfBody: 'test-md5',
           eventSource: 'aws:sqs',
