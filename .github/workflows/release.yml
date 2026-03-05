@@ -31,6 +31,7 @@ jobs:
   deploy-dev:
     name: Deploy to dev
     needs: version
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: dev
     outputs:
