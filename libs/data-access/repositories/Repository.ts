@@ -29,6 +29,29 @@ export interface Repository<T extends Entity> {
   skBeginswith(keys: Partial<T>): Promise<T | null>;
 
   /**
+   * Counts all items with a given partition key
+   * @param pk - The partition key
+   * @returns A promise that resolves to the total count
+   */
+  countByPk(pk: string): Promise<number>;
+
+  /**
+   * Queries a single page of items by partition key returning only the pk and sk
+   * @param pk - The partition key
+   * @param limit - The page limit
+   * @param exclusiveStartKey - Optional key ti start item from for pagination
+   * @returns A promise that resolves with items and optional lastEvaluatedKey fro pagination
+   */
+  queryPageByPk(
+    pk: string,
+    limit: number,
+    lastEvaluatedKey?: Record<string, unknown>,
+  ): Promise<{
+    items: Array<{ pk: string; sk: string }>;
+    lastEvaluatedKey?: Record<string, unknown>;
+  }>;
+
+  /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
    * @param entity - The entity to save

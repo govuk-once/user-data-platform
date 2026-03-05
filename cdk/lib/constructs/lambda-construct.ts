@@ -27,8 +27,8 @@ export interface LambdaApiConstructProps {
   readonly identityDbTable?: dynamodb.Table;
   readonly identityDbActions?: string[];
   readonly api?: apigateway.RestApi;
-  readonly httpMethod: string;
-  readonly routePath: string;
+  readonly httpMethod?: string;
+  readonly routePath?: string;
   readonly logRetentionDays?: logs.RetentionDays;
   readonly vpc?: ec2.IVpc;
   readonly vpcSubnets?: ec2.SubnetSelection;
@@ -179,7 +179,7 @@ export class LambdaApiConstruct extends Construct {
       kmsKey.grantEncrypt(this.function);
     }
 
-    if (api) {
+    if (api && routePath && httpMethod) {
       const isGetMethod = httpMethod === 'GET';
       const useCacheing = isGetMethod && cachingEnabled;
       const pathParts = routePath.split('/').filter((p) => p.length > 0);

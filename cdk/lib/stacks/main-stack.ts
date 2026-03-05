@@ -59,6 +59,8 @@ export class MainStack extends Stack {
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
+  public readonly dbKmsKey: kms.IKey;
+  public readonly dsarQueue: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
@@ -102,7 +104,9 @@ export class MainStack extends Stack {
     cdk.Tags.of(this).add('Environment', environment || 'UnknownEnvironment');
     cdk.Tags.of(this).add('Version', version || '0.0.0');
 
-    const cachingEnabled = environment !== GovUkOnceEnvironments.Dev;
+    //Disabling caching temporarily -- need to seek out a better way to invalidate the caches rather than allowing default TTL to run down
+    // const cachingEnabled = environment !== GovUkOnceEnvironments.Dev;
+    const cachingEnabled = false;
 
     const kmsConstruct = new KmsConstruct(this, 'Kms', {
       developerId,
@@ -116,6 +120,7 @@ export class MainStack extends Stack {
       environment,
       namePrefix: 'db-kms-encryption',
     });
+    this.dbKmsKey = dbKms.key;
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
@@ -249,6 +254,8 @@ export class MainStack extends Stack {
     }
 
     this.lambdas = lambdasList;
+
+    this.dsarQueue = eventQueues.get('dsarQueue')!;
 
     const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
       test: {

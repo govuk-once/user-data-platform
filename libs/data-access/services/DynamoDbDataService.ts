@@ -72,6 +72,17 @@ export class DynamoDbDataService {
     return result;
   }
 
+  public async countByUdpID(udpID: string): Promise<number> {
+    return this.repository.countByPk(udpID);
+  }
+
+  public async getKeyPageByUdpID(
+    udpID: string,
+    lastEvaluatedKey?: Record<string, unknown>,
+  ) {
+    return this.repository.queryPageByPk(udpID, 100, lastEvaluatedKey);
+  }
+
   private createFromInput(
     identity: IdentityRecordEntity,
     resourcePath: string,

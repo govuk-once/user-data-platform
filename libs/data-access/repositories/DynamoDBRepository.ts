@@ -185,6 +185,84 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       : (firstItem as unknown as T);
   }
 
+  async countByPk(pk: string): Promise<number> {
+    this.logger?.debug('Counting items by pk', {
+      operation: 'countByPk',
+      tableName: this.tableName,
+      pk,
+    });
+
+    let totalCount = 0;
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        Select: 'COUNT',
+        ...(exclusiveStartKey
+          ? {
+              ExclusiveStartKey: exclusiveStartKey,
+            }
+          : {}),
+      });
+
+      const response = await this.client.send(command);
+      totalCount += response.Count ?? 0;
+      exclusiveStartKey = response.LastEvaluatedKey as
+        | Record<string, unknown>
+        | undefined;
+    } while (exclusiveStartKey);
+
+    this.logger?.debug('Count completed', { pk, totalCount });
+    return totalCount;
+  }
+
+  async queryPageByPk(
+    pk: string,
+    limit: number,
+    exclusiveStartKey?: Record<string, number>,
+  ): Promise<{
+    items: Array<{ pk: string; sk: string }>;
+    lastEvaluatedKey?: Record<string, unknown>;
+  }> {
+    this.logger?.debug('Query page by pk', {
+      operation: 'queryPageByPk',
+      tableName: this.tableName,
+      pk,
+      limit,
+    });
+
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: { ':pk': pk },
+      Limit: limit,
+      ProjectionExpression: 'pk, sk',
+      ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+    });
+
+    const response = await this.client.send(command);
+
+    const items = (response.Items ?? []).map((item) => ({
+      pk: item.pk as string,
+      sk: item.sk as string,
+    }));
+
+    this.logger?.debug('Page query completed', {
+      pk,
+      itemCount: items.length,
+    });
+
+    return {
+      items,
+      lastEvaluatedKey: response.LastEvaluatedKey as
+        | Record<string, unknown>
+        | undefined,
+    };
+  }
+
   /**
    * Saves an entity to DynamoDB.
    * If an entity with the same key(s) exists, it will be overwritten.
