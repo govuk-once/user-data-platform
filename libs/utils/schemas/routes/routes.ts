@@ -30,6 +30,10 @@ import {
   startDsarHeaderSchema,
   startDsarResponseSchema,
 } from '../endpoints/sar-dsar/dsar';
+import {
+  startSarHeaderSchema,
+  startSarResponseSchema,
+} from '../endpoints/sar-dsar/sar';
 
 export * from './types';
 
@@ -322,6 +326,38 @@ export const routes: Record<string, RouteConfig> = {
         status: 202,
         description: 'OK',
         schema: startDsarResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  startSar: {
+    name: 'startSar',
+    dynamoDbActions: [],
+    identityTableActions: [],
+    queueName: 'sarQueue',
+    authorizationScopes: ['udp/write'],
+    method: 'POST',
+    path: '/v1/sar',
+    summary: 'Start a SAR Request',
+    description: 'Start a SAR Request',
+    tags: ['SAR'],
+    headers: startSarHeaderSchema,
+    successResponses: [
+      {
+        status: 202,
+        description: 'Accepted',
+        schema: startSarResponseSchema,
       },
     ],
     errorResponses: [

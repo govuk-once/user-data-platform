@@ -17,6 +17,7 @@ export interface SarStackProps extends StackProps {
   kmsKey: IKey;
   dbKmsKey: IKey;
   dsarQueue: Queue;
+  sarQueue: Queue;
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
 }
