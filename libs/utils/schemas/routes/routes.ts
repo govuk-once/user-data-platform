@@ -345,7 +345,7 @@ export const routes: Record<string, RouteConfig> = {
     name: 'startSar',
     dynamoDbActions: [],
     identityTableActions: [],
-    queueName: 'udpSAR',
+    queueName: 'sarQueue',
     authorizationScopes: ['udp/write'],
     method: 'POST',
     path: '/v1/sar',

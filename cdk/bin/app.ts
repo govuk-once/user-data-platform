@@ -73,6 +73,7 @@ if (!skipMainStack) {
     kmsKey: mainStack.kmsKey,
     dbKmsKey: mainStack.dbKmsKey,
     dsarQueue: mainStack.dsarQueue,
+    sarQueue: mainStack.sarQueue,
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
   });

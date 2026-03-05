@@ -61,6 +61,7 @@ export class MainStack extends Stack {
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
   public readonly dsarQueue: sqs.Queue;
+  public readonly sarQueue: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
@@ -256,6 +257,7 @@ export class MainStack extends Stack {
     this.lambdas = lambdasList;
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
+    this.sarQueue = eventQueues.get('sarQueue')!;
 
     const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
       test: {
