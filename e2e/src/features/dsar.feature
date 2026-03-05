@@ -36,7 +36,7 @@ Feature: DSAR Api
     Scenario: Trigger DSAR delete request
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'dsar-e2e-user-1'
-        When I send a get to '/v1/dsar' with the body '{}'
+        When I send a post to '/v1/dsar' with the body '{}'
         Then the response status should be 202
 
     Scenario: Verify data is deleted after DSAR
