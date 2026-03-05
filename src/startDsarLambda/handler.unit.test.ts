@@ -61,7 +61,7 @@ describe('dsarRequestLambda handler', () => {
 
       const response = await handler(event, mockContext);
 
-      expect(response.statusCode).toEqual(200);
+      expect(response.statusCode).toEqual(202);
 
       const body = JSON.parse(response.body);
       expect(body.dsarID).toBeDefined();

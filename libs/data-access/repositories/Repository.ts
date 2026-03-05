@@ -52,6 +52,13 @@ export interface Repository<T extends Entity> {
   }>;
 
   /**
+   * Queries a single page of items by partition key returning only the pk and sk
+   * @param sk - The Sort key value to query by
+   * @returns A promise that resolves with items and optional lastEvaluatedKey fro pagination
+   */
+  queryBySk(sk: string): Promise<T[]>;
+
+  /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
    * @param entity - The entity to save

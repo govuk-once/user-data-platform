@@ -410,6 +410,63 @@ describe('Identity Service', () => {
     });
   });
 
+  describe('Delete All by UDP ID', () => {
+    const udpId = 'mock-string-uuid4';
+
+    it('should delete all linked identities and return the count', async () => {
+      const identities = [
+        {
+          pk: 'app#test',
+          sk: udpId,
+          serviceName: 'app',
+          serviceId: 'test',
+          udpId,
+        },
+        {
+          pk: 'dwp#twp-id',
+          sk: udpId,
+          serviceName: 'dwp',
+          serviceId: 'dwp-id',
+          udpId,
+        },
+      ];
+
+      dynamoMock.on(QueryCommand).resolves({ Items: identities });
+      dynamoMock.on(DeleteCommand).resolves({});
+
+      const result = await service.deleteAllByUdpId(udpId);
+
+      expect(result).toBe(2);
+    });
+
+    it('should return 0 when no identities are found', async () => {
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+      const result = await service.deleteAllByUdpId(udpId);
+
+      expect(result).toBe(0);
+    });
+
+    it('Should throw on non-conditional errors', async () => {
+      const identities = [
+        {
+          pk: 'app#test',
+          sk: udpId,
+          serviceName: 'app',
+          serviceId: 'test',
+          udpId,
+        },
+      ];
+
+      dynamoMock.on(QueryCommand).resolves({ Items: identities });
+      dynamoMock.on(DeleteCommand).rejects(new Error('Internal server error'));
+
+      await expect(service.deleteAllByUdpId(udpId)).rejects.toThrow(
+        'Internal server error',
+      );
+    });
+  });
+
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
       const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =

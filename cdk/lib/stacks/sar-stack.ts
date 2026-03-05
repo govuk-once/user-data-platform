@@ -96,6 +96,12 @@ export class SarStack extends Stack {
       dbKmsKey,
       dynamoDBtable: table,
       dynamoDbActions: ['dynamodb:DeleteItem'],
+      identityDbTable: identityTable,
+      identityDbActions: [
+        'dynamodb:DeleteItem',
+        'dynamodb:Query',
+        'dynamodb:GetItem',
+      ],
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
@@ -104,7 +110,7 @@ export class SarStack extends Stack {
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
     });
 
-    dsarRequestLambda.function.addEventSource(
+    dsarDeleteLambda.function.addEventSource(
       new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
     );
 
