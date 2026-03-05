@@ -13,7 +13,8 @@
     "@src/startDsarLambda",
     "@src/startSarLambda",
     "@src/dsarRequestLambda",
-    "@src/dsarDeleteLambda"
+    "@src/dsarDeleteLambda",
+    "@src/exchangeIdentityLambda"
   ],
   "targets": {
     "diff": {
