@@ -67,6 +67,14 @@
         "command": "k6 run dist/scenarios/cold-start.js",
         "cwd": "performance"
       }
+    },
+    "write-heavy-burst": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "k6 run dist/scenarios/write-heavy-burst.js",
+        "cwd": "performance"
+      }
     }
   }
 }
