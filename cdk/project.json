@@ -11,6 +11,7 @@
     "@src/readIdentityLambda",
     "@src/deleteIdentityLambda",
     "@src/startDsarLambda",
+    "@src/startSarLambda",
     "@src/dsarRequestLambda",
     "@src/dsarDeleteLambda"
   ],
