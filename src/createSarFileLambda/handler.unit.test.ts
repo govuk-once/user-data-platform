@@ -131,11 +131,16 @@ describe('createSarFileLambda', () => {
       Key: string;
       Body: string;
       ContentType: string;
+      Metadata?: Record<string, string>;
     };
     expect(s3Input).toMatchObject({
       Bucket: 'test-bucket',
       Key: `${mockSarId}.json`,
       ContentType: 'application/json',
+      Metadata: {
+        udpid: mockUdpId,
+        sarid: mockSarId,
+      },
     });
 
     // Verify the JSON content contains sanitized data
@@ -165,5 +170,202 @@ describe('createSarFileLambda', () => {
     expect(sqsCall.args[0].input).toMatchObject({
       QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq',
     });
+  });
+
+  it('should send message to DLQ when identity is not found', async () => {
+    // Mock identity lookup to return no results
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-identity-table',
+      })
+      .resolves({
+        Items: [],
+      });
+
+    // Mock SQS DLQ
+    sqsMock.on(SendMessageCommand).resolves({});
+
+    const event = createSQSEvent();
+
+    await handler(event, mockContext);
+
+    // Verify DLQ was called
+    expect(sqsMock.calls()).toHaveLength(1);
+    const sqsCall = sqsMock.call(0);
+    expect(sqsCall.args[0].input).toMatchObject({
+      QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq',
+    });
+  });
+
+  it('should send message to DLQ when S3 upload fails', async () => {
+    const mockUdpId = 'udp-id-1234';
+    const mockServiceName = 'test-service';
+    const mockServiceUserId = 'test-user-id';
+
+    // Mock identity lookup
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-identity-table',
+      })
+      .resolves({
+        Items: [
+          {
+            pk: `${mockServiceName.toLowerCase()}#${mockServiceUserId}`,
+            sk: `IDENTITY_RECORD#`,
+            udpId: mockUdpId,
+            serviceName: mockServiceName,
+            serviceId: mockServiceUserId,
+          },
+        ],
+      });
+
+    // Mock data records query
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-data-table',
+      })
+      .resolves({
+        Items: [
+          {
+            pk: mockUdpId,
+            sk: '/test/path1',
+            data: { field1: 'value1' },
+          },
+        ],
+      });
+
+    // Mock S3 upload to fail
+    s3Mock.on(PutObjectCommand).rejects(new Error('S3 upload failed'));
+
+    // Mock SQS DLQ
+    sqsMock.on(SendMessageCommand).resolves({});
+
+    const event = createSQSEvent();
+
+    await handler(event, mockContext);
+
+    // Verify DLQ was called
+    expect(sqsMock.calls()).toHaveLength(1);
+    const sqsCall = sqsMock.call(0);
+    expect(sqsCall.args[0].input).toMatchObject({
+      QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq',
+    });
+
+    // Verify S3 was attempted
+    expect(s3Mock.calls()).toHaveLength(1);
+  });
+
+  it('should send message to DLQ when data records query fails', async () => {
+    const mockUdpId = 'udp-id-1234';
+    const mockServiceName = 'test-service';
+    const mockServiceUserId = 'test-user-id';
+
+    // Mock identity lookup to succeed
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-identity-table',
+      })
+      .resolves({
+        Items: [
+          {
+            pk: `${mockServiceName.toLowerCase()}#${mockServiceUserId}`,
+            sk: `IDENTITY_RECORD#`,
+            udpId: mockUdpId,
+            serviceName: mockServiceName,
+            serviceId: mockServiceUserId,
+          },
+        ],
+      });
+
+    // Mock data records query to fail
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-data-table',
+      })
+      .rejects(new Error('Data query failed'));
+
+    // Mock SQS DLQ
+    sqsMock.on(SendMessageCommand).resolves({});
+
+    const event = createSQSEvent();
+
+    await handler(event, mockContext);
+
+    // Verify DLQ was called
+    expect(sqsMock.calls()).toHaveLength(1);
+    const sqsCall = sqsMock.call(0);
+    expect(sqsCall.args[0].input).toMatchObject({
+      QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq',
+    });
+  });
+
+  it('should successfully create SAR file with no data records', async () => {
+    const mockUdpId = 'udp-id-1234';
+    const mockServiceName = 'test-service';
+    const mockServiceUserId = 'test-user-id';
+    const mockSarId = 'test-sar-id-empty';
+
+    // Mock identity lookup
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-identity-table',
+      })
+      .resolves({
+        Items: [
+          {
+            pk: `${mockServiceName.toLowerCase()}#${mockServiceUserId}`,
+            sk: `IDENTITY_RECORD#`,
+            udpId: mockUdpId,
+            serviceName: mockServiceName,
+            serviceId: mockServiceUserId,
+          },
+        ],
+      });
+
+    // Mock data records query to return empty
+    dynamoMock
+      .on(QueryCommand, {
+        TableName: 'test-data-table',
+      })
+      .resolves({
+        Items: [],
+      });
+
+    // Mock S3 upload
+    s3Mock.on(PutObjectCommand).resolves({});
+
+    const event = createSQSEvent({
+      sarID: mockSarId,
+      serviceName: mockServiceName,
+      serviceUserId: mockServiceUserId,
+    });
+
+    await handler(event, mockContext);
+
+    // Verify S3 was called
+    expect(s3Mock.calls()).toHaveLength(1);
+    const s3Call = s3Mock.call(0);
+    const s3Input = s3Call.args[0].input as {
+      Bucket: string;
+      Key: string;
+      Body: string;
+      ContentType: string;
+      Metadata?: Record<string, string>;
+    };
+
+    // Verify the JSON content is an empty array
+    const bodyContent = s3Input.Body;
+    const parsedData = JSON.parse(bodyContent);
+    expect(parsedData).toHaveLength(0);
+    expect(parsedData).toEqual([]);
+
+    // Verify metadata is still set
+    expect(s3Input.Metadata).toMatchObject({
+      udpid: mockUdpId,
+      sarid: mockSarId,
+    });
+
+    // Verify no DLQ message was sent
+    expect(sqsMock.calls()).toHaveLength(0);
   });
 });

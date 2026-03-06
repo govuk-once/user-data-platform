@@ -5,6 +5,7 @@ export type {
   DynamoDBValue,
   DynamoDBAttributeMap,
   IdentityInput,
+  SAREntity,
 } from './types/Entity';
 export type { Repository } from './repositories/Repository';
 
