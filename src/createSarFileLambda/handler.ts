@@ -118,6 +118,10 @@ export const lambdaHandler = async (event: SQSEvent) => {
           Body: jsonBlob,
           ContentType: 'application/json',
           ServerSideEncryption: 'aws:kms',
+          Metadata: {
+            udpid: udpId,
+            sarid: sarID,
+          },
         }),
       );
 
