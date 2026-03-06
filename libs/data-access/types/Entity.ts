@@ -143,6 +143,17 @@ export interface DynamoDBDataEntity {
   ttl?: number;
 }
 
+export interface SAREntity {
+  pk: string; // udpId
+  sk: string; // SAR/{sarID}
+  sarID: string;
+  ttl: number; // S3 object expiry (90 days, no milliseconds)
+  expiresAt: number; // Pre-signed URL expiry (7 days, with milliseconds)
+  presignedURL: string;
+  bucket: string;
+  objectKey: string;
+}
+
 export interface IdentityInput {
   serviceId: string;
   serviceName: string;

@@ -8,7 +8,8 @@ import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Function } from 'aws-cdk-lib/aws-lambda';
 import { S3Construct } from '../constructs/s3-construct';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -175,5 +176,38 @@ export class SarStack extends Stack {
     sarDLQueue.grantSendMessages(createSarFileLambda.function);
 
     this.lambdas.push(createSarFileLambda.function);
+
+    // Create Generate SAR Pre-signed URL lambda
+    const generateSarPresignedUrlLambda = new LambdaApiConstruct(
+      this,
+      'generateSarPresignedUrl',
+      {
+        developerId,
+        environment,
+        functionName: 'generateSarPresignedUrlLambda',
+        sourcePath: 'generateSarPresignedUrlLambda',
+        kmsKey,
+        dbKmsKey,
+        dynamoDBtable: table,
+        dynamoDbActions: ['dynamodb:PutItem'],
+        environmentVariables: {
+          STACK: stackPrefix,
+          SERVICE_NAME: 'generateSarPresignedUrl',
+        },
+        vpc,
+        securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+      },
+    );
+
+    // Grant S3 read permissions to the lambda
+    this.sarBucket.grantRead(generateSarPresignedUrlLambda.function);
+
+    // Add S3 event notification for object created events
+    this.sarBucket.addEventNotification(
+      EventType.OBJECT_CREATED,
+      new LambdaDestination(generateSarPresignedUrlLambda.function),
+    );
+
+    this.lambdas.push(generateSarPresignedUrlLambda.function);
   }
 }

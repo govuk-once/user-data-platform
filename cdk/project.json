@@ -15,7 +15,8 @@
     "@src/dsarRequestLambda",
     "@src/dsarDeleteLambda",
     "@src/exchangeIdentityLambda",
-    "@src/createSarFileLambda"
+    "@src/createSarFileLambda",
+    "@src/generateSarPresignedUrlLambda"
   ],
   "targets": {
     "diff": {
@@ -34,7 +35,6 @@
         "cwd": "cdk"
       }
     },
-
     "deploy:dev": {
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
@@ -43,7 +43,6 @@
         "cwd": "cdk"
       }
     },
-
     "deploy:stag": {
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
@@ -52,7 +51,6 @@
         "cwd": "cdk"
       }
     },
-
     "deploy:prod": {
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
@@ -68,7 +66,6 @@
         "cwd": "cdk"
       }
     },
-
     "destroy:dev": {
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
