@@ -263,6 +263,58 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     };
   }
 
+  async queryByGsi(
+    indexName: string,
+    pkValue: string,
+    skPrefix?: string,
+  ): Promise<T | null> {
+    this.logger?.debug('Querying GSI', {
+      operation: 'queryByGsi',
+      tableName: this.tableName,
+      pkValue,
+      skPrefix,
+    });
+
+    const keyConditionExpression = skPrefix
+      ? 'sk = :sk AND begins_with(pk, :pkPrefix)'
+      : 'sk = :sk';
+
+    const expressionAttributeValues: Record<string, string> = {
+      ':sk': pkValue,
+    };
+
+    if (skPrefix) {
+      expressionAttributeValues[':skPrefix'] = `${skPrefix}#`;
+    }
+
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: indexName,
+      KeyConditionExpression: keyConditionExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+    });
+
+    const response = await this.client.send(command);
+
+    if (!response.Items || response.Items.length === 0) {
+      this.logger?.debug(`Item not found in GSI`, {
+        indexName,
+        pkValue,
+        skPrefix,
+      });
+      return null;
+    }
+
+    const item = response.Items[0];
+
+    return this.encryption
+      ? ((await this.encryption.service.decryptFields(
+          item as Record<string, unknown> & EncryptedData,
+          this.encryption.dataFields,
+        )) as T)
+      : (item as T);
+  }
+
   async queryBySk(sk: string): Promise<T[]> {
     this.logger?.debug('Querying items by sk using GSI', {
       operation: 'queryBySk',

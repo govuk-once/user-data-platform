@@ -59,6 +59,15 @@ export interface Repository<T extends Entity> {
   queryBySk(sk: string): Promise<T[]>;
 
   /**
+   * Queries a single page of items by partition key returning only the pk and sk
+   * @param indexName - The name of the gsi
+   * @param pkValue - The Pk to query
+   * @param skPrefix - The prefix of the sk to query
+   * @returns A promise that resolves with items and optional lastEvaluatedKey fro pagination
+   */
+  queryByGsi(indexName: string, pkValue: string, skPrefix?: string): Promise<T>;
+
+  /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
    * @param entity - The entity to save

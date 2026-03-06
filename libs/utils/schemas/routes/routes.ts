@@ -34,6 +34,7 @@ import {
   startSarHeaderSchema,
   startSarResponseSchema,
 } from '../endpoints/sar-dsar/sar';
+import { exchangeIdentityQuerySchama } from '../endpoints/identity/exchangeIdentity';
 
 export * from './types';
 
@@ -71,6 +72,48 @@ export const routes: Record<string, RouteConfig> = {
         status: 400,
         description: 'Bad Request',
         schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  exchangeIdentity: {
+    name: 'exchangeIdentity',
+    dynamoDbActions: [],
+    identityTableActions: [
+      'dynamodb:GetItem',
+      'dynamodb:Query',
+      'dynamodb:Scan',
+    ],
+    authorizationScopes: ['udp/read'],
+    method: 'GET',
+    path: '/v1/identity/exchange',
+    summary: 'Exchange Identity Record',
+    description:
+      'Look up a linked identity record for a different service vai the shared udpId',
+    tags: ['identity'],
+    headers: dataEndpointHeaderSchema,
+    query: exchangeIdentityQuerySchama,
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: readIdentityResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: identityNotFoundResponseSchema,
       },
       {
         status: 500,
