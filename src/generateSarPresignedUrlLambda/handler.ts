@@ -54,7 +54,6 @@ export const lambdaHandler = async (event: S3Event) => {
   for (const record of event.Records) {
     try {
       const bucket = record.s3.bucket.name;
-      // eslint-disable-next-line prefer-string-replace-all
       const objectKey = decodeURIComponent(
         record.s3.object.key.replace(/\+/g, ' '),
       );
