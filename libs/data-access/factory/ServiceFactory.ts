@@ -4,6 +4,7 @@ import {
   DynamoDBDataEntity,
   EncryptionConfig,
   IdentityRecordEntity,
+  SAREntity,
 } from '../types/Entity';
 import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -41,6 +42,7 @@ export class ServiceFactory {
 
   getService(name: 'data'): DynamoDbDataService;
   getService(name: 'identity'): DynamoDBIdentityService<IdentityRecordEntity>;
+  getService(name: 'sar'): DynamoDBRepository<SAREntity>;
   public getService(name: string): unknown {
     if (!this.services.has(name)) {
       this.services.set(name, this.createService(name));
@@ -54,6 +56,8 @@ export class ServiceFactory {
         return this.createIdentityService();
       case 'data':
         return this.createDataService();
+      case 'sar':
+        return this.createSARService();
       default:
         throw new Error(`Unknown Service: ${name}`);
     }
@@ -100,5 +104,16 @@ export class ServiceFactory {
     );
 
     return new DynamoDBIdentityService(repository);
+  }
+
+  private createSARService() {
+    // SAR records don't need encryption
+    const repository = new DynamoDBRepository<SAREntity>(
+      this.tableName,
+      this.docClient,
+      undefined,
+    );
+
+    return repository;
   }
 }
