@@ -58,6 +58,9 @@ export class S3Construct extends Construct {
             StringNotEquals: {
               'aws:SourceVpc': vpcId,
             },
+            BoolIfExists: {
+              'aws:ViaAWSService': 'false',
+            },
           },
         }),
       );
