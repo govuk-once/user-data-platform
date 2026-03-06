@@ -27,6 +27,8 @@ export class S3Construct extends Construct {
       ? `${developerId}-${bucketName}-${environment}`
       : `${bucketName}-${environment}`;
 
+    const enableAutoDelete = environment === 'dev';
+
     this.bucket = new s3.Bucket(this, 'Bucket', {
       bucketName: fullBucketName,
       encryption: s3.BucketEncryption.KMS,
@@ -36,7 +38,7 @@ export class S3Construct extends Construct {
       versioned: true,
       removalPolicy:
         environment === 'dev' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
-      autoDeleteObjects: environment === 'dev',
+      autoDeleteObjects: enableAutoDelete,
       lifecycleRules: [
         {
           enabled: true,
@@ -46,7 +48,9 @@ export class S3Construct extends Construct {
     });
 
     // Restrict bucket access to VPC if VPC is provided
-    if (vpcId) {
+    // Note: VPC restrictions are incompatible with autoDeleteObjects since the
+    // CDK cleanup Lambda runs outside the VPC. Only apply in production.
+    if (vpcId && !enableAutoDelete) {
       this.bucket.addToResourcePolicy(
         new iam.PolicyStatement({
           sid: 'DenyAccessFromOutsideVPC',
@@ -57,9 +61,6 @@ export class S3Construct extends Construct {
           conditions: {
             StringNotEquals: {
               'aws:SourceVpc': vpcId,
-            },
-            BoolIfExists: {
-              'aws:ViaAWSService': 'false',
             },
           },
         }),
