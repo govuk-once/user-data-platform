@@ -7,7 +7,11 @@ import {
   injectLambdaContext,
   createEnvValidator,
 } from '@libs/utils';
-import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -51,7 +55,9 @@ export const lambdaHandler = async (event: S3Event) => {
     try {
       const bucket = record.s3.bucket.name;
       // eslint-disable-next-line prefer-string-replace-all
-      const objectKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
+      const objectKey = decodeURIComponent(
+        record.s3.object.key.replace(/\+/g, ' '),
+      );
 
       logger.info('Processing S3 object created event', {
         bucket,

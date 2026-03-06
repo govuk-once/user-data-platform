@@ -21,9 +21,7 @@
   "targets": {
     "diff": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk diff",
         "cwd": "cdk"
@@ -31,9 +29,7 @@
     },
     "deploy": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk deploy --all -c env=dev --require-approval never",
         "cwd": "cdk"
@@ -41,9 +37,7 @@
     },
     "deploy:dev": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "npx cdk deploy --all -c env=dev --require-approval never",
         "cwd": "cdk"
@@ -51,9 +45,7 @@
     },
     "deploy:stag": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "npx cdk deploy --all -c env=stag --require-approval never",
         "cwd": "cdk"
@@ -61,9 +53,7 @@
     },
     "deploy:prod": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "npx cdk deploy --all -c env=prod --require-approval never",
         "cwd": "cdk"
@@ -78,9 +68,7 @@
     },
     "destroy:dev": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "options": {
         "command": "npx cdk destroy --exclusively \"$DEVELOPER_ID-dev-perf\" \"$DEVELOPER_ID-dev-e2e\" \"$DEVELOPER_ID-dev-monitoring\" \"$DEVELOPER_ID-dev-main\" \"$DEVELOPER_ID-dev-dsar\" -c env=dev --force",
         "cwd": "cdk"

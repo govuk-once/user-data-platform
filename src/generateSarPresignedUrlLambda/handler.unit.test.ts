@@ -41,7 +41,7 @@ describe('generateSarPresignedUrlLambda', () => {
     s3Mock.reset();
     dynamoMock.reset();
     vi.clearAllMocks();
-    
+
     // Mock Date.now for consistent timestamp testing
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
@@ -134,8 +134,10 @@ describe('generateSarPresignedUrlLambda', () => {
     expect(dynamoMock.calls()).toHaveLength(1);
     const dynamoCall = dynamoMock.call(0);
     const dynamoInput = dynamoCall.args[0].input as any;
-    
-    const expectedNow = Math.floor(new Date('2024-01-01T00:00:00.000Z').getTime() / 1000);
+
+    const expectedNow = Math.floor(
+      new Date('2024-01-01T00:00:00.000Z').getTime() / 1000,
+    );
     const expected7DaysExpiry = expectedNow + 7 * 24 * 60 * 60;
     const expected90DaysExpiry = expectedNow + 90 * 24 * 60 * 60;
 
@@ -218,7 +220,9 @@ describe('generateSarPresignedUrlLambda', () => {
 
     const event = createS3Event(mockBucket, `${mockSarId}.json`);
 
-    await expect(handler(event, mockContext)).rejects.toThrow('S3 access denied');
+    await expect(handler(event, mockContext)).rejects.toThrow(
+      'S3 access denied',
+    );
 
     // Verify DynamoDB was NOT called
     expect(dynamoMock.calls()).toHaveLength(0);
@@ -237,7 +241,9 @@ describe('generateSarPresignedUrlLambda', () => {
     });
 
     // Mock getSignedUrl to fail
-    mockGetSignedUrl.mockRejectedValue(new Error('Failed to generate presigned URL'));
+    mockGetSignedUrl.mockRejectedValue(
+      new Error('Failed to generate presigned URL'),
+    );
 
     const event = createS3Event(mockBucket, `${mockSarId}.json`);
 
@@ -332,15 +338,19 @@ describe('generateSarPresignedUrlLambda', () => {
     // Verify TTL values
     const dynamoCall = dynamoMock.call(0);
     const dynamoInput = dynamoCall.args[0].input as any;
-    
-    const expectedNow = Math.floor(new Date('2024-01-01T00:00:00.000Z').getTime() / 1000);
+
+    const expectedNow = Math.floor(
+      new Date('2024-01-01T00:00:00.000Z').getTime() / 1000,
+    );
     const expected7Days = 7 * 24 * 60 * 60;
     const expected90Days = 90 * 24 * 60 * 60;
 
     // TTL for DynamoDB (90 days, no milliseconds)
     expect(dynamoInput.Item.ttl).toBe(expectedNow + expected90Days);
-    
+
     // expiresAt for presigned URL (7 days, with milliseconds)
-    expect(dynamoInput.Item.expiresAt).toBe((expectedNow + expected7Days) * 1000);
+    expect(dynamoInput.Item.expiresAt).toBe(
+      (expectedNow + expected7Days) * 1000,
+    );
   });
 });
