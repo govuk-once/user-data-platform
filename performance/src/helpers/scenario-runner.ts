@@ -11,6 +11,7 @@ import {
   getIdentity,
   deleteData,
   deleteIdentity,
+  getLinkedIdentity,
 } from '../helpers/requests';
 
 export interface TestUser {
@@ -88,6 +89,9 @@ export function createScenarioRunner(config: ScenarioConfig): {
         break;
       case 'getIdentity':
         getIdentity(SERVICE_NAME, `identity-${user.appId}`);
+        break;
+      case 'getLinkedIdentity':
+        getLinkedIdentity(SERVICE_NAME);
         break;
       case 'postData':
         postData(

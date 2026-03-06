@@ -18,7 +18,8 @@ const { run: baseRun, teardown: scenarioTeardown } = createScenarioRunner({
   trafficWeights: [
     { op: 'getData', cumulative: 25 },
     { op: 'getIdentity', cumulative: 50 },
-    { op: 'postData', cumulative: 70 },
+    { op: 'getLinkedIdentity', cumulative: 60 },
+    { op: 'postData', cumulative: 75 },
     { op: 'postIdentity', cumulative: 85 },
     { op: 'postUser', cumulative: 90 },
     { op: 'deleteData', cumulative: 95 },

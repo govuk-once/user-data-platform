@@ -57,6 +57,25 @@ export function getIdentity(
   return res;
 }
 
+export function getLinkedIdentity(
+  service: string,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/identity/echange?requiredService=${service}`);
+  const headers = signedHeaders('GET', url);
+  const res = http.get(url, { headers });
+
+  if (![200, 404].includes(res.status)) {
+    console.log('getIdentity', { status: res.status, resbody: res.body });
+  }
+
+  check(res, {
+    [`GET identity v1/identity/exchange?requiredService=${service} status is 200 or 404`]:
+      (r) => r.status === 200 || r.status === 404,
+  });
+
+  return res;
+}
+
 export function postData(
   path: string,
   body: Record<string, unknown>,

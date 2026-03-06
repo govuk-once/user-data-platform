@@ -6,8 +6,9 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 const { run, teardown: scenarioTeardown } = createScenarioRunner({
   testPrefix: 'per-baseline',
   trafficWeights: [
-    { op: 'getData', cumulative: 50 },
-    { op: 'getIdentity', cumulative: 80 },
+    { op: 'getData', cumulative: 40 },
+    { op: 'getIdentity', cumulative: 60 },
+    { op: 'getLinkedIdentity', cumulative: 80 },
     { op: 'postData', cumulative: 88 },
     { op: 'postIdentity', cumulative: 93 },
     { op: 'postUser', cumulative: 95 },
