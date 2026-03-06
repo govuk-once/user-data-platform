@@ -96,6 +96,15 @@ Then(
 );
 
 Then(
+  'the response body should contain {string}',
+  function (this: CustomWorld, substring: string) {
+    const data = this.lastResponse?.body;
+    const bodyString = JSON.stringify(data);
+    expect(bodyString).toContain(substring);
+  },
+);
+
+Then(
   'the response at {string} should eventually return status {int} within {int} seconds',
   { timeout: 130_000 },
   async function (

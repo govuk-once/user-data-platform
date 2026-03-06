@@ -7,6 +7,8 @@ import { Construct } from 'constructs';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Function } from 'aws-cdk-lib/aws-lambda';
+import { S3Construct } from '../constructs/s3-construct';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -24,6 +26,7 @@ export interface SarStackProps extends StackProps {
 
 export class SarStack extends Stack {
   public readonly lambdas: Function[] = [];
+  public readonly sarBucket: Bucket;
 
   constructor(scope: Construct, id: string, props: SarStackProps) {
     super(scope, id, props);
@@ -37,6 +40,7 @@ export class SarStack extends Stack {
       kmsKey,
       dbKmsKey,
       dsarQueue,
+      sarQueue,
       vpc,
       lambdaSecurityGroups,
     } = props;
@@ -116,5 +120,60 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(dsarDeleteLambda.function);
+
+    // SAR File Creation Infrastructure
+    const sarDLQueue = new Queue(this, 'sarDLQueue', {
+      queueName: `${sarName}-file-dl-queue`,
+      encryption: QueueEncryption.KMS,
+      encryptionMasterKey: kmsKey,
+    });
+
+    // Create S3 bucket for SAR files
+    const sarBucketConstruct = new S3Construct(this, 'sarBucket', {
+      developerId,
+      environment,
+      bucketName: 'govuk-udpsar-bucket',
+      kmsKey,
+      vpcId: vpc?.vpcId,
+    });
+
+    this.sarBucket = sarBucketConstruct.bucket;
+
+    // Create SAR file lambda
+    const createSarFileLambda = new LambdaApiConstruct(this, 'createSarFile', {
+      developerId,
+      environment,
+      functionName: 'createSarFileLambda',
+      sourcePath: 'createSarFileLambda',
+      kmsKey,
+      dbKmsKey,
+      dynamoDBtable: table,
+      dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+      identityDbTable: identityTable,
+      identityDbActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+      sqsQueueUrl: sarDLQueue.queueUrl,
+      sqsQueueArn: sarDLQueue.queueArn,
+      environmentVariables: {
+        STACK: stackPrefix,
+        SERVICE_NAME: 'createSarFile',
+        BUCKET_NAME: this.sarBucket.bucketName,
+        DLQ_URL: sarDLQueue.queueUrl,
+      },
+      vpc,
+      securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+    });
+
+    // Add sarQueue as event source for createSarFile lambda
+    createSarFileLambda.function.addEventSource(
+      new SqsEventSource(sarQueue, { batchSize: 1 }),
+    );
+
+    // Grant S3 write permissions to the lambda
+    this.sarBucket.grantWrite(createSarFileLambda.function);
+
+    // Grant DLQ send message permissions
+    sarDLQueue.grantSendMessages(createSarFileLambda.function);
+
+    this.lambdas.push(createSarFileLambda.function);
   }
 }

@@ -61,6 +61,7 @@
     "@aws-sdk/client-ec2": "^3.976.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.975.0",
     "@aws-sdk/client-kms": "^3.993.0",
+    "@aws-sdk/client-s3": "^3.993.0",
     "@aws-sdk/client-secrets-manager": "^3.975.0",
     "@aws-sdk/client-sqs": "^3.999.0",
     "@aws-sdk/credential-providers": "^3.975.0",
