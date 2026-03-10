@@ -30,7 +30,6 @@ import {
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
-  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,

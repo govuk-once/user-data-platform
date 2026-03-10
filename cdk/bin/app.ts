@@ -9,6 +9,7 @@ import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 const app = new App();
 
 const environment = app.node.tryGetContext('env') || 'dev';
+const releaseVersion = app.node.tryGetContext('RELEASE_VERSION') || '0.0.0';
 const developerId = process.env.DEVELOPER_ID || undefined;
 
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
@@ -57,6 +58,7 @@ if (!skipMainStack) {
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
+    version: releaseVersion,
     ...repoMetaData,
   });
 
