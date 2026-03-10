@@ -5,6 +5,7 @@ import {
   BaseUDPError,
   DataRecordNotFoundError,
   IdentityRecordNotFoundError,
+  SarNotFoundError,
   ZodValidationError,
 } from '../Errors';
 import {
@@ -12,6 +13,7 @@ import {
   DataNotFoundResponse,
   IdentityNotFoundResponse,
   InternalServerErrorResponse,
+  SarNotFoundResponse,
 } from '../schemas';
 
 type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
@@ -76,6 +78,20 @@ export function udpErrorHandling(
           return;
         }
 
+        if (error instanceof SarNotFoundError) {
+          const responseBody: SarNotFoundResponse = {
+            errorCode: 404,
+            errorMessage,
+            sarId: error.sarId || '',
+            errorType: 'SAR_NOT_FOUND',
+          };
+          request.response = {
+            statusCode: 404,
+            body: responseBody,
+          };
+          return;
+        }
+
         const responseBody: InternalServerErrorResponse = {
           errorCode,
           errorMessage,
@@ -98,7 +114,6 @@ export function udpErrorHandling(
         statusCode: 500,
         body: responseBody,
       };
-      return;
     },
   };
 }

@@ -16,7 +16,8 @@
     "@src/dsarDeleteLambda",
     "@src/exchangeIdentityLambda",
     "@src/createSarFileLambda",
-    "@src/generateSarPresignedUrlLambda"
+    "@src/generateSarPresignedUrlLambda",
+    "@src/getSarStatusLambda"
   ],
   "targets": {
     "diff": {

@@ -2,6 +2,7 @@ export enum UDP_ERROR_TYPES {
   BAD_REQUEST = 'BAD_REQUEST',
   IDENTITY_NOT_FOUND = 'IDENTITY_NOT_FOUND',
   DATA_NOT_FOUND = 'DATA_NOT_FOUND',
+  SAR_NOT_FOUND = 'SAR_NOT_FOUND',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
 }
 
@@ -129,5 +130,18 @@ export class DataRecordNotFoundError extends BaseUDPError {
     this.serviceName = serviceName;
     this.serviceUserId = serviceUserId;
     this.resourcePath = resourcePath;
+  }
+}
+
+export class SarNotFoundError extends BaseUDPError {
+  public sarId?: string;
+
+  constructor(
+    message: string,
+    sarId?: string,
+  ) {
+    super(message, UDP_ERROR_TYPES.SAR_NOT_FOUND);
+    this.name = 'SarNotFoundError';
+    this.sarId = sarId;
   }
 }
