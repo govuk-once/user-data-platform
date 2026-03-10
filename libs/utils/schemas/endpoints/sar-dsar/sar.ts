@@ -66,8 +66,7 @@ export const getSarStatusResponseSchema = z.object({
   }),
   presignedUrl: z.string().openapi({
     description: 'The pre-signed URL to download the SAR file',
-    example:
-      'https://s3.amazonaws.com/bucket/file.json?X-Amz-Signature=...',
+    example: 'https://s3.amazonaws.com/bucket/file.json?X-Amz-Signature=...',
   }),
 });
 

@@ -136,10 +136,7 @@ export class DataRecordNotFoundError extends BaseUDPError {
 export class SarNotFoundError extends BaseUDPError {
   public sarId?: string;
 
-  constructor(
-    message: string,
-    sarId?: string,
-  ) {
+  constructor(message: string, sarId?: string) {
     super(message, UDP_ERROR_TYPES.SAR_NOT_FOUND);
     this.name = 'SarNotFoundError';
     this.sarId = sarId;

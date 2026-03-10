@@ -64,5 +64,3 @@ Feature: SAR Api
         Given I send a get to '/v1/identity/app/sar-e2e-user-1'
         Then I should receive a successful response
         And the response status should be 200
-
-    
