@@ -15,6 +15,7 @@ export * from './endpoints/identity/deleteIdentity';
 export * from './endpoints/identity/exchangeIdentity';
 
 export * from './endpoints/sar-dsar/dsar';
+export * from './endpoints/sar-dsar/sar';
 
 export * from './routes/routes';
 export * from './routes/types';

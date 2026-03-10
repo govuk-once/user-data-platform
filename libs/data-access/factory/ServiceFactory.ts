@@ -107,11 +107,11 @@ export class ServiceFactory {
   }
 
   private createSARService() {
-    // SAR records don't need encryption
+    const encryption = this.getEncryptionConfig(['presignedURL']);
     const repository = new DynamoDBRepository<SAREntity>(
       this.tableName,
       this.docClient,
-      undefined,
+      encryption,
     );
 
     return repository;
