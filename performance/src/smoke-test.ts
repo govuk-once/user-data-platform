@@ -4,6 +4,7 @@ import {
   deleteIdentity,
   getData,
   getIdentity,
+  getLinkedIdentity,
   postData,
   postIdentity,
   postUser,
@@ -36,6 +37,7 @@ export default function () {
   postIdentity('smoke-svc', IDENTITY_ID, { appId: APP_ID });
   getIdentity('smoke-svc', IDENTITY_ID);
   deleteIdentity('smoke-svc', IDENTITY_ID);
+  getLinkedIdentity('smoke-svc');
 
   deleteIdentity('app', APP_ID);
 }

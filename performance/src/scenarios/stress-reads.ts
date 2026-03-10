@@ -7,7 +7,8 @@ const { run, teardown: scenarioTeardown } = createScenarioRunner({
   testPrefix: 'per-stress-reads',
   trafficWeights: [
     { op: 'getData', cumulative: 60 },
-    { op: 'getIdentity', cumulative: 100 },
+    { op: 'getIdentity', cumulative: 80 },
+    { op: 'getLinkedIdentity', cumulative: 100 },
   ],
 });
 

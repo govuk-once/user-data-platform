@@ -6,7 +6,8 @@ const { run, teardown: scenarioTeardown } = createScenarioRunner({
   testPrefix: 'per-baseline',
   trafficWeights: [
     { op: 'getData', cumulative: 50 },
-    { op: 'getIdentity', cumulative: 70 },
+    { op: 'getIdentity', cumulative: 60 },
+    { op: 'getLinkedIdentity', cumulative: 70 },
     { op: 'postData', cumulative: 85 },
     { op: 'postIdentity', cumulative: 90 },
     { op: 'postUser', cumulative: 92 },
