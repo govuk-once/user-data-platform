@@ -4,6 +4,7 @@ import http from 'k6/http';
 
 import { nfr } from '../config';
 import {
+  patchData,
   postUser,
   postData,
   postIdentity,
@@ -97,6 +98,13 @@ export function createScenarioRunner(config: ScenarioConfig): {
         postData(
           user.dataPath,
           { data: { vu: vuId, iter, ts: Date.now() } },
+          user.headers,
+        );
+        break;
+      case 'patchData':
+        patchData(
+          user.dataPath,
+          { data: { vu: vuId, iter, patched: 'true' } },
           user.headers,
         );
         break;

@@ -6,6 +6,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { InvalidDynamoKeyError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
@@ -425,6 +426,56 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     });
 
     return entity;
+  }
+
+  async update(keys: Partial<T>, data: Record<string, unknown>) {
+    const { pk, sk } = this.validateKeys(keys);
+
+    this.logger?.debug('Updating item in DynamoDB', {
+      operation: 'update',
+      tableName: this.tableName,
+      pk,
+      sk,
+    });
+
+    const dataToStore = this.encryption
+      ? await this.encryption.service.encryptFields(
+          { data } as Record<string, unknown>,
+          this.encryption.dataFields,
+        )
+      : { data };
+
+    try {
+      const command = new UpdateCommand({
+        TableName: this.tableName,
+        Key: { pk, sk },
+        UpdateExpression: 'SET #data = :data',
+        ExpressionAttributeNames: { '#data': 'data' },
+        ExpressionAttributeValues: {
+          ':data': (dataToStore as Record<string, unknown>).data,
+        },
+        ConditionExpression: 'attribute_exists(pk)',
+        ReturnValues: 'ALL_NEW',
+      });
+
+      const response = await this.client.send(command);
+
+      this.logger?.debug('Item updated sucessfully', { pk, sk });
+
+      const item = response.Attributes;
+
+      return this.encryption
+        ? ((await this.encryption.service.decryptFields(
+            item as Record<string, unknown> & EncryptedData,
+            this.encryption.dataFields,
+          )) as T)
+        : (item as T);
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**

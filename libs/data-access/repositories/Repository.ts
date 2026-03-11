@@ -85,6 +85,15 @@ export interface Repository<T extends Entity> {
   /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
+   * @param keys - Partial entity containing key properties to identitfy the entity
+   * @param data - The entity to save
+   * @returns A promise that resolves with the updated entity or null is entity doesnt exist
+   */
+  update(keys: Partial<T>, data: Record<string, unknown>): Promise<T | null>;
+
+  /**
+   * Saves an entity to the repository.
+   * If an entity with the same key(s) exists, it will be overwritten.
    * @param keys - The entity to save
    * @returns A promise that resolves when the delete operation is complete
    */

@@ -50,6 +50,63 @@ export class DynamoDbDataService {
     return result;
   }
 
+  public async pathByKey(
+    identity: IdentityRecordEntity,
+    resourcePath: string,
+    data: Record<string, unknown>,
+  ) {
+    const existing = await this.repository.get({
+      pk: identity.udpId,
+      sk: resourcePath,
+    });
+
+    if (!existing) {
+      throw new DataRecordNotFoundError(
+        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
+        UDP_ERROR_TYPES.DATA_NOT_FOUND,
+        identity.serviceName,
+        identity.serviceId,
+        resourcePath,
+      );
+    }
+
+    const mergeData = this.deepMerge(existing.data ?? {}, data);
+
+    const result = await this.repository.update(
+      { pk: identity.udpId, sk: resourcePath },
+      mergeData,
+    );
+
+    return result;
+  }
+
+  private deepMerge(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const result = { ...target };
+
+    for (const key of Object.keys(source)) {
+      const sourceVal = source[key];
+      const targetVal = target[key];
+
+      if (this.isPlainObject(sourceVal) && this.isPlainObject(targetVal)) {
+        result[key] = this.deepMerge(
+          targetVal as Record<string, unknown>,
+          sourceVal as Record<string, unknown>,
+        );
+      } else {
+        result[key] = sourceVal;
+      }
+    }
+
+    return result;
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
   public async deleteByKey(
     identity: IdentityRecordEntity,
     resourcePath: string,

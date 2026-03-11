@@ -7,6 +7,7 @@ export * from './endpoints/data/defaults';
 export * from './endpoints/data/getData';
 export * from './endpoints/data/postData';
 export * from './endpoints/data/deleteData';
+export * from './endpoints/data/patchData';
 
 export * from './endpoints/identity/defaults';
 export * from './endpoints/identity/readIdentity';

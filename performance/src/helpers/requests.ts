@@ -96,6 +96,25 @@ export function postData(
   return res;
 }
 
+export function patchData(
+  path: string,
+  body: Record<string, unknown>,
+  headers?: Record<string, string>,
+): RefinedResponse<ResponseType> {
+  const url = buildUrl(`/v1/${path}`);
+  const reqHeeaders = mergeHeaders(signedHeaders('PATCH', url, body), headers);
+  const res = http.post(url, JSON.stringify(body), { headers: reqHeeaders });
+  if (![200, 404].includes(res.status)) {
+    console.log('patchData', { status: res.status, resbody: res.body });
+  }
+  check(res, {
+    [`DELETE /v1/{path} status is 200  or 404`]: (r) =>
+      r.status === 200 || r.status === 404,
+  });
+
+  return res;
+}
+
 export function postIdentity(
   service: string,
   id: string,
