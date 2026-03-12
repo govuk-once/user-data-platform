@@ -157,12 +157,12 @@ Then('it should contain the expected user data', function (this: CustomWorld) {
   // Verify we have the specific data records we created
   const hasData1 = dataRecords.some(
     (record) =>
-      record.resourcePath === '/sar-test/data1' &&
+      record.resourcePath === 'sar-test/data1' &&
       JSON.stringify(record).includes('value1'),
   );
   const hasData2 = dataRecords.some(
     (record) =>
-      record.resourcePath === '/sar-test/data2' &&
+      record.resourcePath === 'sar-test/data2' &&
       JSON.stringify(record).includes('value2'),
   );
 
