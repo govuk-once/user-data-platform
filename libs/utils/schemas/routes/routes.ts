@@ -288,7 +288,11 @@ export const routes: Record<string, RouteConfig> = {
   },
   patchData: {
     name: 'patchData',
-    dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
+    dynamoDbActions: [
+      'dynamodb:UpdateItem',
+      'dynamodb:GetItem',
+      'dynamodb:Query',
+    ],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/write'],
     method: 'PATCH',
