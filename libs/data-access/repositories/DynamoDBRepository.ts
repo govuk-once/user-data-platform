@@ -446,14 +446,30 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       : { data };
 
     try {
+      const updateExpression = this.encryption
+        ? 'SET #data, #dataKey = :dataKey'
+        : 'SET #data';
+
+      const expressionAttrubuteNames: Record<string, string> = {
+        '#data': 'data',
+        ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
+      };
+
+      const expressionAttributeValues: Record<string, unknown> = {
+        ':data': (dataToStore as Record<string, unknown>).data,
+        ...(this.encryption
+          ? {
+              ':dataKey': (dataToStore as Record<string, unknown>).__dataKey,
+            }
+          : {}),
+      };
+
       const command = new UpdateCommand({
         TableName: this.tableName,
         Key: { pk, sk },
-        UpdateExpression: 'SET #data = :data',
-        ExpressionAttributeNames: { '#data': 'data' },
-        ExpressionAttributeValues: {
-          ':data': (dataToStore as Record<string, unknown>).data,
-        },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: expressionAttrubuteNames,
+        ExpressionAttributeValues: expressionAttributeValues,
         ConditionExpression: 'attribute_exists(pk)',
         ReturnValues: 'ALL_NEW',
       });
