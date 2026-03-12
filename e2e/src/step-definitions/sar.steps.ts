@@ -3,6 +3,50 @@ import { CustomWorld } from '../helpers/world.js';
 import { expect } from 'vitest';
 
 When(
+  'I wait for the SAR to complete',
+  { timeout: 130_000 },
+  async function (this: CustomWorld) {
+    // Extract sarId from the response body of the previous POST to /v1/sar
+    const previousResponse = this.lastResponse?.body as Record<string, unknown>;
+    const sarId = previousResponse?.sarID as string;
+
+    if (!sarId) {
+      throw new Error('No sarID found in previous response');
+    }
+
+    // Store sarId in context for later use
+    this.setContext('sarId', sarId);
+
+    const path = `v1/sar/${sarId}`;
+    const intervalMs = 3000;
+    const timeoutSeconds = 120;
+    const deadline = Date.now() + timeoutSeconds * 1000;
+
+    while (Date.now() < deadline) {
+      const response = await this.api.get(path, {
+        authenticated: this.authenticated,
+        headers: this.headers,
+      });
+
+      // Check if the SAR is complete (status 200 and has presignedUrl)
+      if (response.status === 200) {
+        const body = response.body as Record<string, unknown>;
+        if (body.presignedUrl) {
+          this.storeResponse(response);
+          return;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error(
+      `SAR did not complete within ${timeoutSeconds} seconds`,
+    );
+  },
+);
+
+When(
   'I later send a GET to {string}',
   async function (this: CustomWorld, pathTemplate: string) {
     // Extract sarId from the response body of the previous POST to /v1/sar
