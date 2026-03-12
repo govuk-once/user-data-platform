@@ -64,3 +64,15 @@ Feature: SAR Api
         Given I send a get to '/v1/identity/app/sar-e2e-user-1'
         Then I should receive a successful response
         And the response status should be 200
+
+    Scenario: Get SAR status and retrieve presigned URL
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
+        When I later send a GET to 'v1/sar/{sarId}'
+        Then I should receive a 200 response
+        And the response should contain the presignedUrl
+
+    Scenario: Download SAR file and verify user data
+        When I call the presignedUrl
+        Then a .json file should be downloaded
+        And it should contain the expected user data

@@ -134,3 +134,10 @@ Then(
     );
   },
 );
+
+Then(
+  'I should receive a {int} response',
+  function (this: CustomWorld, expectedStatus: number) {
+    expect(this.lastResponse?.status).toEqual(expectedStatus);
+  },
+);
