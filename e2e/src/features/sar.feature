@@ -39,12 +39,18 @@ Feature: SAR Api
         Then I should receive a successful response
         And the response body should contain '"key":"value1"'
 
-    Scenario: Trigger SAR request
+    Scenario: Trigger SAR request, wait for completion, and verify data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
         When I send a post to '/v1/sar' with the body '{}'
         Then the response status should be 202
         And the response body should contain 'sarID'
+        When I wait for the SAR to complete
+        Then I should receive a 200 response
+        And the response should contain the presignedUrl
+        When I call the presignedUrl
+        Then a .json file should be downloaded
+        And it should contain the expected user data
 
     Scenario: Verify data still exists after SAR (data should NOT be deleted)
         Given I set header 'requesting-service' to 'app'
