@@ -447,8 +447,8 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
     try {
       const updateExpression = this.encryption
-        ? 'SET #data, #dataKey = :dataKey'
-        : 'SET #data';
+        ? 'SET #data = :data, #dataKey = :dataKey'
+        : 'SET #data = :data';
 
       const expressionAttrubuteNames: Record<string, string> = {
         '#data': 'data',
