@@ -50,13 +50,23 @@ export class S3Construct extends Construct {
     // Restrict bucket access to VPC if VPC is provided
     // Note: VPC restrictions are incompatible with autoDeleteObjects since the
     // CDK cleanup Lambda runs outside the VPC. Only apply in production.
+    // Deny only plain-actions so cloudforamation can still manage bucket configuration
     if (vpcId && !enableAutoDelete) {
       this.bucket.addToResourcePolicy(
         new iam.PolicyStatement({
           sid: 'DenyAccessFromOutsideVPC',
           effect: iam.Effect.DENY,
           principals: [new iam.AnyPrincipal()],
-          actions: ['s3:*'],
+          actions: [
+            's3:GetObject',
+            's3:GetObject*',
+            's3:PutObject',
+            's3:DeleteObject',
+            's3:DeleteObject*',
+            's3:ListBucket',
+            's3:ListBucket*',
+            's3:Abort*',
+          ],
           resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
           conditions: {
             StringNotEquals: {
