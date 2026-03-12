@@ -17,7 +17,8 @@
     "@src/exchangeIdentityLambda",
     "@src/createSarFileLambda",
     "@src/generateSarPresignedUrlLambda",
-    "@src/getSarStatusLambda"
+    "@src/getSarStatusLambda",
+    "@src/patchDataLambda"
   ],
   "targets": {
     "diff": {
