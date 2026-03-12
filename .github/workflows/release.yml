@@ -1,6 +1,7 @@
 name: Release Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -65,6 +66,12 @@ jobs:
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync version from git tag
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+          npm version "${VERSION}" --no-git-tag-version
+          echo "Set local package.json version to ${VERSION}"
 
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
@@ -222,6 +229,12 @@ jobs:
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync version from git tag
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+          npm version "${VERSION}" --no-git-tag-version
+          echo "Set local package.json version to ${VERSION}"
 
       - name: Deploy CDK stack to staging
         run: npx nx run cdk:deploy:stag
