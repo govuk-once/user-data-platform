@@ -754,7 +754,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1773320285
+                      minimum: 1773320335
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1384,6 +1384,192 @@ paths:
                   - errorType
                   - errorMessage
                   - errorPaths
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+  /v1/sar/{sarId}:
+    get:
+      summary: Get SAR Status
+      description: Get SAR Status and retrieve pre-signed URL
+      tags:
+        - SAR
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The SAR request ID
+            example: 8538bc99-3596-4eb3-8101-263e70519315
+          required: true
+          description: The SAR request ID
+          name: sarId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the requesting service - often the One Login relying-party name
+            example: GOVUKAPP
+          required: true
+          description: The name of the requesting service - often the One Login relying-party name
+          name: requesting-service
+          in: header
+        - schema:
+            type: string
+            minLength: 1
+            description: The user identifier used by the requesting service when linking the user to the app
+            example: 277b3076-1485-494d-8dbd-095ea0d7edab
+          required: true
+          description: The user identifier used by the requesting service when linking the user to the app
+          name: requesting-service-user-id
+          in: header
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sarID:
+                    type: string
+                    description: UUID of the SAR request
+                    example: 8538bc99-3596-4eb3-8101-263e70519315
+                  expiresAt:
+                    type: number
+                    description: Timestamp of pre-signed URL expiry (in milliseconds)
+                    example: 1746671000000
+                  presignedUrl:
+                    type: string
+                    description: The pre-signed URL to download the SAR file
+                    example: https://s3.amazonaws.com/bucket/file.json?X-Amz-Signature=...
+                required:
+                  - sarID
+                  - expiresAt
+                  - presignedUrl
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Bad Request Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: Record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - IDENTITY_NOT_FOUND
+                        description: Identity Not Found Type
+                        example: IDENTITY_NOT_FOUND
+                      serviceName:
+                        type: string
+                        description: Provided service name
+                        example: app
+                      serviceUserId:
+                        type: string
+                        description: Provided service user Id
+                        example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - serviceName
+                      - serviceUserId
+                  - type: object
+                    properties:
+                      errorCode:
+                        type: number
+                        enum:
+                          - 404
+                        description: Not Found Code
+                        example: 404
+                      errorMessage:
+                        type: string
+                        description: The error message
+                        example: SAR record not found
+                      errorType:
+                        type: string
+                        enum:
+                          - SAR_NOT_FOUND
+                        description: SAR Not Found Type
+                        example: SAR_NOT_FOUND
+                      sarId:
+                        type: string
+                        description: Provided SAR ID
+                        example: 8538bc99-3596-4eb3-8101-263e70519315
+                    required:
+                      - errorCode
+                      - errorMessage
+                      - errorType
+                      - sarId
         '500':
           description: Internal Server Error
           content:

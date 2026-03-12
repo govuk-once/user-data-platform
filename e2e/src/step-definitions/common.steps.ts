@@ -63,11 +63,11 @@ Then(
   },
 );
 
-Then('I should recieve a successful response', function (this: CustomWorld) {
+Then('I should receive a successful response', function (this: CustomWorld) {
   expect(this.lastResponse?.ok).toEqual(true);
 });
 
-Then('I should recieve an error response', function (this: CustomWorld) {
+Then('I should receive an error response', function (this: CustomWorld) {
   expect(this.lastResponse?.ok).toEqual(false);
 });
 
@@ -130,7 +130,14 @@ Then(
     }
 
     throw new Error(
-      `Expected status ${expectedStatus} at ${path} but did not recieve it within ${timeoutSeconds} seconds`,
+      `Expected status ${expectedStatus} at ${path} but did not receive it within ${timeoutSeconds} seconds`,
     );
+  },
+);
+
+Then(
+  'I should receive a {int} response',
+  function (this: CustomWorld, expectedStatus: number) {
+    expect(this.lastResponse?.status).toEqual(expectedStatus);
   },
 );

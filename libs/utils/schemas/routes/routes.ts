@@ -31,6 +31,10 @@ import {
   startDsarResponseSchema,
 } from '../endpoints/sar-dsar/dsar';
 import {
+  getSarStatusHeaderSchema,
+  getSarStatusNotFoundResponseSchema,
+  getSarStatusPathSchema,
+  getSarStatusResponseSchema,
   startSarHeaderSchema,
   startSarResponseSchema,
 } from '../endpoints/sar-dsar/sar';
@@ -408,6 +412,43 @@ export const routes: Record<string, RouteConfig> = {
         status: 400,
         description: 'Bad Request',
         schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  getSarStatus: {
+    name: 'getSarStatus',
+    dynamoDbActions: ['dynamodb:GetItem'],
+    identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+    authorizationScopes: ['udp/read'],
+    method: 'GET',
+    path: '/v1/sar/{sarId}',
+    summary: 'Get SAR Status',
+    description: 'Get SAR Status and retrieve pre-signed URL',
+    tags: ['SAR'],
+    params: getSarStatusPathSchema,
+    headers: getSarStatusHeaderSchema,
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: getSarStatusResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: getSarStatusNotFoundResponseSchema,
       },
       {
         status: 500,
