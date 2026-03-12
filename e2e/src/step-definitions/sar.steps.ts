@@ -131,33 +131,41 @@ Then('a .json file should be downloaded', function (this: CustomWorld) {
 });
 
 Then('it should contain the expected user data', function (this: CustomWorld) {
-  const data = this.lastResponse?.body as Record<string, unknown>;
+  const data = this.lastResponse?.body;
 
-  // Verify the SAR file contains the expected structure and data
+  // Verify the SAR file is an array of data records
   expect(data).toBeDefined();
-  expect(data).toHaveProperty('identities');
-  expect(data).toHaveProperty('userData');
+  expect(Array.isArray(data)).toBe(true);
 
-  // Check that identities array contains our user identities
-  const identities = data.identities as Array<Record<string, unknown>>;
-  expect(Array.isArray(identities)).toBe(true);
-  expect(identities.length).toBeGreaterThan(0);
+  const dataRecords = data as Array<Record<string, unknown>>;
+  expect(dataRecords.length).toBeGreaterThan(0);
 
-  // Verify we have the expected identities
-  const hasAppIdentity = identities.some(
-    (id: Record<string, unknown>) =>
-      id.serviceName === 'app' && id.serviceUserId === 'sar-e2e-user-1',
+  // Convert all records to a string to search for our test data
+  const allDataString = JSON.stringify(dataRecords);
+
+  // Verify the SAR file contains the expected user data
+  expect(allDataString).toContain('value1');
+  expect(allDataString).toContain('value2');
+  expect(allDataString).toContain('important info');
+  expect(allDataString).toContain('additional info');
+
+  // Verify each record has a resourcePath
+  dataRecords.forEach((record) => {
+    expect(record).toHaveProperty('resourcePath');
+  });
+
+  // Verify we have the specific data records we created
+  const hasData1 = dataRecords.some(
+    (record) =>
+      record.resourcePath === '/sar-test/data1' &&
+      JSON.stringify(record).includes('value1'),
   );
-  expect(hasAppIdentity).toBe(true);
+  const hasData2 = dataRecords.some(
+    (record) =>
+      record.resourcePath === '/sar-test/data2' &&
+      JSON.stringify(record).includes('value2'),
+  );
 
-  // Check that userData contains our posted data
-  const userData = data.userData as Record<string, unknown>;
-  expect(userData).toBeDefined();
-
-  // Check if userData is an object with our data
-  const userDataString = JSON.stringify(userData);
-  expect(userDataString).toContain('value1');
-  expect(userDataString).toContain('value2');
-  expect(userDataString).toContain('important info');
-  expect(userDataString).toContain('additional info');
+  expect(hasData1).toBe(true);
+  expect(hasData2).toBe(true);
 });
