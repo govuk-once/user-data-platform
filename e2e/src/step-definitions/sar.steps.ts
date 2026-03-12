@@ -40,9 +40,7 @@ When(
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
 
-    throw new Error(
-      `SAR did not complete within ${timeoutSeconds} seconds`,
-    );
+    throw new Error(`SAR did not complete within ${timeoutSeconds} seconds`);
   },
 );
 
