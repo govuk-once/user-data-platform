@@ -35,6 +35,22 @@ When(
 );
 
 When(
+  'I send a patch to {string} with the body {string}',
+  async function (this: CustomWorld, path: string, json: string) {
+    const data = JSON.parse(json);
+    const response = await this.api.patch(path, data, {
+      authenticated: this.authenticated,
+      headers: this.headers,
+    });
+    this.storeResponse(response);
+
+    if (path === '/user' && response.ok && data.appId) {
+      registerCreateUser(data.appId);
+    }
+  },
+);
+
+When(
   'I send a get to {string}',
   async function (this: CustomWorld, path: string) {
     const response = await this.api.get(path, {
