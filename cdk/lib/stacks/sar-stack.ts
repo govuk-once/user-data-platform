@@ -133,7 +133,7 @@ export class SarStack extends Stack {
     const sarBucketConstruct = new S3Construct(this, 'sarBucket', {
       developerId,
       environment,
-      bucketName: 'govuk-udpsar-bucket',
+      bucketName: 'govuk-udp-sar-bucket',
       kmsKey,
       vpcId: vpc?.vpcId,
     });
