@@ -15,7 +15,8 @@ import {
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
-const { STACK: stack, SERVICE_NAME: serviceName = 'udpPatchData' } = process.env;
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpPatchData' } =
+  process.env;
 
 const tracer = getTracer({ serviceName });
 const logger = getLogger({
