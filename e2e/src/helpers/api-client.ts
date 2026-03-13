@@ -161,4 +161,12 @@ export class ApiClient {
   ): Promise<ApiResponse<T>> {
     return this.request<T>(path, { ...options, method: 'POST', body });
   }
+
+  patch<T = unknown>(
+    path: string,
+    body: unknown,
+    options?: Omit<ApiRequestOptions, 'method' | 'body'>,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(path, { ...options, method: 'PATCH', body });
+  }
 }

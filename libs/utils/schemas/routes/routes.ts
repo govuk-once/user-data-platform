@@ -39,6 +39,10 @@ import {
   startSarResponseSchema,
 } from '../endpoints/sar-dsar/sar';
 import { exchangeIdentityQuerySchama } from '../endpoints/identity/exchangeIdentity';
+import {
+  patchDataRequestSchema,
+  patchDataResponseSchema,
+} from '../endpoints/data/patchData';
 
 export * from './types';
 
@@ -267,6 +271,43 @@ export const routes: Record<string, RouteConfig> = {
         status: 200,
         description: 'OK',
         schema: postDataResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  patchData: {
+    name: 'patchData',
+    dynamoDbActions: [
+      'dynamodb:UpdateItem',
+      'dynamodb:GetItem',
+      'dynamodb:Query',
+    ],
+    identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+    authorizationScopes: ['udp/write'],
+    method: 'PATCH',
+    path: '/v1/{resourcePath+}',
+    summary: 'Patch Resource path data Record',
+    description: 'Patch Resource path data Record',
+    tags: ['data'],
+    params: dataEndpointPathSchema,
+    headers: dataEndpointHeaderSchema,
+    body: patchDataRequestSchema,
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: patchDataResponseSchema,
       },
     ],
     errorResponses: [

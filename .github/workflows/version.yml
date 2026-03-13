@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       version:
-        description: "The new version number"
+        description: 'The new version number'
         value: ${{ jobs.version.outputs.version }}
     secrets:
       GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID:

@@ -20,6 +20,7 @@ const { run: baseRun, teardown: scenarioTeardown } = createScenarioRunner({
     { op: 'getIdentity', cumulative: 50 },
     { op: 'getLinkedIdentity', cumulative: 60 },
     { op: 'postData', cumulative: 75 },
+    { op: 'patchData', cumulative: 80 },
     { op: 'postIdentity', cumulative: 85 },
     { op: 'postUser', cumulative: 90 },
     { op: 'deleteData', cumulative: 95 },

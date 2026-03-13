@@ -6,7 +6,8 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 const { run, teardown: scenarioTeardown } = createScenarioRunner({
   testPrefix: 'per-write-heavy-burst',
   trafficWeights: [
-    { op: 'postData', cumulative: 60 },
+    { op: 'postData', cumulative: 50 },
+    { op: 'patchData', cumulative: 70 },
     { op: 'postIdentity', cumulative: 90 },
     { op: 'postUser', cumulative: 100 },
   ],
