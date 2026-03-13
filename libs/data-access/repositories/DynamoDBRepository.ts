@@ -450,7 +450,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
         ? 'SET #data = :data, #dataKey = :dataKey'
         : 'SET #data = :data';
 
-      const expressionAttrubuteNames: Record<string, string> = {
+      const expressionAttributeNames: Record<string, string> = {
         '#data': 'data',
         ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
       };
@@ -468,7 +468,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
         TableName: this.tableName,
         Key: { pk, sk },
         UpdateExpression: updateExpression,
-        ExpressionAttributeNames: expressionAttrubuteNames,
+        ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
         ConditionExpression: 'attribute_exists(pk)',
         ReturnValues: 'ALL_NEW',
@@ -476,7 +476,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
       const response = await this.client.send(command);
 
-      this.logger?.debug('Item updated sucessfully', { pk, sk });
+      this.logger?.debug('Item updated successfully', { pk, sk });
 
       const item = response.Attributes;
 

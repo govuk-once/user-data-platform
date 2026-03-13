@@ -50,7 +50,7 @@ export class DynamoDbDataService {
     return result;
   }
 
-  public async pathByKey(
+  public async patchByKey(
     identity: IdentityRecordEntity,
     resourcePath: string,
     data: Record<string, unknown>,
