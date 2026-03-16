@@ -97,14 +97,16 @@ export class ApiGatewayConstruct extends Construct {
     });
 
     const vpcEndpoints = ownVpcEndpointId
-      ? ec2.InterfaceVpcEndpoint.fromInterfaceVpcEndpointAttributes(
-          this,
-          `VpcEndpoint`,
-          {
-            vpcEndpointId: ownVpcEndpointId,
-            port: 443,
-          },
-        )
+      ? [
+          ec2.InterfaceVpcEndpoint.fromInterfaceVpcEndpointAttributes(
+            this,
+            `VpcEndpoint`,
+            {
+              vpcEndpointId: ownVpcEndpointId,
+              port: 443,
+            },
+          ),
+        ]
       : [];
 
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
