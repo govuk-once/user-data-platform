@@ -12,7 +12,8 @@ export interface ApiGatewayConstructProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly apiName?: string;
-  readonly vpcEndpointIds: string[];
+  readonly ownVpcEndpointId?: string;
+  readonly policyVpcEndpointIds: string[];
   readonly crossAccountPrincipals?: string[];
   readonly throttlingBurstLimit?: number;
   readonly throttlingRateLimit?: number;
@@ -36,7 +37,8 @@ export class ApiGatewayConstruct extends Construct {
       developerId,
       environment,
       apiName = 'api',
-      vpcEndpointIds,
+      ownVpcEndpointId,
+      policyVpcEndpointIds,
       crossAccountPrincipals,
       throttlingBurstLimit = 200,
       throttlingRateLimit = 100,
@@ -59,7 +61,7 @@ export class ApiGatewayConstruct extends Construct {
         resources: ['execute-api/*'],
         conditions: {
           StringNotEquals: {
-            'aws:sourceVpce': vpcEndpointIds,
+            'aws:sourceVpce': policyVpcEndpointIds,
           },
         },
       }),
@@ -71,7 +73,7 @@ export class ApiGatewayConstruct extends Construct {
         resources: ['execute-api/*'],
         conditions: {
           StringEquals: {
-            'aws:sourceVpce': vpcEndpointIds,
+            'aws:sourceVpce': policyVpcEndpointIds,
           },
         },
       }),
@@ -94,16 +96,18 @@ export class ApiGatewayConstruct extends Construct {
       statements: policyStatements,
     });
 
-    const vpcEndpoints = vpcEndpointIds.map((endpointId, index) =>
-      ec2.InterfaceVpcEndpoint.fromInterfaceVpcEndpointAttributes(
-        this,
-        `VpcEndpoint${index}`,
-        {
-          vpcEndpointId: endpointId,
-          port: 443,
-        },
-      ),
-    );
+    const vpcEndpoints = ownVpcEndpointId
+      ? [
+          ec2.InterfaceVpcEndpoint.fromInterfaceVpcEndpointAttributes(
+            this,
+            `VpcEndpoint`,
+            {
+              vpcEndpointId: ownVpcEndpointId,
+              port: 443,
+            },
+          ),
+        ]
+      : [];
 
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
