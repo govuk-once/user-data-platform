@@ -168,7 +168,8 @@ export class MainStack extends Stack {
       developerId,
       environment,
       apiName: 'api',
-      vpcEndpointIds: vpcEndpointId
+      ownVpcEndpointId: vpcEndpointId,
+      policyVpcEndpointIds: vpcEndpointId
         ? [vpcEndpointId, ...consumerVpcEndpointIds]
         : [],
       crossAccountPrincipals,
