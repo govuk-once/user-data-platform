@@ -45,9 +45,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: eu-west-2
+          output-credentials: true
 
       - name: Deploy CDK stack
         run: |
           npx nx run cdk:destroy:dev
         env:
-          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.authenticated-arn}}
