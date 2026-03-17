@@ -10,6 +10,7 @@ export interface S3ConstructProps {
   bucketName: string;
   kmsKey: kms.IKey;
   vpcId?: string;
+  deploymentRoleArn?: string;
 }
 
 /**
@@ -21,7 +22,14 @@ export class S3Construct extends Construct {
   constructor(scope: Construct, id: string, props: S3ConstructProps) {
     super(scope, id);
 
-    const { developerId, environment, bucketName, kmsKey, vpcId } = props;
+    const {
+      developerId,
+      environment,
+      bucketName,
+      kmsKey,
+      vpcId,
+      deploymentRoleArn,
+    } = props;
 
     const fullBucketName = developerId
       ? `${developerId}-${bucketName}-${environment}`
@@ -51,7 +59,7 @@ export class S3Construct extends Construct {
     // Note: VPC restrictions are incompatible with autoDeleteObjects since the
     // CDK cleanup Lambda runs outside the VPC. Only apply in production.
     // Deny only plain-actions so cloudforamation can still manage bucket configuration
-    if (vpcId && !enableAutoDelete) {
+    if (vpcId && deploymentRoleArn && !enableAutoDelete) {
       this.bucket.addToResourcePolicy(
         new iam.PolicyStatement({
           sid: 'DenyAccessFromOutsideVPC',
@@ -71,6 +79,9 @@ export class S3Construct extends Construct {
           conditions: {
             StringNotEquals: {
               'aws:SourceVpc': vpcId,
+            },
+            ArnNotLike: {
+              'aws:PrincipalArn': [deploymentRoleArn],
             },
           },
         }),

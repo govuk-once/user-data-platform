@@ -23,6 +23,7 @@ export interface SarStackProps extends StackProps {
   sarQueue: Queue;
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
+  deploymentRoleArn?: string;
 }
 
 export class SarStack extends Stack {
@@ -44,6 +45,7 @@ export class SarStack extends Stack {
       sarQueue,
       vpc,
       lambdaSecurityGroups,
+      deploymentRoleArn,
     } = props;
 
     const sarName = developerId
@@ -136,6 +138,7 @@ export class SarStack extends Stack {
       bucketName: 'govuk-udpsar-bucket',
       kmsKey,
       vpcId: vpc?.vpcId,
+      deploymentRoleArn,
     });
 
     this.sarBucket = sarBucketConstruct.bucket;

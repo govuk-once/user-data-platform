@@ -47,6 +47,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS credentials
+        id: aws-creds-dev
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
@@ -55,6 +56,8 @@ jobs:
       - name: Deploy CDK stack
         run: |
           npx nx run cdk:deploy:dev
+        env:
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}
 
       - name: Get Stack outputs
         id: get-outputs

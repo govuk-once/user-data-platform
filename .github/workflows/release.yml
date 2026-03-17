@@ -62,6 +62,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
+        id: aws-creds-dev
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
@@ -75,6 +76,8 @@ jobs:
 
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
+        env:
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}
 
       - name: Get Stack outputs
         id: get-outputs
@@ -225,6 +228,7 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
+        id: aws-creds-stag
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
@@ -238,6 +242,8 @@ jobs:
 
       - name: Deploy CDK stack to staging
         run: npx nx run cdk:deploy:stag
+        env:
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-stag.outputs.role-arn}}
 
       - name: Get Stack outputs
         id: get-outputs
@@ -384,6 +390,7 @@ jobs:
   #       run: pnpm i --frozen-lockfile
 
   #     - name: Configure AWS Credentials
+  #       id: aws-creds-prod
   #       uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
   #       with:
   #         role-to-assume: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
@@ -391,6 +398,8 @@ jobs:
 
   #     - name: Deploy to production
   #       run: npx run cdk:deploy:prod
+  #       env:
+  #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.role-arn}}
 
   #     - name: Tag Deployment
   #       run: |
