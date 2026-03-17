@@ -1,9 +1,10 @@
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
+import { CfnOutput, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { AccountPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface VpcConstructprops {
   readonly environment: string;
@@ -79,11 +80,51 @@ export class VpcConstuct extends Construct {
 
     this.dynamoDbEndpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
       service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+      subnets: [
+        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      ],
     });
+
+    this.dynamoDbEndpoint.addToPolicy(
+      new PolicyStatement({
+        principals: [new AccountPrincipal(Stack.of(this).account)],
+        actions: [
+          'dynamodb:BatchgetItem',
+          'dynamodb:BatchWriteitem',
+          'dynamodb:DeleteItem',
+          'dynamodb:DescribeTable',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+          'dynamodb:Scan',
+          'dynamodb:UdateItem',
+        ],
+        resources: ['*'],
+      }),
+    );
 
     this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
       service: ec2.GatewayVpcEndpointAwsService.S3,
+      subnets: [
+        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      ],
     });
+
+    this.s3Endpoint.addToPolicy(
+      new PolicyStatement({
+        principals: [new AccountPrincipal(Stack.of(this).account)],
+        actions: [
+          's3:GetObject',
+          's3:PutObjects',
+          's3:DeleteObject',
+          's3:ListBucket',
+          's3:GetBucketLocation',
+        ],
+        resources: ['*'],
+      }),
+    );
 
     this.lambdaSecurityGroup = new ec2.SecurityGroup(this, 'lambdaSg', {
       vpc: this.vpc,
