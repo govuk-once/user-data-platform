@@ -15,6 +15,7 @@ const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
 
 const account = process.env.CDK_DEFAULT_ACCOUNT;
 const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
+const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
 
 const awsEnv = account
   ? {
@@ -76,6 +77,7 @@ if (!skipMainStack) {
     sarQueue: mainStack.sarQueue,
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+    deploymentRoleArn,
   });
 
   sarStack.addDependency(mainStack);
