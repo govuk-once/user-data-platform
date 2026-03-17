@@ -1,7 +1,6 @@
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as kms from 'aws-cdk-lib/aws-kms';
-import { RemovalPolicy } from 'aws-cdk-lib';
 import {
   getRemovalPolicy,
   GovUkOnceEnvironments,
