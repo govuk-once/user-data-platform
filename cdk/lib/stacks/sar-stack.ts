@@ -45,7 +45,7 @@ export class SarStack extends Stack {
       sarQueue,
       vpc,
       lambdaSecurityGroups,
-      deploymentRoleArn
+      deploymentRoleArn,
     } = props;
 
     const sarName = developerId

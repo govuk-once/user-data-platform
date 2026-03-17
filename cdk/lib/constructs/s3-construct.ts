@@ -22,7 +22,14 @@ export class S3Construct extends Construct {
   constructor(scope: Construct, id: string, props: S3ConstructProps) {
     super(scope, id);
 
-    const { developerId, environment, bucketName, kmsKey, vpcId, deploymentRoleArn } = props;
+    const {
+      developerId,
+      environment,
+      bucketName,
+      kmsKey,
+      vpcId,
+      deploymentRoleArn,
+    } = props;
 
     const fullBucketName = developerId
       ? `${developerId}-${bucketName}-${environment}`
@@ -74,8 +81,8 @@ export class S3Construct extends Construct {
               'aws:SourceVpc': vpcId,
             },
             ArnNotLike: {
-              'aws:PrincipalArn': [deploymentRoleArn]
-            }
+              'aws:PrincipalArn': [deploymentRoleArn],
+            },
           },
         }),
       );

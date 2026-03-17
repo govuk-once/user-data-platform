@@ -49,5 +49,5 @@ jobs:
       - name: Deploy CDK stack
         run: |
           npx nx run cdk:destroy:dev
-        env: 
+        env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}

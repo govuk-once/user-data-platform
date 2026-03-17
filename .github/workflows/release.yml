@@ -76,7 +76,7 @@ jobs:
 
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
-        env: 
+        env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}
 
       - name: Get Stack outputs
@@ -242,7 +242,7 @@ jobs:
 
       - name: Deploy CDK stack to staging
         run: npx nx run cdk:deploy:stag
-        env: 
+        env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-stag.outputs.role-arn}}
 
       - name: Get Stack outputs
@@ -398,7 +398,7 @@ jobs:
 
   #     - name: Deploy to production
   #       run: npx run cdk:deploy:prod
-  #       env: 
+  #       env:
   #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.role-arn}}
 
   #     - name: Tag Deployment
