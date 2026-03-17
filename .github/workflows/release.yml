@@ -67,6 +67,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+          output-credentials: true
 
       - name: Sync version from git tag
         run: |
@@ -77,7 +78,7 @@ jobs:
       - name: Deploy CDK stack to dev
         run: npx nx run cdk:deploy:dev
         env:
-          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.role-arn}}
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.authenticated-arn}}
 
       - name: Get Stack outputs
         id: get-outputs
@@ -233,6 +234,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+          output-credentials: true
 
       - name: Sync version from git tag
         run: |
@@ -243,7 +245,7 @@ jobs:
       - name: Deploy CDK stack to staging
         run: npx nx run cdk:deploy:stag
         env:
-          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-stag.outputs.role-arn}}
+          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-stag.outputs.authenticated-arn}}
 
       - name: Get Stack outputs
         id: get-outputs
@@ -395,11 +397,12 @@ jobs:
   #       with:
   #         role-to-assume: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
   #         aws-region: ${{ env.AWS_REGION }}
+  #         output-credentials: true
 
   #     - name: Deploy to production
   #       run: npx run cdk:deploy:prod
   #       env:
-  #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.role-arn}}
+  #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.authenticated-arn}}
 
   #     - name: Tag Deployment
   #       run: |
