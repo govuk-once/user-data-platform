@@ -3,3 +3,4 @@ export { getTracer, captureLambdaHandler, Tracer } from './tracer';
 export * from './Errors';
 export * from './middleware';
 export * from './schemas';
+export * from './env';

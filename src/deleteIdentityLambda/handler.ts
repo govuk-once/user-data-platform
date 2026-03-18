@@ -7,11 +7,12 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   udpErrorHandling,
   zodValidator,
   DeleteIdentityResponse,
+  requireEnvVars,
 } from '@libs/utils';
+import { fa } from 'zod/v4/locales';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;
@@ -22,29 +23,20 @@ const logger = getLogger({
   environment: stack,
 });
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
+
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
 });
 
-let factory: ServiceFactory;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  await getFactory()
+  await factory
     .getService('identity')
     .deleteById(
       event.pathParameters.serviceName,
@@ -80,5 +72,4 @@ export const handler = middy()
   )
   .use(udpErrorHandling(logger))
   .use(zodValidator('deleteIdentity', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);

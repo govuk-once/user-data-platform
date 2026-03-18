@@ -7,6 +7,11 @@ import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import * as presigner from '@aws-sdk/s3-request-presigner';
 
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-data-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
+});
+
 const s3Mock = mockClient(S3Client);
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
@@ -14,9 +19,6 @@ const dynamoMock = mockClient(DynamoDBDocumentClient);
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: vi.fn(),
 }));
-
-process.env['TABLE_NAME'] = 'test-data-table';
-process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
 
 describe('generateSarPresignedUrlLambda', () => {
   const mockContext: Context = {

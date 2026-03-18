@@ -12,6 +12,7 @@ import {
   zodValidator,
   GetSarStatusResponse,
   SarNotFoundError,
+  requireEnvVars,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
@@ -24,27 +25,17 @@ const logger = getLogger({
   environment: stack,
 });
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
-  logger,
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
+
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
 });
-
-let factory: ServiceFactory | undefined;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   const sarId = event.pathParameters?.sarId;
@@ -56,7 +47,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   logger.info('Getting SAR status', { sarId });
 
   // Get the identity record from the requesting service
-  const identity = await getFactory()
+  const identity = await factory
     .getService('identity')
     .getByServiceId(
       event.headers['requesting-service'],
@@ -66,12 +57,10 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   logger.info('Retrieved identity', { udpId: identity.udpId, sarId });
 
   // Query for the SAR record
-  const sarRecord = await getFactory()
-    .getService('sar')
-    .get({
-      pk: identity.udpId,
-      sk: `SAR/${sarId}`,
-    });
+  const sarRecord = await factory.getService('sar').get({
+    pk: identity.udpId,
+    sk: `SAR/${sarId}`,
+  });
 
   if (!sarRecord) {
     logger.info('SAR record not found', { sarId, udpId: identity.udpId });
@@ -119,5 +108,4 @@ export const handler = middy()
   .use(responseSanitiser({}))
   .use(udpErrorHandling(logger))
   .use(zodValidator('getSarStatus', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);

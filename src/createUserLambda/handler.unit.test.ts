@@ -11,13 +11,15 @@ import {
 import { mockClient } from 'aws-sdk-client-mock';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'identity-test-table';
+});
+
 vi.mock('uuid', () => ({
   v4: vi.fn(() => 'mock-string-uuid4'),
 }));
 const dynamoMock = mockClient(DynamoDBDocumentClient);
-
-process.env['TABLE_NAME'] = 'test-table';
-process.env['IDENTITY_TABLE_NAME'] = 'identity-test-table';
 
 describe('createItentityHandler', () => {
   const mockContext: Context = {

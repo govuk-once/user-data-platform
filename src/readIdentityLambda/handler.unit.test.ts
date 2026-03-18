@@ -7,10 +7,12 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 
-const dynamoMock = mockClient(DynamoDBDocumentClient);
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
+});
 
-process.env['TABLE_NAME'] = 'test-table';
-process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 const mockAppService = 'app';
 const mockAppId = 'app123';

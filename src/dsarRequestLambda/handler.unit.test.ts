@@ -6,13 +6,15 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { handler } from './handler';
 
+vi.hoisted(() => {
+  process.env['QUEUE_URL'] =
+    'https://sqs.eu-west-2.amazonaws.com/123345/12223343432312/test-queue';
+  process.env['TABLE_NAME'] = 'test-data-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
+});
+
 const sqsMock = mockClient(SQSClient);
 const dynamoMock = mockClient(DynamoDBDocumentClient);
-
-process.env['QUEUE_URL'] =
-  'https://sqs.eu-west-2.amazonaws.com/123345/12223343432312/test-queue';
-process.env['TABLE_NAME'] = 'test-data-table';
-process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
 
 const mockDsarId = 'abc12345-1234-1234-1234-123456789012';
 const mockRequestingService = 'GOVUKAPP';
