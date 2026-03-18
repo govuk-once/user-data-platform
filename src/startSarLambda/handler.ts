@@ -6,7 +6,6 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   responseSanitiser,
   udpErrorHandling,
   zodValidator,

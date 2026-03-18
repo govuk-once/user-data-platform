@@ -5,7 +5,6 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   requireEnvVars,
 } from '@libs/utils';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';

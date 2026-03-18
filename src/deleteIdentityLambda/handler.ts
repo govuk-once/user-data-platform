@@ -12,7 +12,6 @@ import {
   DeleteIdentityResponse,
   requireEnvVars,
 } from '@libs/utils';
-import { fa } from 'zod/v4/locales';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDeleteIdentity' } =
   process.env;

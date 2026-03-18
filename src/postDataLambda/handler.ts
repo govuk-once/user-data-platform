@@ -7,10 +7,8 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
-  createEnvValidator,
   udpErrorHandling,
   zodValidator,
-  PostDataResponse,
   responseSanitiser,
   requireEnvVars,
 } from '@libs/utils';
