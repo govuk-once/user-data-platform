@@ -15,7 +15,8 @@ import {
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
 
-const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
+const { STACK: stack, SERVICE_NAME: serviceName = 'udpPatchData' } =
+  process.env;
 
 const tracer = getTracer({ serviceName });
 const logger = getLogger({
@@ -57,9 +58,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
 
   const record = await getFactory()
     .getService('data')
-    .pathByKey(identity, event.pathParameters.resourcePath, body.data);
+    .patchByKey(identity, event.pathParameters.resourcePath, body.data);
 
-  tracer.putAnnotation('putEntitySuccess', true);
+  tracer.putAnnotation('patchEntitySuccess', true);
   return {
     statusCode: 200,
     body: record satisfies PatchDataResponse,
