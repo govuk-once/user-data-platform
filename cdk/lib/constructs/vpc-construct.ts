@@ -90,15 +90,15 @@ export class VpcConstuct extends Construct {
       new PolicyStatement({
         principals: [new AccountPrincipal(Stack.of(this).account)],
         actions: [
-          'dynamodb:BatchgetItem',
-          'dynamodb:BatchWriteitem',
+          'dynamodb:BatchGetItem',
+          'dynamodb:BatchWriteItem',
           'dynamodb:DeleteItem',
           'dynamodb:DescribeTable',
           'dynamodb:GetItem',
           'dynamodb:PutItem',
           'dynamodb:Query',
           'dynamodb:Scan',
-          'dynamodb:UdateItem',
+          'dynamodb:UpdateItem',
         ],
         resources: ['*'],
       }),
@@ -117,7 +117,8 @@ export class VpcConstuct extends Construct {
         principals: [new AccountPrincipal(Stack.of(this).account)],
         actions: [
           's3:GetObject',
-          's3:PutObjects',
+          's3:GetObjectVersion',
+          's3:PutObject',
           's3:DeleteObject',
           's3:ListBucket',
           's3:GetBucketLocation',
