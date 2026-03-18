@@ -6,20 +6,17 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
+  requireEnvVars,
 } from '@libs/utils';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 
 import { v4 as uuidv4 } from 'uuid';
 import { StartDsarResponse } from 'libs/utils/schemas/endpoints/sar-dsar/dsar';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['QUEUE_URL'],
-  optional: {},
-});
+const { QUEUE_URL } = requireEnvVars('QUEUE_URL');
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDsar' } = process.env;
 
@@ -32,8 +29,6 @@ const logger = getLogger({
 const client = new SQSClient({});
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  const { QUEUE_URL } = getEnv();
-
   const dsarID = uuidv4();
 
   const dsarRequest = {
@@ -78,5 +73,4 @@ export const handler = middy()
   .use(responseSanitiser({}))
   .use(udpErrorHandling(logger))
   .use(zodValidator('startDsar', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);

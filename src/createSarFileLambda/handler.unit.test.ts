@@ -7,15 +7,18 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-data-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
+  process.env['BUCKET_NAME'] = 'test-bucket';
+  process.env['DLQ_URL'] =
+    'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq';
+  process.env['KMS_KEY_ID'] = 'test-kms-key';
+});
+
 const sqsMock = mockClient(SQSClient);
 const s3Mock = mockClient(S3Client);
 const dynamoMock = mockClient(DynamoDBDocumentClient);
-
-process.env['TABLE_NAME'] = 'test-data-table';
-process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
-process.env['BUCKET_NAME'] = 'test-bucket';
-process.env['DLQ_URL'] = 'https://sqs.eu-west-2.amazonaws.com/123345/test-dlq';
-process.env['KMS_KEY_ID'] = 'test-kms-key';
 
 describe('createSarFileLambda', () => {
   const mockContext: Context = {

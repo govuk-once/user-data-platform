@@ -9,10 +9,12 @@ import {
 import { mockClient } from 'aws-sdk-client-mock';
 import { handler } from './handler';
 
-const dynamoMock = mockClient(DynamoDBDocumentClient);
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-data-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
+});
 
-process.env['TABLE_NAME'] = 'test-data-table';
-process.env['IDENTITY_TABLE_NAME'] = 'test-identity-table';
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 const mockDsarId = 'abc12345-1234-1234-1234-123456789012';
 const mockUdpId = 'udp-id-1234';

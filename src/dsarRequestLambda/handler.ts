@@ -5,16 +5,17 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
+  requireEnvVars,
 } from '@libs/utils';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 
 import { ServiceFactory } from '@libs/data-access';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME', 'QUEUE_URL'],
-  optional: { KMS_KEY_ID: undefined },
-});
+const { TABLE_NAME, IDENTITY_TABLE_NAME, QUEUE_URL } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+  'QUEUE_URL',
+);
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDsarRequest' } =
   process.env;
@@ -27,25 +28,14 @@ const logger = getLogger({
 
 const sqsClient = new SQSClient({});
 
-let factory: ServiceFactory | undefined;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
+});
 
 export const lambdaHandler = async (event: SQSEvent) => {
-  const { QUEUE_URL } = getEnv();
-
   for (const record of event.Records) {
     const { dsarID, serviceName, serviceUserId } = JSON.parse(record.body);
 
@@ -55,15 +45,13 @@ export const lambdaHandler = async (event: SQSEvent) => {
       serviceUserId,
     });
 
-    const identity = await getFactory()
+    const identity = await factory
       .getService('identity')
       .getByServiceId(serviceName, serviceUserId);
 
     const udpId = identity.udpId;
 
-    const totalItems = await getFactory()
-      .getService('data')
-      .countByUdpID(udpId);
+    const totalItems = await factory.getService('data').countByUdpID(udpId);
 
     if (totalItems === 0) {
       logger.info('No data items found for DSAR reuest', { dsarID, udpId });
@@ -75,7 +63,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
     let lastEvaluatedKey: Record<string, unknown> | undefined;
 
     do {
-      const page = await getFactory()
+      const page = await factory
         .getService('data')
         .getKeyPageByUdpID(udpId, lastEvaluatedKey);
 
@@ -94,8 +82,6 @@ export const lambdaHandler = async (event: SQSEvent) => {
           MessageBody: JSON.stringify(message),
         }),
       );
-
-      console.log({ page });
 
       logger.info('Send DSAR delete batch', {
         dsarID,
@@ -118,5 +104,4 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(envMiddleware)
   .handler(lambdaHandler);

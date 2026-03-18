@@ -5,15 +5,15 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
+  requireEnvVars,
 } from '@libs/utils';
 
 import { ServiceFactory } from '@libs/data-access';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
-});
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpDsarRequest' } =
   process.env;
@@ -24,21 +24,12 @@ const logger = getLogger({
   environment: stack,
 });
 
-let factory: ServiceFactory | undefined;
-
-function getFactory() {
-  if (!factory) {
-    const { TABLE_NAME, KMS_KEY_ID, IDENTITY_TABLE_NAME } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
+});
 
 export const lambdaHandler = async (event: SQSEvent) => {
   for (const record of event.Records) {
@@ -52,7 +43,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
 
     let deletedCount = 0;
 
-    const dataService = getFactory().getService('data');
+    const dataService = factory.getService('data');
 
     for (const key of keys) {
       try {
@@ -87,7 +78,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
       deletedCount,
     });
 
-    const identityService = getFactory().getService('identity');
+    const identityService = factory.getService('identity');
     const udpId = keys[0].pk;
 
     await identityService.deleteAllByUdpId(udpId);
@@ -106,5 +97,4 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(envMiddleware)
   .handler(lambdaHandler);

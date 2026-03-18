@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
-
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
@@ -11,10 +10,12 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { IdentityRecordEntity } from 'libs/data-access/types/Entity';
 import { handler } from './handler';
 
-const dynamoMock = mockClient(DynamoDBDocumentClient);
+vi.hoisted(() => {
+  process.env['TABLE_NAME'] = 'test-table';
+  process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
+});
 
-process.env['TABLE_NAME'] = 'test-table';
-process.env['IDENTITY_TABLE_NAME'] = 'identity-table';
+const dynamoMock = mockClient(DynamoDBDocumentClient);
 
 describe('deleteDataLambda handler', () => {
   const mockContext: Context = {

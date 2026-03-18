@@ -8,17 +8,17 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   udpErrorHandling,
   zodValidator,
   CreateUserRequest,
   CreateUserResponse,
+  requireEnvVars,
 } from '@libs/utils';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
-});
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpCreateUser' } =
   process.env;
@@ -29,28 +29,19 @@ const logger = getLogger({
   environment: stack,
 });
 
-let factory: ServiceFactory;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      identityTableName: IDENTITY_TABLE_NAME,
-      tableName: TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
+const factory = new ServiceFactory({
+  identityTableName: IDENTITY_TABLE_NAME,
+  tableName: TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
+});
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
   const input = {
     ...(event.body as unknown as CreateUserRequest),
   } as unknown as IdentityInput;
 
-  await getFactory().getService('identity').createAppUser(input);
+  await factory.getService('identity').createAppUser(input);
 
   return {
     statusCode: 204,
@@ -80,5 +71,4 @@ export const handler = middy()
   .use(udpErrorHandling(logger))
   .use(jsonBodyParser())
   .use(zodValidator('createUser', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);

@@ -5,13 +5,15 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { mockClient } from 'aws-sdk-client-mock';
 import { handler } from './handler';
 
+vi.hoisted(() => {
+  process.env['QUEUE_URL'] =
+    'https://sqs.eu-west-2.amazonaws.com/123345/12223343432312/test-ueue';
+});
+
 const sqsMock = mockClient(SQSClient);
 
 const mockRequestingService = 'GOVUKAPP';
 const mockRequestingServiceUserId = '1231233-1231-1233-1131332ee21';
-
-process.env['QUEUE_URL'] =
-  'https://sqs.eu-west-2.amazonaws.com/123345/12223343432312/test-ueue';
 
 describe('dsarRequestLambda handler', () => {
   const mockContext: Context = {

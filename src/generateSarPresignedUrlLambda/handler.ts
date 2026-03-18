@@ -5,7 +5,7 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
+  requireEnvVars,
 } from '@libs/utils';
 import {
   GetObjectCommand,
@@ -15,10 +15,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ServiceFactory } from '@libs/data-access';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined, IDENTITY_TABLE_NAME: '' },
-});
+const { TABLE_NAME } = requireEnvVars('TABLE_NAME');
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'generateSarPresignedUrl' } =
   process.env;
@@ -31,21 +28,12 @@ const logger = getLogger({
 
 const s3Client = new S3Client({});
 
-let factory: ServiceFactory | undefined;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME || 'not-required',
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: process.env.IDENTITY_TABLE_NAME || 'not-required',
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
+});
 
 /**
  * Generates a pre-signed URL for a SAR file and writes the record to DynamoDB
@@ -121,7 +109,7 @@ export const lambdaHandler = async (event: S3Event) => {
       };
 
       // Save to DynamoDB
-      await getFactory().getService('sar').save(sarRecord);
+      await factory.getService('sar').save(sarRecord);
 
       logger.info('SAR record created successfully', {
         sarID,
@@ -153,5 +141,4 @@ export const handler = middy()
       tracer.putAnnotation('stack', stack);
     },
   })
-  .use(envMiddleware)
   .handler(lambdaHandler);

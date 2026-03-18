@@ -1,0 +1,1 @@
+export { requireEnvVars } from './requireEnvVars';

@@ -7,13 +7,13 @@ import {
   getLogger,
   getTracer,
   captureLambdaHandler,
-  createEnvValidator,
   udpErrorHandling,
   zodValidator,
-  PostDataResponse,
   responseSanitiser,
+  requireEnvVars,
 } from '@libs/utils';
 import { ServiceFactory } from '@libs/data-access';
+import { DataInput } from 'libs/data-access/types/Entity';
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpPostData' } = process.env;
 
@@ -23,44 +23,38 @@ const logger = getLogger({
   environment: stack,
 });
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
+
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
 });
 
-let factory;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
-
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  const identity = await getFactory()
+  const identity = await factory
     .getService('identity')
     .getByServiceId(
       event.headers['requesting-service'],
       event.headers['requesting-service-user-id'],
     );
 
-  const record = await getFactory()
+  const record = await factory
     .getService('data')
-    .save(identity, event.pathParameters.resourcePath, event.body);
+    .save(
+      identity,
+      event.pathParameters.resourcePath,
+      event.body as unknown as DataInput,
+    );
 
   tracer.putAnnotation('putEntitySuccess', true);
   return {
     statusCode: 200,
-    body: record satisfies PostDataResponse,
+    body: record,
   };
 };
 
@@ -87,5 +81,4 @@ export const handler = middy()
   .use(udpErrorHandling(logger))
   .use(jsonBodyParser())
   .use(zodValidator('postData', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);

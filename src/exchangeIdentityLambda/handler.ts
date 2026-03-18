@@ -7,17 +7,17 @@ import {
   captureLambdaHandler,
   getLogger,
   injectLambdaContext,
-  createEnvValidator,
   responseSanitiser,
   udpErrorHandling,
   zodValidator,
   ReadIdentityResponse,
+  requireEnvVars,
 } from '@libs/utils';
 
-const { middleware: envMiddleware, getEnv } = createEnvValidator({
-  required: ['TABLE_NAME', 'IDENTITY_TABLE_NAME'],
-  optional: { KMS_KEY_ID: undefined },
-});
+const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+  'TABLE_NAME',
+  'IDENTITY_TABLE_NAME',
+);
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpReadIdentity' } =
   process.env;
@@ -28,24 +28,15 @@ const logger = getLogger({
   environment: stack,
 });
 
-let factory: ServiceFactory;
-
-function getFactory() {
-  if (!factory) {
-    const { IDENTITY_TABLE_NAME, TABLE_NAME, KMS_KEY_ID } = getEnv();
-    factory = new ServiceFactory({
-      tableName: TABLE_NAME,
-      identityTableName: IDENTITY_TABLE_NAME,
-      kmsKeyId: KMS_KEY_ID,
-      tracer,
-    });
-  }
-
-  return factory;
-}
+const factory = new ServiceFactory({
+  tableName: TABLE_NAME,
+  identityTableName: IDENTITY_TABLE_NAME,
+  kmsKeyId: process.env.KMS_KEY_ID,
+  tracer,
+});
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
-  const identity = await getFactory()
+  const identity = await factory
     .getService('identity')
     .getLinkedIdentity(
       event.headers['requesting-service'],
@@ -81,5 +72,4 @@ export const handler = middy()
   .use(responseSanitiser({}))
   .use(udpErrorHandling(logger))
   .use(zodValidator('exchangeIdentity', logger))
-  .use(envMiddleware)
   .handler(lambdaHandler);
