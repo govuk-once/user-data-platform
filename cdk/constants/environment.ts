@@ -35,7 +35,7 @@ export const environmentLongNames: Record<string, string> = {
 export function getRemovalPolicy(environment: string): RemovalPolicy {
   if (
     environment === GovUkOnceEnvironments.Prod ||
-    environment === GovUkOnceEnvironments.Prod
+    environment === GovUkOnceEnvironments.Stag
   ) {
     return RemovalPolicy.RETAIN;
   }
