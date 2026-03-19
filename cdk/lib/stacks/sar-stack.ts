@@ -10,6 +10,7 @@ import { Function } from 'aws-cdk-lib/aws-lambda';
 import { S3Construct } from '../constructs/s3-construct';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+import { getLogRetentionPeriod } from 'cdk/constants/environment';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -87,6 +88,7 @@ export class SarStack extends Stack {
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+      logRetentionDays: getLogRetentionPeriod(environment),
     });
 
     dsarRequestLambda.function.addEventSource(
@@ -116,6 +118,7 @@ export class SarStack extends Stack {
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+      logRetentionDays: getLogRetentionPeriod(environment),
     });
 
     dsarDeleteLambda.function.addEventSource(
@@ -165,6 +168,7 @@ export class SarStack extends Stack {
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+      logRetentionDays: getLogRetentionPeriod(environment),
     });
 
     // Add sarQueue as event source for createSarFile lambda
@@ -199,6 +203,7 @@ export class SarStack extends Stack {
         },
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
+        logRetentionDays: getLogRetentionPeriod(environment),
       },
     );
 

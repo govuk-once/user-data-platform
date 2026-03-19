@@ -30,6 +30,7 @@ import {
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
+  getLogRetentionPeriod,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
@@ -188,6 +189,7 @@ export class MainStack extends Stack {
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
       kmsKey: kmsConstruct.key,
+      logRetentionDays: getLogRetentionPeriod(environment),
     });
 
     const eventQueueNames = [
@@ -250,6 +252,7 @@ export class MainStack extends Stack {
         vpc,
         securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
         cachingEnabled,
+        logRetentionDays: getLogRetentionPeriod(environment),
       });
 
       lambdasList.push(lambda.function);

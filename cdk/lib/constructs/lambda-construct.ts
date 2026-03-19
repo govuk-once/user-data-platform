@@ -64,7 +64,7 @@ export class LambdaApiConstruct extends Construct {
       identityDbActions = ['dynamodb:GetItem'],
       api,
       httpMethod,
-      logRetentionDays = logs.RetentionDays.ONE_MONTH,
+      logRetentionDays = logs.RetentionDays.ONE_YEAR,
       routePath,
       vpc,
       vpcSubnets,
