@@ -53,12 +53,18 @@ export async function signRequest(
   const parsedUrl = new URL(url);
   const bodyString = body ? JSON.stringify(body) : undefined;
 
+  const query: Record<string, string> = {};
+  parsedUrl.searchParams.forEach((value, key) => {
+    query[key] = value;
+  });
+
   const request = new HttpRequest({
     method,
     protocol: parsedUrl.protocol,
     hostname: parsedUrl.hostname,
     port: parsedUrl.port ? parseInt(parsedUrl.port, 10) : undefined,
-    path: parsedUrl.pathname + parsedUrl.search,
+    path: parsedUrl.pathname,
+    query,
     headers: {
       host: parsedUrl.host,
       'Content-Type': 'application/json',
