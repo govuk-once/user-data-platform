@@ -333,7 +333,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     };
 
     if (skPrefix) {
-      expressionAttributeValues[':skPrefix'] = `${skPrefix}#`;
+      expressionAttributeValues[':pkPrefix'] = `${skPrefix}#`;
     }
 
     const command = new QueryCommand({

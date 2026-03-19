@@ -39,8 +39,28 @@ Feature: identity Api
         Then I should receive a successful response
         Then the response body contains '{"serviceId":"321", "serviceName": "service2"}'
 
+    Scenario: Successfully link identity for exchange tests
+        When I send a post to 'v1/identity/exchange-service/ex-456' with body '{"appId: "123"}'
+        Then the response status should be 200
+
+    Scenario:  Successfully exchange identity
+        Given I set header 'requesting-service' to 'exchange-service'
+        And I set header 'requesting-service-user-id' to 'ex-456'
+        When I send a get to '/v1/identity/exchange?requiredService=app'
+        Then I should receive a successful response
+        Then the response status should be 200
+        Then the response body contains '{"serviceId":"123", "serviceName":"app"}'
+
+    Scenario: Returns 404 when exchanging with unknown identity
+        Given I set header 'requesting-service' to 'exchange-service'
+        And I set header 'requesting-service-user-id' to 'unknown'
+        When I send a get to '/v1/identity/exchange?requiredService=app'
+        Then the response status should be 404
+
     Scenario: Successfully Delete linked Record
         When I send a delete to '/v1/identity/service2/321'
+        Then I should receive a successful response
+        When I send a delete to '/v1/identity/exchange-service/ex-456'
         Then I should receive a successful response
 
     Scenario: Successfully Delete identity Record
