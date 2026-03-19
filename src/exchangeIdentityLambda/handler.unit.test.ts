@@ -35,7 +35,7 @@ const mockLinkedIdentity: IdentityRecordEntity = {
   udpId: mockUdpId,
 };
 
-describe('rechangeIdentityLambda', () => {
+describe('exchangeIdentityLambda', () => {
   const mockContext: Context = {
     callbackWaitsForEmptyEventLoop: true,
     functionName: 'exchangeIdentityLambda',

@@ -60,7 +60,7 @@ export function getIdentity(
 export function getLinkedIdentity(
   service: string,
 ): RefinedResponse<ResponseType> {
-  const url = buildUrl(`/v1/identity/echange?requiredService=${service}`);
+  const url = buildUrl(`/v1/identity/exchange?requiredService=${service}`);
   const headers = signedHeaders('GET', url);
   const res = http.get(url, { headers });
 
