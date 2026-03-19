@@ -1,10 +1,10 @@
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { CfnOutput, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { CfnOutput, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { getRemovalPolicy } from 'cdk/constants/environment';
-import { AccountPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface VpcConstructprops {
   readonly environment: string;
@@ -88,7 +88,7 @@ export class VpcConstuct extends Construct {
 
     this.dynamoDbEndpoint.addToPolicy(
       new PolicyStatement({
-        principals: [new AccountPrincipal(Stack.of(this).account)],
+        principals: [new AnyPrincipal()],
         actions: [
           'dynamodb:BatchGetItem',
           'dynamodb:BatchWriteItem',
@@ -101,6 +101,11 @@ export class VpcConstuct extends Construct {
           'dynamodb:UpdateItem',
         ],
         resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': Stack.of(this).account,
+          },
+        },
       }),
     );
 
@@ -114,7 +119,7 @@ export class VpcConstuct extends Construct {
 
     this.s3Endpoint.addToPolicy(
       new PolicyStatement({
-        principals: [new AccountPrincipal(Stack.of(this).account)],
+        principals: [new AnyPrincipal()],
         actions: [
           's3:GetObject',
           's3:GetObjectVersion',
@@ -124,6 +129,11 @@ export class VpcConstuct extends Construct {
           's3:GetBucketLocation',
         ],
         resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': Stack.of(this).account,
+          },
+        },
       }),
     );
 
