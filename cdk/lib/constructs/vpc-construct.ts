@@ -1,9 +1,10 @@
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
+import { CfnOutput, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { AnyPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface VpcConstructprops {
   readonly environment: string;
@@ -79,11 +80,62 @@ export class VpcConstuct extends Construct {
 
     this.dynamoDbEndpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
       service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+      subnets: [
+        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      ],
     });
+
+    this.dynamoDbEndpoint.addToPolicy(
+      new PolicyStatement({
+        principals: [new AnyPrincipal()],
+        actions: [
+          'dynamodb:BatchGetItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:DeleteItem',
+          'dynamodb:DescribeTable',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+          'dynamodb:Scan',
+          'dynamodb:UpdateItem',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': Stack.of(this).account,
+          },
+        },
+      }),
+    );
 
     this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
       service: ec2.GatewayVpcEndpointAwsService.S3,
+      subnets: [
+        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      ],
     });
+
+    this.s3Endpoint.addToPolicy(
+      new PolicyStatement({
+        principals: [new AnyPrincipal()],
+        actions: [
+          's3:GetObject',
+          's3:GetObjectVersion',
+          's3:PutObject',
+          's3:DeleteObject',
+          's3:ListBucket',
+          's3:GetBucketLocation',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': Stack.of(this).account,
+          },
+        },
+      }),
+    );
 
     this.lambdaSecurityGroup = new ec2.SecurityGroup(this, 'lambdaSg', {
       vpc: this.vpc,
