@@ -40,10 +40,10 @@ Feature: identity Api
         Then the response body contains '{"serviceId":"321", "serviceName": "service2"}'
 
     Scenario: Successfully link identity for exchange tests
-        When I send a post to 'v1/identity/exchange-service/ex-456' with body '{"appId: "123"}'
+        When I send a post to 'v1/identity/exchange-service/ex-456' with the body '{"appId: "123"}'
         Then the response status should be 200
 
-    Scenario:  Successfully exchange identity
+    Scenario: Successfully exchange identity
         Given I set header 'requesting-service' to 'exchange-service'
         And I set header 'requesting-service-user-id' to 'ex-456'
         When I send a get to '/v1/identity/exchange?requiredService=app'
