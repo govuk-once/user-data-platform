@@ -58,7 +58,7 @@ export class E2eStack extends Stack {
       encryption: BucketEncryption.S3_MANAGED,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       removalPolicy: getRemovalPolicy(environment),
-      autoDeleteObjects: true,
+      autoDeleteObjects: environment === 'dev',
       lifecycleRules: [
         {
           expiration: Duration.days(7),
