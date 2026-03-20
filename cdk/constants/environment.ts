@@ -5,6 +5,7 @@ import {
   repository,
   version,
 } from '../../package.json';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 export type RepoMetaData = {
   serviceName: string;
@@ -40,4 +41,14 @@ export function getRemovalPolicy(environment: string): RemovalPolicy {
     return RemovalPolicy.RETAIN;
   }
   return RemovalPolicy.DESTROY;
+}
+
+export function getLogRetentionPeriod(environment: string): RetentionDays {
+  if (
+    environment === GovUkOnceEnvironments.Prod ||
+    environment === GovUkOnceEnvironments.Stag
+  ) {
+    return RetentionDays.ONE_YEAR;
+  }
+  return RetentionDays.ONE_MONTH;
 }

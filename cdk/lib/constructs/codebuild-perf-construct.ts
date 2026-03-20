@@ -16,9 +16,12 @@ import {
   Role,
   ServicePrincipal,
 } from 'aws-cdk-lib/aws-iam';
-import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LogGroup } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
-import { getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  getRemovalPolicy,
+} from 'cdk/constants/environment';
 import { Construct } from 'constructs';
 
 export interface CodeBuildPerfConstructProps {
@@ -67,7 +70,7 @@ export class CodeBuildPerfConstruct extends Construct {
 
     this.logGroup = new LogGroup(this, 'BuildLogGroup', {
       logGroupName: `/aws/codebuild/${resourcePrefix}-perf-tests`,
-      retention: RetentionDays.ONE_MONTH,
+      retention: getLogRetentionPeriod(environment),
       removalPolicy: getRemovalPolicy(environment),
     });
 

@@ -6,7 +6,10 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
 import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
-import { getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  getRemovalPolicy,
+} from 'cdk/constants/environment';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
@@ -121,7 +124,7 @@ export class ApiGatewayConstruct extends Construct {
     if (enableAccessLogs) {
       this.logGroup = new logs.LogGroup(this, 'AccessLogs', {
         logGroupName: `/aws/apigateway/${fullApiName}`,
-        retention: logs.RetentionDays.ONE_MONTH,
+        retention: getLogRetentionPeriod(environment),
         removalPolicy: getRemovalPolicy(environment),
         encryptionKey: kmsKey,
       });
