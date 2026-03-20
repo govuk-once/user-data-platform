@@ -6,7 +6,10 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
 import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
-import { getLogRetentionPeriod, getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  getRemovalPolicy,
+} from 'cdk/constants/environment';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;

@@ -19,7 +19,10 @@ import {
 import { LogGroup } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
-import { getLogRetentionPeriod, getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  getRemovalPolicy,
+} from 'cdk/constants/environment';
 import { Construct } from 'constructs';
 
 export interface CodeBuildE2eConstructProps {

@@ -18,7 +18,10 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import { LogGroup } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
-import { getLogRetentionPeriod, getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  getRemovalPolicy,
+} from 'cdk/constants/environment';
 import { Construct } from 'constructs';
 
 export interface CodeBuildPerfConstructProps {
