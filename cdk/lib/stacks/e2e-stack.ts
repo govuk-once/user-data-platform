@@ -9,7 +9,10 @@ import {
   Bucket,
   BucketEncryption,
 } from 'aws-cdk-lib/aws-s3';
-import { getRemovalPolicy } from 'cdk/constants/environment';
+import {
+  getRemovalPolicy,
+  GovUkOnceEnvironments,
+} from 'cdk/constants/environment';
 import { IRole } from 'aws-cdk-lib/aws-iam';
 
 export interface E2EStackProps extends StackProps {
@@ -58,7 +61,7 @@ export class E2eStack extends Stack {
       encryption: BucketEncryption.S3_MANAGED,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       removalPolicy: getRemovalPolicy(environment),
-      autoDeleteObjects: true,
+      autoDeleteObjects: environment === GovUkOnceEnvironments.Dev,
       lifecycleRules: [
         {
           expiration: Duration.days(7),
