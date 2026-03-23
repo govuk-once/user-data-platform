@@ -130,6 +130,7 @@ export class VpcConstuct extends Construct {
           's3:DeleteObject',
           's3:ListBucket',
           's3:GetBucketLocation',
+          's3:GetBucketAcl',
         ],
         resources: ['*'],
         conditions: {
