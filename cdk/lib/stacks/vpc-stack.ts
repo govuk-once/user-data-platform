@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import { VpcConstuct } from '../constructs/vpc-construct';
+import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
 
 export interface VpcStackProps extends StackProps {
@@ -35,7 +35,7 @@ export class VpcStack extends Stack {
       namePrefix: 'vpc',
     });
 
-    const vpcConstuct = new VpcConstuct(this, 'vpc', {
+    const vpcConstuct = new VpcConstruct(this, 'vpc', {
       environment,
       vpcCidr,
       maxAzs,
