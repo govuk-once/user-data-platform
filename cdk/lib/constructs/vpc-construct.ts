@@ -51,7 +51,7 @@ export class VpcConstruct extends Construct {
           cidrMask: 24,
         },
         {
-          name: 'private-egress',
+          name: 'private-egres',
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
           cidrMask: 24,
         },
@@ -214,7 +214,7 @@ export class VpcConstruct extends Construct {
     });
 
     this.executeApiEndpoint = this.vpc.addInterfaceEndpoint(
-      'ExecuteApiEndpoint',
+      'ExcecuteApiEndpoint',
       {
         service: ec2.InterfaceVpcEndpointAwsService.APIGATEWAY,
         securityGroups: [this.vpcEndpointSecurityGroup],
@@ -279,7 +279,7 @@ export class VpcConstruct extends Construct {
       },
     );
 
-    this.sqsEndpoint = this.vpc.addInterfaceEndpoint('SqsEndpoint', {
+    this.sqsEndpoint = this.vpc.addInterfaceEndpoint('SqsEnpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SQS,
       securityGroups: [this.vpcEndpointSecurityGroup],
       privateDnsEnabled: true,
@@ -310,7 +310,7 @@ export class VpcConstruct extends Construct {
       description: 'VPC Cidr Block',
     });
 
-    new CfnOutput(this, 'excecuteApiEndpointId', {
+    new CfnOutput(this, 'excecuteApiEnpointId', {
       value: this.executeApiEndpoint.vpcEndpointId,
       description: 'VPC Endpoint Id for Api Gateway execute-api',
     });
