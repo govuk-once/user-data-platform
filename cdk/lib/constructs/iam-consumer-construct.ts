@@ -103,7 +103,7 @@ export class IamConsumerConstruct extends Construct {
     if (externalId) {
       return principal.withConditions({
         StringEquals: {
-          'sts:ExternaId': externalId,
+          'sts:ExternalId': externalId,
         },
       });
     }

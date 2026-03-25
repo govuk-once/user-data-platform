@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import { VpcConstuct } from '../constructs/vpc-construct';
+import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
 
 export interface VpcStackProps extends StackProps {
@@ -35,26 +35,26 @@ export class VpcStack extends Stack {
       namePrefix: 'vpc',
     });
 
-    const vpcConstruct = new VpcConstuct(this, 'vpc', {
+    const vpcConstuct = new VpcConstruct(this, 'vpc', {
       environment,
       vpcCidr,
       maxAzs,
       kmsKey: kmsConstruct.key,
     });
 
-    this.vpc = vpcConstruct.vpc;
-    this.vpcEndpointSecurityGroup = vpcConstruct.vpcEndpointSecurityGroup;
-    this.lambdaSecurityGroup = vpcConstruct.lambdaSecurityGroup;
-    this.executeApiEndpointId = vpcConstruct.excecuteApiEndpoint.vpcEndpointId;
-    this.codeBuildSecurityGroup = vpcConstruct.codebuildSecurityGroup;
+    this.vpc = vpcConstuct.vpc;
+    this.vpcEndpointSecurityGroup = vpcConstuct.vpcEndpointSecurityGroup;
+    this.lambdaSecurityGroup = vpcConstuct.lambdaSecurityGroup;
+    this.executeApiEndpointId = vpcConstuct.executeApiEndpoint.vpcEndpointId;
+    this.codeBuildSecurityGroup = vpcConstuct.codebuildSecurityGroup;
 
-    new CfnOutput(this, 'CpvIdOutput', {
+    new CfnOutput(this, 'VpcIdOutput', {
       value: this.vpc.vpcId,
       exportName: `${id}-vpcId`,
       description: 'VPC ID for cross stack reference',
     });
 
-    new CfnOutput(this, 'VpcEnpointSecurityGroupIdOutput', {
+    new CfnOutput(this, 'VpcEndpointSecurityGroupIdOutput', {
       value: this.vpcEndpointSecurityGroup.securityGroupId,
       exportName: `${id}-vpcEndpointSecurityGroupId`,
       description: 'Security group id for VPC Endpoints',
@@ -68,11 +68,11 @@ export class VpcStack extends Stack {
 
     new CfnOutput(this, 'ExcexuteApiEndpointIdOutput', {
       value: this.executeApiEndpointId,
-      exportName: `${id}-ExcexuteApiEndpointId`,
+      exportName: `${id}-ExecuteApiEndpointId`,
       description: 'VPC Endpoint ID for api gateway excecute-api',
     });
 
-    const privateSubnets = vpcConstruct.vpc.isolatedSubnets;
+    const privateSubnets = vpcConstuct.vpc.isolatedSubnets;
     privateSubnets.forEach((subnet, idx) => {
       new CfnOutput(this, `PrivateSubnet${idx}IdOutput`, {
         value: subnet.subnetId,
