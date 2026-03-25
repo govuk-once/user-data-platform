@@ -24,7 +24,7 @@ export interface MonitorStackProps extends StackProps {
   readonly kmsKeyAlias: string;
 }
 
-const mapEnvironents = {
+const mapEnvironments = {
   [GovUkOnceEnvironments.Dev]: 'development',
   [GovUkOnceEnvironments.Stag]: 'staging',
   [GovUkOnceEnvironments.Prod]: 'production',
@@ -91,7 +91,7 @@ export class MonitoringStack extends Stack {
     }
 
     if (!developerId) {
-      const param = `/${mapEnvironents[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
+      const param = `/${mapEnvironments[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
       const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
 
       let monitoringConfig: {
@@ -139,7 +139,7 @@ export class MonitoringStack extends Stack {
       dashboardName: `${resourcePrefix}-dashboard`,
     });
 
-    this.createDyanamoDBAlarms(table, resourcePrefix);
+    this.createDynamoDBAlarms(table, resourcePrefix);
     this.addDynamoDBWidgets(table);
 
     this.createApiGatewayAlarms(api, environment, resourcePrefix);
@@ -159,11 +159,11 @@ export class MonitoringStack extends Stack {
     );
   }
 
-  private createDyanamoDBAlarms(
+  private createDynamoDBAlarms(
     table: dynamodb.ITable,
     resourcePrefix: string,
   ) {
-    new cloudwatch.Alarm(this, 'DyanamoDbReadThrottled', {
+    new cloudwatch.Alarm(this, 'DynamoDbReadThrottled', {
       alarmName: `${resourcePrefix}-dynamodb-read-throttled`,
       alarmDescription: 'Dynamodb read requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
@@ -178,7 +178,7 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, 'DyanamoDbWriteThrottled', {
+    new cloudwatch.Alarm(this, 'DynamoDbWriteThrottled', {
       alarmName: `${resourcePrefix}-dynamodb-write-throttled`,
       alarmDescription: 'Dynamodb write requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
@@ -196,7 +196,7 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, 'DyanamoDbSystemErrors', {
+    new cloudwatch.Alarm(this, 'DynamoDbSystemErrors', {
       alarmName: `${resourcePrefix}-dynamodb-system-errors`,
       alarmDescription: 'Dynamodb system errors detected',
       metric: table.metricSystemErrorsForOperations({

@@ -16,7 +16,7 @@ export interface VpcConstructprops {
   readonly kmsKey?: kms.IKey;
 }
 
-export class VpcConstuct extends Construct {
+export class VpcConstruct extends Construct {
   public readonly vpc: ec2.Vpc;
   public readonly vpcEndpointSecurityGroup: ec2.SecurityGroup;
   public readonly lambdaSecurityGroup: ec2.SecurityGroup;
@@ -25,7 +25,7 @@ export class VpcConstuct extends Construct {
   public readonly kmsEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly cognitoEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly cloudwatchEndpoint: ec2.InterfaceVpcEndpoint;
-  public readonly excecuteApiEndpoint: ec2.InterfaceVpcEndpoint;
+  public readonly executeApiEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly codebuildSecurityGroup: ec2.SecurityGroup;
   public readonly codeBuildEndpoint: ec2.InterfaceVpcEndpoint;
   public readonly ecrApiEndpoint: ec2.InterfaceVpcEndpoint;
@@ -51,7 +51,7 @@ export class VpcConstuct extends Construct {
           cidrMask: 24,
         },
         {
-          name: 'private-egres',
+          name: 'private-egress',
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
           cidrMask: 24,
         },
@@ -213,8 +213,8 @@ export class VpcConstuct extends Construct {
       },
     });
 
-    this.excecuteApiEndpoint = this.vpc.addInterfaceEndpoint(
-      'ExcecuteApiEndpoint',
+    this.executeApiEndpoint = this.vpc.addInterfaceEndpoint(
+      'ExecuteApiEndpoint',
       {
         service: ec2.InterfaceVpcEndpointAwsService.APIGATEWAY,
         securityGroups: [this.vpcEndpointSecurityGroup],
@@ -279,7 +279,7 @@ export class VpcConstuct extends Construct {
       },
     );
 
-    this.sqsEndpoint = this.vpc.addInterfaceEndpoint('SqsEnpoint', {
+    this.sqsEndpoint = this.vpc.addInterfaceEndpoint('SqsEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SQS,
       securityGroups: [this.vpcEndpointSecurityGroup],
       privateDnsEnabled: true,
@@ -310,8 +310,8 @@ export class VpcConstuct extends Construct {
       description: 'VPC Cidr Block',
     });
 
-    new CfnOutput(this, 'excecuteApiEnpointId', {
-      value: this.excecuteApiEndpoint.vpcEndpointId,
+    new CfnOutput(this, 'excecuteApiEndpointId', {
+      value: this.executeApiEndpoint.vpcEndpointId,
       description: 'VPC Endpoint Id for Api Gateway execute-api',
     });
   }

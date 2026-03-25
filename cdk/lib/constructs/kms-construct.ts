@@ -47,7 +47,7 @@ export class KmsConstruct extends Construct {
 
     this.key.addToResourcePolicy(
       new iam.PolicyStatement({
-        sid: 'AlowIAMPolicies',
+        sid: 'AllowIAMPolicies',
         effect: iam.Effect.ALLOW,
         principals: [new iam.AccountRootPrincipal()],
         actions: [

@@ -72,7 +72,7 @@ export class WafConstruct extends Construct {
         },
         visibilityConfig: {
           cloudWatchMetricsEnabled: true,
-          metricName: `${resourcePrefix}-rat-limit`,
+          metricName: `${resourcePrefix}-rate-limit`,
           sampledRequestsEnabled: true,
         },
       });

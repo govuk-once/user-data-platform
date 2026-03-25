@@ -73,13 +73,13 @@ export class PerfStack extends Stack {
     new CfnOutput(this, 'PerfCodeBuildProjectName', {
       value: this.codebuildProject.project.projectName,
       description: 'Codebuild project name for performance test',
-      exportName: `${id}-PerCodeBuildProjectName`,
+      exportName: `${id}-PerfCodeBuildProjectName`,
     });
 
     new CfnOutput(this, 'PerfCodeBuildProjectArn', {
       value: this.codebuildProject.project.projectArn,
       description: 'Codebuild project ARN for performance test',
-      exportName: `${id}-PerCodeBuildProjectArn`,
+      exportName: `${id}-PerfCodeBuildProjectArn`,
     });
   }
 }

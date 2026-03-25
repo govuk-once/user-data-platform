@@ -91,6 +91,11 @@ export class ApiGatewayConstruct extends Construct {
           ),
           actions: ['execute-api:Invoke'],
           resources: ['execute-api/*'],
+          conditions: {
+            StringEquals: {
+              'aws:sourceVpce': policyVpcEndpointIds
+            }
+          }
         }),
       );
     }
