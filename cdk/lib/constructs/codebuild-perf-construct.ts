@@ -81,7 +81,7 @@ export class CodeBuildPerfConstruct extends Construct {
 
     codeBuildRole.addToPolicy(
       new PolicyStatement({
-        sid: 'CLoudwatchLogs',
+        sid: 'CloudwatchLogs',
         actions: [
           'logs:CreateLogGroup',
           'logs:CreateLogStream',
@@ -125,7 +125,7 @@ export class CodeBuildPerfConstruct extends Construct {
 
     codeBuildRole.addToPolicy(
       new PolicyStatement({
-        sid: 'CreateNetweorkInterfacePermission',
+        sid: 'CreateNetworkInterfacePermission',
         actions: ['ec2:CreateNetworkInterfacePermission'],
         resources: [
           `arn:aws:ec2:${awsRegion}:${stack.account}:network-interface/*`,

@@ -159,10 +159,7 @@ export class MonitoringStack extends Stack {
     );
   }
 
-  private createDynamoDBAlarms(
-    table: dynamodb.ITable,
-    resourcePrefix: string,
-  ) {
+  private createDynamoDBAlarms(table: dynamodb.ITable, resourcePrefix: string) {
     new cloudwatch.Alarm(this, 'DynamoDbReadThrottled', {
       alarmName: `${resourcePrefix}-dynamodb-read-throttled`,
       alarmDescription: 'Dynamodb read requests are being throttled',
