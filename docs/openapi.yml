@@ -754,7 +754,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1774615437
+                      minimum: 1774621620
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -888,7 +888,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1774615437
+                      minimum: 1774621620
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000

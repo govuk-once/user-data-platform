@@ -17,11 +17,11 @@ Performance tests measure response times across thousands of requests. Rather th
 
 ## Non-Functional Requirements (NFRs)
 
-| Metric | Threshold |
-| --- | --- |
-| P95 Latency | < 200ms |
-| Target RPS | 100 |
-| Max Error Rate | < 0.1% |
+| Metric         | Threshold |
+| -------------- | --------- |
+| P95 Latency    | < 200ms   |
+| Target RPS     | 100       |
+| Max Error Rate | < 0.1%    |
 
 These are defined in `performance/src/config.ts` and referenced across all scenarios.
 
@@ -53,7 +53,6 @@ Measures Lambda cold-start latency by jumping from 0 to 100 RPS with no warm-up 
 
 **Pre-requisite:** Ensure no traffic has hit the target environment for at least 10 minutes before running so that Lambda instances have scaled to zero.
 
-
 ```bash
 
 nx run @test/performance:cold-start-impact
@@ -66,21 +65,15 @@ nx run @test/performance:cold-start-impact
 
 Simulates a sudden spike in read traffic with a mix of 80% read operations. Ramps from 10 to 150 RPS over 12 minutes.
 
-
-
 ```bash
 
 nx run @test/performance:read-heavy-spike
 
 ```
 
-
-
 ### Write Heavy Burst
 
 Validates that write-heavy traffic doesn't cause DynamoDB throttling or KMS bottlenecks. Tests only write operations (postData, patchData, postIdentity, postUser) with ramping load from 10 to 250 RPS. Includes additional P99 thresholds on individual write operations to detect throttling.
-
-
 
 ```bash
 
@@ -90,11 +83,9 @@ nx run @test/performance:write-heavy-burst
 
 **Stages:** warm-up at 10 RPS (2m) -> ramp to 50 (3m) -> sustain 50 (2m) -> burst to 150 (3m) -> sustain 150 (3m) -> peak at 250 (2m) -> sustain 250 (3m) -> ramp down (3m)
 
-
 ### Stress Reads
 
 Read-only stress test that ramps from 10 to 300 RPS in 1-minute increments (30 stages). Tests only read operations (getData, getIdentity, getLinkedIdentity). Will abort if error rate exceeds the threshold for 30 seconds.
-
 
 ```bash
 
@@ -102,11 +93,9 @@ nx run @test/performance:stress-reads
 
 ```
 
-
 ### Stress Writes
 
 Write-only stress test ramping from 10 to 300 RPS. Same structure as stress reads but targeting write operations.
-
 
 ```bash
 
@@ -154,13 +143,12 @@ Replace `<scenario-name>` with one of: `smoke`, `baseline`, `cold-start-impact`,
 Performance tests run on **AWS CodeBuild** within the private VPC, triggered by GitHub Actions workflows. The CodeBuild project is provisioned by the `perf-stack` CDK stack.
 
 ### On Pull Requests
+
 - **Workflow:** `pr-deploy.yml`
 - **Scenario:** `smoke`
 - **Trigger:** After deploy and E2E tests pass on the PR environment
 - **Environment:** `pr-{N}-dev`
 - **Blocking:** No (fire-and-forget, `continue-on-error: true`)
-
-
 
 ### On Release (push to main)
 
@@ -169,7 +157,6 @@ Performance tests run on **AWS CodeBuild** within the private VPC, triggered by 
 - **Staging stage:** Runs `baseline` test after deploy and E2E tests pass on staging
 - **Blocking:** No (fire-and-forget), but failures trigger Slack notifications
 
-
 ### Manual Stress Tests
 
 - **Workflow:** `stress-test.yml` (manual dispatch)
@@ -177,6 +164,7 @@ Performance tests run on **AWS CodeBuild** within the private VPC, triggered by 
 - **Environment:** Staging only
 
 ### Manual Spike Test
+
 - **Workflow:** `spike-test.yml` (manual dispatch)
 - **Scenario:** `read-heavy-spike`
 - **Environment:** Staging only
@@ -200,18 +188,16 @@ Each test prints a k6 text summary to stdout showing all metrics, including HTTP
 
 Tests write a JSON summary file (e.g. `/tmp/k6-summary.json`) containing the full metric data. This is used by the post-build metric publishing step.
 
-
 ### CloudWatch Metrics
-
 
 After each test run, the following metrics are published to CloudWatch under the `UDP/PerformanceTests` namespace:
 
-| Metric | Unit | Description |
-| --- | --- | --- |
-| `P95Latency` | Milliseconds | 95th percentile request duration |
-| `ErrorRate` | Rate (0-1) | Proportion of failed HTTP requests |
-| `TotalRequests` | Count | Total number of HTTP requests made |
-| `AvgRPS` | Count/Second | Average requests per second achieved |
+| Metric          | Unit         | Description                          |
+| --------------- | ------------ | ------------------------------------ |
+| `P95Latency`    | Milliseconds | 95th percentile request duration     |
+| `ErrorRate`     | Rate (0-1)   | Proportion of failed HTTP requests   |
+| `TotalRequests` | Count        | Total number of HTTP requests made   |
+| `AvgRPS`        | Count/Second | Average requests per second achieved |
 
 Each metric is dimensioned by `Environment` (dev, stag) and `scenario` (the test name).
 
@@ -226,7 +212,6 @@ Each metric is dimensioned by `Environment` (dev, stag) and `scenario` (the test
 - **Abort on fail** - Stress tests will abort early if the error rate threshold is breached for 30 seconds, preventing unnecessary load on a failing system.
 
 **Cold start analysis:** The cold-start-impact test tracks a custom `cold_start_latency` metric for the first 30 seconds. Compare this against the overall P95 to understand the cold start penalty.
-
 
 **Write throttling:** The write-heavy-burst test includes P99 thresholds (< 400ms) on individual write operations. If these fail while P95 passes, it indicates occasional DynamoDB throttling or KMS latency spikes.
 
