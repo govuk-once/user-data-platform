@@ -1,5 +1,10 @@
 import { App, Aspects } from 'aws-cdk-lib';
-import { MainStack, MonitoringStack, SarStack } from 'cdk/lib/stacks';
+import {
+  BackupStack,
+  MainStack,
+  MonitoringStack,
+  SarStack,
+} from 'cdk/lib/stacks';
 import { repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
@@ -138,4 +143,13 @@ if (!skipMainStack) {
 
   perStack.addDependency(mainStack);
 }
+
+new BackupStack(app, `${stackPrefix}-backup`, {
+  developerId,
+  environment,
+  stackPrefix,
+  env: awsEnv,
+  description: `Backup infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+});
+
 app.synth();
