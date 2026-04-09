@@ -21,11 +21,11 @@ This document covers the backup infrastructure, how to perform on-demand restore
 
 The platform uses [AWS Backup](https://docs.aws.amazon.com/aws-backup/latest/devguide/) to protect the following resources:
 
-| Resource | Type | Backup Method |
-|---|---|---|
-| `udp-data-{env}` | DynamoDB | AWS Backup + PITR |
-| `udp-identity-{env}` | DynamoDB | AWS Backup + PITR |
-| `govuk-udpsar-bucket-{env}` | S3 | AWS Backup |
+| Resource                    | Type     | Backup Method     |
+| --------------------------- | -------- | ----------------- |
+| `udp-data-{env}`            | DynamoDB | AWS Backup + PITR |
+| `udp-identity-{env}`        | DynamoDB | AWS Backup + PITR |
+| `govuk-udpsar-bucket-{env}` | S3       | AWS Backup        |
 
 ### Infrastructure
 
@@ -45,14 +45,14 @@ Both DynamoDB tables have PITR enabled (configured in `cdk/lib/constructs/dynamo
 
 Three backup plans are available, assigned via the `backup-plan` tag or the default selection:
 
-| Plan | Schedule | Retention | Cold Storage |
-|---|---|---|---|
-| **short** | Daily at 05:00 UTC | 35 days | — |
-| **medium** | Daily at 05:00 UTC | 35 days | — |
-| | Monthly (1st) at 05:00 UTC | 1 year | After 30 days |
-| **long** | Daily at 05:00 UTC | 35 days | — |
-| | Monthly (1st) at 05:00 UTC | 1 year | After 30 days |
-| | Monthly (1st) at 05:00 UTC | 5 years | After 90 days |
+| Plan       | Schedule                   | Retention | Cold Storage  |
+| ---------- | -------------------------- | --------- | ------------- |
+| **short**  | Daily at 05:00 UTC         | 35 days   | —             |
+| **medium** | Daily at 05:00 UTC         | 35 days   | —             |
+|            | Monthly (1st) at 05:00 UTC | 1 year    | After 30 days |
+| **long**   | Daily at 05:00 UTC         | 35 days   | —             |
+|            | Monthly (1st) at 05:00 UTC | 1 year    | After 30 days |
+|            | Monthly (1st) at 05:00 UTC | 5 years   | After 90 days |
 
 ### Default Selection
 
@@ -77,11 +77,13 @@ DynamoDB supports two restore methods:
 Best for: restoring to a precise moment within the last 35 days.
 
 **What happens:**
+
 1. A new table (`{table}-restored`) is created with the data as it was at the specified time
 2. The original table is untouched
 3. The restore takes 5-30 minutes depending on table size
 
 **Requirements:**
+
 - PITR must be enabled on the source table (it is by default)
 - The restore time must be within the PITR window
 
@@ -90,11 +92,13 @@ Best for: restoring to a precise moment within the last 35 days.
 Best for: restoring from a scheduled backup recovery point (daily/monthly snapshots).
 
 **What happens:**
+
 1. A recovery point is selected from the backup vault
 2. A new table (`{table}-restored`) is created from that snapshot
 3. The original table is untouched
 
 **Requirements:**
+
 - A recovery point must exist in the vault (i.e. at least one backup has run)
 - The recovery point ARN is needed — find it in the AWS Backup console or via CLI
 
@@ -123,10 +127,10 @@ S3 restores use AWS Backup recovery points only (PITR is not available for S3).
 
 ### Restore Options
 
-| Option | Description |
-|---|---|
-| **In-place** | Restores objects back into the original bucket. Existing objects with the same key are overwritten with the backed-up version. |
-| **New bucket** | Creates a new bucket and restores all objects there. Use this for testing or when you need to compare against the original. |
+| Option         | Description                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **In-place**   | Restores objects back into the original bucket. Existing objects with the same key are overwritten with the backed-up version. |
+| **New bucket** | Creates a new bucket and restores all objects there. Use this for testing or when you need to compare against the original.    |
 
 ### Finding S3 Recovery Points
 
@@ -158,27 +162,27 @@ The **Backup Restore** workflow (`.github/workflows/restore.yml`) provides an on
 1. Go to **Actions** > **Backup Restore** > **Run workflow**
 2. Fill in the inputs:
 
-| Input | Description | Example |
-|---|---|---|
-| **environment** | `staging` or `production` | `staging` |
-| **resource_type** | `dynamodb` or `s3` | `dynamodb` |
-| **mode** | `pitr`, `backup`, or `list-recovery-points` (S3 only) | `pitr` |
-| **resource_name** | The base resource name (env suffix is added automatically) | `udp-data` |
-| **restore_time** | ISO-8601 timestamp (PITR only) | `2026-04-07T10:00:00Z` |
-| **recovery_point_arn** | Recovery point ARN (backup mode only) | `arn:aws:backup:eu-west-2:...` |
-| **new_bucket_name** | Target bucket for S3 restore (optional, S3 only) | `govuk-udpsar-bucket-stag-restored` |
-| **swap** | Print table swap instructions (DynamoDB only) | `true` |
+| Input                  | Description                                                | Example                             |
+| ---------------------- | ---------------------------------------------------------- | ----------------------------------- |
+| **environment**        | `staging` or `production`                                  | `staging`                           |
+| **resource_type**      | `dynamodb` or `s3`                                         | `dynamodb`                          |
+| **mode**               | `pitr`, `backup`, or `list-recovery-points` (S3 only)      | `pitr`                              |
+| **resource_name**      | The base resource name (env suffix is added automatically) | `udp-data`                          |
+| **restore_time**       | ISO-8601 timestamp (PITR only)                             | `2026-04-07T10:00:00Z`              |
+| **recovery_point_arn** | Recovery point ARN (backup mode only)                      | `arn:aws:backup:eu-west-2:...`      |
+| **new_bucket_name**    | Target bucket for S3 restore (optional, S3 only)           | `govuk-udpsar-bucket-stag-restored` |
+| **swap**               | Print table swap instructions (DynamoDB only)              | `true`                              |
 
 3. Click **Run workflow**
 
 ### Valid Combinations
 
-| Resource Type | Mode | Required Inputs |
-|---|---|---|
-| `dynamodb` | `pitr` | `restore_time` |
-| `dynamodb` | `backup` | `recovery_point_arn` |
-| `s3` | `backup` | `recovery_point_arn` |
-| `s3` | `list-recovery-points` | (none) |
+| Resource Type | Mode                   | Required Inputs      |
+| ------------- | ---------------------- | -------------------- |
+| `dynamodb`    | `pitr`                 | `restore_time`       |
+| `dynamodb`    | `backup`               | `recovery_point_arn` |
+| `s3`          | `backup`               | `recovery_point_arn` |
+| `s3`          | `list-recovery-points` | (none)               |
 
 > **Production restores** require approval through GitHub environment protection rules.
 
@@ -266,12 +270,12 @@ Regular DR testing should be performed in the **staging** environment to validat
 
 ### Recommended Test Schedule
 
-| Test | Frequency | Environment |
-|---|---|---|
-| DynamoDB PITR restore | Monthly | Staging |
-| DynamoDB backup vault restore | Monthly | Staging |
-| S3 backup restore | Monthly | Staging |
-| Full DR simulation (all resources) | Quarterly | Staging |
+| Test                               | Frequency | Environment |
+| ---------------------------------- | --------- | ----------- |
+| DynamoDB PITR restore              | Monthly   | Staging     |
+| DynamoDB backup vault restore      | Monthly   | Staging     |
+| S3 backup restore                  | Monthly   | Staging     |
+| Full DR simulation (all resources) | Quarterly | Staging     |
 
 ### Monthly DR Test Procedure
 
@@ -287,6 +291,7 @@ npx tsx scripts/dynamodb-restore.ts \
 ```
 
 Verify:
+
 - [ ] Restore completes without errors
 - [ ] Restored table item count is reasonable (check against source)
 - [ ] Sample records in the restored table match expected data
@@ -310,6 +315,7 @@ npx tsx scripts/dynamodb-restore.ts \
 ```
 
 Verify:
+
 - [ ] Restore completes without errors
 - [ ] Restored table item count is reasonable
 
@@ -333,6 +339,7 @@ npx tsx scripts/s3-restore.ts \
 ```
 
 Verify:
+
 - [ ] Restore completes without errors
 - [ ] Objects exist in the restored bucket
 - [ ] SAR files are readable and intact
@@ -358,6 +365,7 @@ aws s3 rb s3://govuk-udpsar-bucket-stag-dr-test
 ### "PITR is not enabled on table"
 
 PITR is enabled by default in the CDK construct. If it was manually disabled:
+
 ```bash
 aws dynamodb update-continuous-backups \
   --table-name <table-name> \
@@ -368,6 +376,7 @@ aws dynamodb update-continuous-backups \
 ### "Table already exists" error during restore
 
 A previous restore left a `-restored` table. Delete it first:
+
 ```bash
 aws dynamodb delete-table --table-name <table>-restored --region eu-west-2
 ```
@@ -381,6 +390,7 @@ aws dynamodb delete-table --table-name <table>-restored --region eu-west-2
 ### Restore job failed
 
 Check the restore job status for details:
+
 ```bash
 aws backup describe-restore-job \
   --restore-job-id <job-id> \
@@ -388,6 +398,7 @@ aws backup describe-restore-job \
 ```
 
 Common causes:
+
 - **Insufficient permissions** — verify the `{env}-infra-backup` role has the required managed policies
 - **KMS key issues** — the backup vault KMS key must be accessible to the backup role
 - **S3 bucket already exists** — when using `--new-bucket`, the target bucket must not already exist
@@ -395,6 +406,7 @@ Common causes:
 ### Restore is slow
 
 DynamoDB restore times depend on table size:
+
 - Small tables (< 1 GB): 5-15 minutes
 - Large tables (> 10 GB): 30-60+ minutes
 
