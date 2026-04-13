@@ -1,0 +1,200 @@
+name: Backup Restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      resource_type:
+        description: 'Resource type to restore'
+        required: true
+        type: choice
+        options:
+          - dynamodb
+          - s3
+      mode:
+        description: 'Restore mode (dynamodb: pitr or backup, s3: backup or list-recovery-points)'
+        required: true
+        type: choice
+        options:
+          - pitr
+          - backup
+          - list-recovery-points
+      resource_name:
+        description: 'Resource to restore (dynamodb: udp-data / udp-identity, s3: govuk-udpsar-bucket)'
+        required: true
+        type: choice
+        options:
+          - udp-data
+          - udp-identity
+          - govuk-udpsar-bucket
+      restore_time:
+        description: 'PITR: ISO-8601 restore time (e.g. 2026-04-07T10:00:00Z)'
+        required: false
+        type: string
+      recovery_point_arn:
+        description: 'Backup: Recovery point ARN from AWS Backup vault'
+        required: false
+        type: string
+      new_bucket_name:
+        description: 'S3 only: Restore to a new bucket name (leave empty to restore in-place)'
+        required: false
+        type: string
+      swap:
+        description: 'DynamoDB only: Print swap instructions after restore'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  AWS_REGION: eu-west-2
+  NODE_VERSION: '20'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    outputs:
+      full-resource-name: ${{ steps.resolve.outputs.full-resource-name }}
+      vault-name: ${{ steps.resolve.outputs.vault-name }}
+    steps:
+      - name: Validate DynamoDB + PITR inputs
+        if: inputs.resource_type == 'dynamodb' && inputs.mode == 'pitr' && inputs.restore_time == ''
+        run: |
+          echo "Error: restore_time is required for DynamoDB PITR mode"
+          exit 1
+
+      - name: Validate backup inputs
+        if: inputs.mode == 'backup' && inputs.recovery_point_arn == ''
+        run: |
+          echo "Error: recovery_point_arn is required for backup mode"
+          exit 1
+
+      - name: Validate S3 + PITR not allowed
+        if: inputs.resource_type == 's3' && inputs.mode == 'pitr'
+        run: |
+          echo "Error: PITR mode is not supported for S3. Use 'backup' or 'list-recovery-points'."
+          exit 1
+
+      - name: Validate DynamoDB + list-recovery-points not allowed
+        if: inputs.resource_type == 'dynamodb' && inputs.mode == 'list-recovery-points'
+        run: |
+          echo "Error: list-recovery-points mode is only supported for S3."
+          exit 1
+
+      - name: Resolve environment-specific values
+        id: resolve
+        run: |
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            ENV_SUFFIX="stag"
+          else
+            ENV_SUFFIX="prod"
+          fi
+
+          echo "full-resource-name=${{ inputs.resource_name }}-${ENV_SUFFIX}" >> $GITHUB_OUTPUT
+          echo "vault-name=${ENV_SUFFIX}-backup-vault" >> $GITHUB_OUTPUT
+
+  restore:
+    name: Restore ${{ needs.validate.outputs.full-resource-name }} (${{ inputs.mode }})
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm@latest-10
+          pnpm install
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ inputs.environment == 'staging' && secrets.STAGING_DEPLOYMENT_ROLE || secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── DynamoDB Restores ──────────────────────────────────────────────
+
+      - name: DynamoDB PITR restore
+        if: inputs.resource_type == 'dynamodb' && inputs.mode == 'pitr'
+        run: |
+          npx tsx scripts/dynamodb-restore.ts \
+            --mode pitr \
+            --table "${{ needs.validate.outputs.full-resource-name }}" \
+            --restore-time "${{ inputs.restore_time }}" \
+            --region "${{ env.AWS_REGION }}" \
+            ${{ inputs.swap && '--swap' || '' }}
+
+      - name: DynamoDB backup restore
+        if: inputs.resource_type == 'dynamodb' && inputs.mode == 'backup'
+        run: |
+          npx tsx scripts/dynamodb-restore.ts \
+            --mode backup \
+            --table "${{ needs.validate.outputs.full-resource-name }}" \
+            --recovery-point-arn "${{ inputs.recovery_point_arn }}" \
+            --vault "${{ needs.validate.outputs.vault-name }}" \
+            --region "${{ env.AWS_REGION }}" \
+            ${{ inputs.swap && '--swap' || '' }}
+
+      # ── S3 Restores ───────────────────────────────────────────────────
+
+      - name: S3 list recovery points
+        if: inputs.resource_type == 's3' && inputs.mode == 'list-recovery-points'
+        run: |
+          npx tsx scripts/s3-restore.ts \
+            --mode list-recovery-points \
+            --bucket "${{ needs.validate.outputs.full-resource-name }}" \
+            --vault "${{ needs.validate.outputs.vault-name }}" \
+            --region "${{ env.AWS_REGION }}"
+
+      - name: S3 backup restore
+        if: inputs.resource_type == 's3' && inputs.mode == 'backup'
+        run: |
+          npx tsx scripts/s3-restore.ts \
+            --mode backup \
+            --bucket "${{ needs.validate.outputs.full-resource-name }}" \
+            --recovery-point-arn "${{ inputs.recovery_point_arn }}" \
+            --vault "${{ needs.validate.outputs.vault-name }}" \
+            --region "${{ env.AWS_REGION }}" \
+            ${{ inputs.new_bucket_name && format('--new-bucket "{0}"', inputs.new_bucket_name) || '' }}
+
+      # ── Summary ────────────────────────────────────────────────────────
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Restore Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ inputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource type | \`${{ inputs.resource_type }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | \`${{ inputs.mode }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | \`${{ needs.validate.outputs.full-resource-name }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ inputs.mode }}" == "pitr" ]]; then
+            echo "| Restore time | \`${{ inputs.restore_time }}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.mode }}" == "backup" ]]; then
+            echo "| Recovery point | \`${{ inputs.recovery_point_arn }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| Vault | \`${{ needs.validate.outputs.vault-name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Region | \`${{ env.AWS_REGION }}\` |" >> $GITHUB_STEP_SUMMARY
