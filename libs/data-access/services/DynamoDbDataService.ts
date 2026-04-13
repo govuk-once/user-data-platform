@@ -1,4 +1,9 @@
-import { DataRecordNotFoundError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
+import {
+  DataRecordNotFoundError,
+  Logger,
+  OutOfSequenceError,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 import { Repository } from '../repositories/Repository';
 import {
   DataInput,
@@ -26,8 +31,25 @@ export class DynamoDbDataService {
     identity: IdentityRecordEntity,
     resourcePath: string,
     input: DataInput,
+    requestedAt: string,
   ) {
-    const entity = await this.createFromInput(identity, resourcePath, input);
+    const entity = this.createFromInput(identity, resourcePath, input);
+    entity.last_updated = requestedAt;
+
+    const existing = await this.repository.get({
+      pk: identity.udpId,
+      sk: resourcePath,
+    });
+
+    if (existing?.last_updated && existing.last_updated >= requestedAt) {
+      throw new OutOfSequenceError(
+        `Out pf sequence update: requesed at ${requestedAt} is before last_updated ${existing.last_updated}`,
+        UDP_ERROR_TYPES.CONFLICT,
+        existing.last_updated,
+        requestedAt,
+      );
+    }
+
     return await this.repository.save(entity);
   }
 
@@ -54,6 +76,7 @@ export class DynamoDbDataService {
     identity: IdentityRecordEntity,
     resourcePath: string,
     data: Record<string, unknown>,
+    requestedAt: string,
   ) {
     const existing = await this.repository.get({
       pk: identity.udpId,
@@ -70,11 +93,21 @@ export class DynamoDbDataService {
       );
     }
 
+    if (existing.last_updated && existing.last_updated >= requestedAt) {
+      throw new OutOfSequenceError(
+        `Out pf sequence update: requesed at ${requestedAt} is before last_updated ${existing.last_updated}`,
+        UDP_ERROR_TYPES.CONFLICT,
+        existing.last_updated,
+        requestedAt,
+      );
+    }
+
     const mergeData = this.deepMerge(existing.data ?? {}, data);
 
     const result = await this.repository.update(
       { pk: identity.udpId, sk: resourcePath },
       mergeData,
+      requestedAt,
     );
 
     return result;

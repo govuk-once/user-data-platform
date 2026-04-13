@@ -15,6 +15,7 @@ Feature: User Data API
     Scenario: Successfully add data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
+        And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
         When I send a post to '/v1/topics' with the body '{"data": {"test":"data"} }'
         Then I should receive a successful response
         Then the response body contains '{"data":{"test":"data"}}'
@@ -22,6 +23,7 @@ Feature: User Data API
     Scenario: Successfully Retrive data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
+        And I set header 'requested-at' to '2026-04-09T12:00:01.000Z'
         When I send a get to '/v1/topics'
         Then I should receive a successful response
         Then the response body contains '{"data":{"test":"data"}}'
@@ -29,6 +31,7 @@ Feature: User Data API
     Scenario: Successfully delete data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
+        And I set header 'requested-at' to '2026-04-09T12:00:02.000Z'
         When I send a delete to '/v1/topics'
         Then I should receive a successful response
 

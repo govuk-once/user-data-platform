@@ -1,4 +1,4 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+* eslint-disable  @typescript-eslint/no-explicit-any */
 
 import { describe, beforeEach, it, expect } from 'vitest';
 import { DynamoDbDataService } from './DynamoDbDataService';
@@ -14,8 +14,13 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { DataRecordNotFoundError, UDP_ERROR_TYPES } from '@libs/utils';
+import {
+  DataRecordNotFoundError,
+  OutOfSequenceError,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
@@ -45,14 +50,22 @@ describe('DynamoDb Data Service', () => {
   });
 
   describe('Save', () => {
-    it('should successfully save a valid entity', async () => {
+    const requestedAt = '2026-04-09T12:00:00.000Z';
+
+    it('should successfully save a valid entity with last_updated', async () => {
       const input: DataInput = {
         data: { test: 'value' },
       };
 
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
-      const response = await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(
+        mockIdentity,
+        mockResource,
+        input,
+        requestedAt,
+      );
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
@@ -60,12 +73,14 @@ describe('DynamoDb Data Service', () => {
           pk: mockIdentity.udpId,
           sk: mockResource,
           data: input.data,
+          last_updated: requestedAt,
         },
       });
       expect(response).toMatchObject({
         pk: mockIdentity.udpId,
         sk: mockResource,
         data: input.data,
+        last_updated: requestedAt,
       });
     });
 
@@ -75,21 +90,29 @@ describe('DynamoDb Data Service', () => {
         data: {},
       };
 
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
-      const response = await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(
+        mockIdentity,
+        mockResource,
+        input,
+        requestedAt,
+      );
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
         Item: {
           pk: mockIdentity.udpId,
           sk: mockResource,
+          last_updated: requestedAt,
         },
       });
       expect(response).toMatchObject({
         pk: mockIdentity.udpId,
         sk: mockResource,
         data: input.data,
+        last_updated: requestedAt,
       });
     });
 
@@ -100,9 +123,15 @@ describe('DynamoDb Data Service', () => {
         configuration: { expiresAt: ttl },
       };
 
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
-      const response = await service.save(mockIdentity, mockResource, input);
+      const response = await service.save(
+        mockIdentity,
+        mockResource,
+        input,
+        requestedAt,
+      );
 
       expect(getCommandCall(PutCommand, 1)).toMatchObject({
         TableName: tableName,
@@ -111,6 +140,7 @@ describe('DynamoDb Data Service', () => {
           sk: mockResource,
           data: { test: 'value' },
           ttl,
+          last_updated: requestedAt,
         },
       });
       expect(response).toMatchObject({
@@ -118,7 +148,54 @@ describe('DynamoDb Data Service', () => {
         sk: mockResource,
         data: input.data,
         ttl: ttl,
+        last_updated: requestedAt,
       });
+    });
+
+    it('should throw OutOfSequenceError when existing record has newer last_updated', async () => {
+      const input: DataInput = {
+        data: { test: 'value' },
+      };
+
+      const newerTimestamp = '2026-04-09T13:00:00.000Z';
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { old: 'data' },
+          last_updated: newerTimestamp,
+        },
+      });
+
+      await expect(
+        service.save(mockIdentity, mockResource, input, requestedAt),
+      ).rejects.toThrow(OutOfSequenceError);
+    });
+
+    it('should succeed when existing record has older last_updated', async () => {
+      const input: DataInput = {
+        data: { test: 'value' },
+      };
+
+      const olderTimestamp = '2026-04-09T11:00:00.000Z';
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { old: 'data' },
+          last_updated: olderTimestamp,
+        },
+      });
+      dynamoMock.on(PutCommand).resolves({});
+
+      const response = await service.save(
+        mockIdentity,
+        mockResource,
+        input,
+        requestedAt,
+      );
+
+      expect(response.last_updated).toEqual(requestedAt);
     });
 
     it('should throw the original error should the repository.save() call fail', async () => {
@@ -127,10 +204,11 @@ describe('DynamoDb Data Service', () => {
       };
       const mockError = new Error('The repository.save() call failed');
 
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).rejects(mockError);
 
       await expect(
-        service.save(mockIdentity, mockResource, input),
+        service.save(mockIdentity, mockResource, input, requestedAt),
       ).rejects.toThrow(mockError);
     });
   });
@@ -186,6 +264,73 @@ describe('DynamoDb Data Service', () => {
       await expect(
         service.getByKey(mockIdentity, mockResource),
       ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('Patch by Key', () => {
+    const requestedAt = '2026-04-09T12:00:00.000Z';
+
+    it('should throw OutOfSequenceError when existing record has newer last_updated', async () => {
+      const newerTimestamp = '2026-04-09T13:00:00.000Z';
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { old: 'data' },
+          last_updated: newerTimestamp,
+        },
+      });
+
+      await expect(
+        service.patchByKey(
+          mockIdentity,
+          mockResource,
+          { new: 'data' },
+          requestedAt,
+        ),
+      ).rejects.toThrow(OutOfSequenceError);
+    });
+
+    it('should succeed when existing record has older last_updated', async () => {
+      const olderTimestamp = '2026-04-09T11:00:00.000Z';
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { old: 'data' },
+          last_updated: olderTimestamp,
+        },
+      });
+      dynamoMock.on(UpdateCommand).resolves({
+        Attributes: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { old: 'data', new: 'data' },
+          last_updated: requestedAt,
+        },
+      });
+
+      const result = await service.patchByKey(
+        mockIdentity,
+        mockResource,
+        { new: 'data' },
+        requestedAt,
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    it('should throw DataRecordNotFoundError when record does not exist', async () => {
+      dynamoMock.on(GetCommand).resolves({});
+
+      await expect(
+        service.patchByKey(
+          mockIdentity,
+          mockResource,
+          { new: 'data' },
+          requestedAt,
+        ),
+      ).rejects.toThrow(DataRecordNotFoundError);
     });
   });
 

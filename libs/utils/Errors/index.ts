@@ -4,6 +4,7 @@ export enum UDP_ERROR_TYPES {
   DATA_NOT_FOUND = 'DATA_NOT_FOUND',
   SAR_NOT_FOUND = 'SAR_NOT_FOUND',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+  CONFLICT = 'CONFLICT',
 }
 
 export class BaseUDPError extends Error {
@@ -140,5 +141,22 @@ export class SarNotFoundError extends BaseUDPError {
     super(message, UDP_ERROR_TYPES.SAR_NOT_FOUND);
     this.name = 'SarNotFoundError';
     this.sarId = sarId;
+  }
+}
+
+export class OutOfSequenceError extends BaseUDPError {
+  public lastUpdated: string;
+  public requestedAt: string;
+
+  constructor(
+    message: string,
+    errorType: UDP_ERROR_TYPES.CONFLICT,
+    lastUpdated: string,
+    requestedAt: string,
+  ) {
+    this.message = message;
+    this.name = 'OutOfSequenceError';
+    this.lastUpdated = lastUpdated;
+    this.requestedAt = requestedAt;
   }
 }

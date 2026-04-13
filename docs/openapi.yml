@@ -737,6 +737,15 @@ paths:
           description: The user identifier used by the requesting service when linking the user to the app
           name: requesting-service-user-id
           in: header
+        - schema:
+            type: string
+            format: date-time
+            description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+            example: 2026-10-09T12:00:00:000Z
+          required: true
+          description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+          name: requested-at
+          in: header
       requestBody:
         content:
           application/json:
@@ -754,7 +763,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1774869787
+                      minimum: 1776066732
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -809,6 +818,43 @@ paths:
                   - errorType
                   - errorMessage
                   - errorPaths
+        '409':
+          description: Conflict - out-of-sequence update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 409
+                    description: Conflict Code
+                    example: 409
+                  errorType:
+                    type: string
+                    enum:
+                      - CONFLICT
+                    description: Conflict Type
+                    example: CONFLICT
+                  errorMessage:
+                    type: string
+                    description: ' The error message'
+                    example: 'Out-of-sequence update: requested-at is before last_updated'
+                  lastUpdated:
+                    type: string
+                    description: Current last_updated timestamp on the record
+                    example: 2026-04-09T10:00:000Z
+                  requestedAt:
+                    type: string
+                    description: The requested_at timestamp sent by the consumer
+                    example: 2026-04-09T10:00:000Z
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - lastUpdated
+                  - requestedAt
         '500':
           description: Internal Server Error
           content:
@@ -871,6 +917,15 @@ paths:
           description: The user identifier used by the requesting service when linking the user to the app
           name: requesting-service-user-id
           in: header
+        - schema:
+            type: string
+            format: date-time
+            description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+            example: 2026-10-09T12:00:00:000Z
+          required: true
+          description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+          name: requested-at
+          in: header
       requestBody:
         content:
           application/json:
@@ -888,7 +943,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1774869787
+                      minimum: 1776066732
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -943,6 +998,43 @@ paths:
                   - errorType
                   - errorMessage
                   - errorPaths
+        '409':
+          description: Conflict - out-of-sequence update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 409
+                    description: Conflict Code
+                    example: 409
+                  errorType:
+                    type: string
+                    enum:
+                      - CONFLICT
+                    description: Conflict Type
+                    example: CONFLICT
+                  errorMessage:
+                    type: string
+                    description: ' The error message'
+                    example: 'Out-of-sequence update: requested-at is before last_updated'
+                  lastUpdated:
+                    type: string
+                    description: Current last_updated timestamp on the record
+                    example: 2026-04-09T10:00:000Z
+                  requestedAt:
+                    type: string
+                    description: The requested_at timestamp sent by the consumer
+                    example: 2026-04-09T10:00:000Z
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - lastUpdated
+                  - requestedAt
         '500':
           description: Internal Server Error
           content:

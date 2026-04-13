@@ -63,6 +63,7 @@ describe('postDataLambda handler', () => {
     headers: {
       ...headers,
       'requesting-service': mockAppService,
+      'requested_at': new Date().toDateString(),
       'Content-Type': 'application/json',
     },
     requestContext: {} as any,
@@ -152,6 +153,10 @@ describe('postDataLambda handler', () => {
         errorMessage: 'Validation Errors',
         errorPaths: ['requesting-service', 'requesting-service-user-id'],
       });
+      const errorPaths = JSON.parse(result.body).errorPaths;
+      expect(errorPaths).toContain('requesting-service');
+      expect(errorPaths).toContain('requesting-service-user-id');
+      expect(errorPaths).toContain('requested-at');
     });
 
     it('should return 400 when required header is invalid', async () => {
@@ -294,4 +299,56 @@ describe('postDataLambda handler', () => {
       });
     });
   });
+
+  describe('out-of-sequence detection', () =>{
+    it('should return 409 when requested_at is older than stored last_updated', async () => {
+      const oldTimestamp = '2020-01-01T00:00:00.000Z';
+      const body = { data: { status: 'active' } };
+      const event = createEvent(
+        {
+          'requesting-service-user-id': mockAppId,
+          requested_at: oldTimestamp,
+        },
+        { resourcePath: 'topics' },
+        body,
+      );
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockUdpId,
+          ks: 'topics',
+          data: { old: 'data' },
+          last_updated: '2026-04-09T12:00:00:00.000Z',
+        },
+      });
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(409);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 409,
+        errorType: 'CONFLICT',
+      });
+    });
+
+     it('should return 400 when requested_at header is missing', async () => {
+      const body = { data: { status: 'active' } };
+      const event = createEvent(
+        {
+          'requesting-service-user-id': mockAppId,
+        },
+        { resourcePath: 'topics' },
+        body,
+      );
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 400,
+        errorType: 'BAD_REQUEST',
+      });
+    });
+  })
 });

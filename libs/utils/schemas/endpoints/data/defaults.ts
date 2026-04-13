@@ -22,6 +22,14 @@ export const dataEndpointHeaderSchema = z
   })
   .loose();
 
+export const dataWriteEndpointHeaderSchema = dataEndpointHeaderSchema.extend({
+  'requested-at': z.string().datetime().openapi({
+    description:
+      'ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection',
+    example: '2026-10-09T12:00:00:000Z',
+  }),
+});
+
 export const dataEndpointPathSchema = z.object({
   resourcePath: z.string('is required').min(1).openapi({
     description: 'The resource path that the data is held under',
@@ -35,6 +43,9 @@ export const dataEndpointNotFoundResponseSchema = z.union([
 ]);
 
 export type DataEndpointHeaders = z.infer<typeof dataEndpointHeaderSchema>;
+export type DataWriteEndpointHeaders = z.infer<
+  typeof dataWriteEndpointHeaderSchema
+>;
 export type DataEndpointPathParmeters = z.infer<typeof dataEndpointPathSchema>;
 export type DataEndpointNotFoundResponse = z.infer<
   typeof dataEndpointNotFoundResponseSchema
