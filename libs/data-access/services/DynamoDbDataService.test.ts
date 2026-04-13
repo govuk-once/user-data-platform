@@ -1,4 +1,4 @@
-* eslint-disable  @typescript-eslint/no-explicit-any */
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 
 import { describe, beforeEach, it, expect } from 'vitest';
 import { DynamoDbDataService } from './DynamoDbDataService';
