@@ -43,7 +43,7 @@ export class DynamoDbDataService {
 
     if (existing?.last_updated && existing.last_updated >= requestedAt) {
       throw new OutOfSequenceError(
-        `Out pf sequence update: requesed at ${requestedAt} is before last_updated ${existing.last_updated}`,
+        `Out pf sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
         UDP_ERROR_TYPES.CONFLICT,
         existing.last_updated,
         requestedAt,

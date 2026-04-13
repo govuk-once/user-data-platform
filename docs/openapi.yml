@@ -763,7 +763,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1776066732
+                      minimum: 1776068634
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -847,7 +847,7 @@ paths:
                     example: 2026-04-09T10:00:000Z
                   requestedAt:
                     type: string
-                    description: The requested_at timestamp sent by the consumer
+                    description: The requested-at timestamp sent by the consumer
                     example: 2026-04-09T10:00:000Z
                 required:
                   - errorCode
@@ -943,7 +943,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1776066732
+                      minimum: 1776068634
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1027,7 +1027,7 @@ paths:
                     example: 2026-04-09T10:00:000Z
                   requestedAt:
                     type: string
-                    description: The requested_at timestamp sent by the consumer
+                    description: The requested-at timestamp sent by the consumer
                     example: 2026-04-09T10:00:000Z
                 required:
                   - errorCode

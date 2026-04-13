@@ -97,7 +97,7 @@ export const conflictResponseSchema = z.object({
     example: '2026-04-09T10:00:000Z',
   }),
   requestedAt: z.string().openapi({
-    description: 'The requested_at timestamp sent by the consumer',
+    description: 'The requested-at timestamp sent by the consumer',
     example: '2026-04-09T10:00:000Z',
   }),
 });

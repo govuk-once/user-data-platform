@@ -44,7 +44,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     );
 
   const body = event.body as unknown as { data: Record<string, unknown> };
-  const requestedAt = event.headers['requested_at'];
+  const requestedAt = event.headers['requested-at'];
 
   const record = await factory
     .getService('data')
