@@ -154,7 +154,7 @@ export class OutOfSequenceError extends BaseUDPError {
     lastUpdated: string,
     requestedAt: string,
   ) {
-    super(message, errorType)
+    super(message, errorType);
     this.message = message;
     this.name = 'OutOfSequenceError';
     this.lastUpdated = lastUpdated;

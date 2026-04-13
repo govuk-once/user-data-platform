@@ -468,10 +468,10 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
           : {}),
       };
 
-      if(lastUpdated) {
-        updateExpression  += ', #last_update = :last_updated';
+      if (lastUpdated) {
+        updateExpression += ', #last_update = :last_updated';
         expressionAttributeNames['#last_updated'] = 'last_updated';
-        expressionAttributeValues[':last_updated'] = lastUpdated
+        expressionAttributeValues[':last_updated'] = lastUpdated;
       }
 
       const command = new UpdateCommand({

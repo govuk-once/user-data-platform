@@ -80,14 +80,13 @@ export function udpErrorHandling(
           return;
         }
 
-
-        if(error instanceof OutOfSequenceError) {
+        if (error instanceof OutOfSequenceError) {
           const responseBody: ConflictResponse = {
             errorCode: 409,
             errorMessage,
             errorType: 'CONFLICT',
             lastUpdated: error.lastUpdated,
-            requestedAt: error.requestedAt
+            requestedAt: error.requestedAt,
           };
           request.response = {
             statusCode: 409,
