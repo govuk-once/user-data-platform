@@ -257,7 +257,7 @@ export const routes: Record<string, RouteConfig> = {
   },
   postData: {
     name: 'postData',
-    dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
+    dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query'],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/write'],
     method: 'POST',
