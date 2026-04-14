@@ -89,7 +89,11 @@ export interface Repository<T extends Entity> {
    * @param data - The entity to save
    * @returns A promise that resolves with the updated entity or null is entity doesnt exist
    */
-  update(keys: Partial<T>, data: Record<string, unknown>): Promise<T | null>;
+  update(
+    keys: Partial<T>,
+    data: Record<string, unknown>,
+    lastUpdated?: string,
+  ): Promise<T | null>;
 
   /**
    * Saves an entity to the repository.

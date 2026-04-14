@@ -141,6 +141,7 @@ export interface DynamoDBDataEntity {
   sk: string;
   data?: Record<string, unknown>;
   ttl?: number;
+  last_updated?: string;
 }
 
 export interface SAREntity {

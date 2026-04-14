@@ -1,5 +1,6 @@
 import {
   badRequestResponseSchema,
+  conflictResponseSchema,
   identityNotFoundResponseSchema,
   internalServerErrorResponseSchema,
 } from '../defaults/errors';
@@ -19,6 +20,7 @@ import {
   dataEndpointHeaderSchema,
   dataEndpointNotFoundResponseSchema,
   dataEndpointPathSchema,
+  dataWriteEndpointHeaderSchema,
 } from '../endpoints/data/defaults';
 import {
   postDataRequestSchema,
@@ -255,7 +257,7 @@ export const routes: Record<string, RouteConfig> = {
   },
   postData: {
     name: 'postData',
-    dynamoDbActions: ['dynamodb:PutItem', 'dynamodb:Query'],
+    dynamoDbActions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query'],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/write'],
     method: 'POST',
@@ -264,7 +266,7 @@ export const routes: Record<string, RouteConfig> = {
     description: 'Create Resource path data Record',
     tags: ['data'],
     params: dataEndpointPathSchema,
-    headers: dataEndpointHeaderSchema,
+    headers: dataWriteEndpointHeaderSchema,
     body: postDataRequestSchema,
     successResponses: [
       {
@@ -278,6 +280,11 @@ export const routes: Record<string, RouteConfig> = {
         status: 400,
         description: 'Bad Request',
         schema: badRequestResponseSchema,
+      },
+      {
+        status: 409,
+        description: 'Conflict - out-of-sequence update',
+        schema: conflictResponseSchema,
       },
       {
         status: 500,
@@ -301,7 +308,7 @@ export const routes: Record<string, RouteConfig> = {
     description: 'Patch Resource path data Record',
     tags: ['data'],
     params: dataEndpointPathSchema,
-    headers: dataEndpointHeaderSchema,
+    headers: dataWriteEndpointHeaderSchema,
     body: patchDataRequestSchema,
     successResponses: [
       {
@@ -315,6 +322,11 @@ export const routes: Record<string, RouteConfig> = {
         status: 400,
         description: 'Bad Request',
         schema: badRequestResponseSchema,
+      },
+      {
+        status: 409,
+        description: 'Conflict - out-of-sequence update',
+        schema: conflictResponseSchema,
       },
       {
         status: 500,

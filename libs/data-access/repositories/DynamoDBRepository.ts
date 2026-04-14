@@ -428,7 +428,11 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     return entity;
   }
 
-  async update(keys: Partial<T>, data: Record<string, unknown>) {
+  async update(
+    keys: Partial<T>,
+    data: Record<string, unknown>,
+    lastUpdated?: string,
+  ) {
     const { pk, sk } = this.validateKeys(keys);
 
     this.logger?.debug('Updating item in DynamoDB', {
@@ -446,7 +450,7 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       : { data };
 
     try {
-      const updateExpression = this.encryption
+      let updateExpression = this.encryption
         ? 'SET #data = :data, #dataKey = :dataKey'
         : 'SET #data = :data';
 
@@ -463,6 +467,12 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
             }
           : {}),
       };
+
+      if (lastUpdated) {
+        updateExpression += ', #last_updated = :last_updated';
+        expressionAttributeNames['#last_updated'] = 'last_updated';
+        expressionAttributeValues[':last_updated'] = lastUpdated;
+      }
 
       const command = new UpdateCommand({
         TableName: this.tableName,

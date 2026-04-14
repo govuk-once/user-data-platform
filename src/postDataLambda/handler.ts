@@ -43,12 +43,15 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       event.headers['requesting-service-user-id'],
     );
 
+  const requestedAt = event.headers['requested-at'];
+
   const record = await factory
     .getService('data')
     .save(
       identity,
       event.pathParameters.resourcePath,
       event.body as unknown as DataInput,
+      requestedAt,
     );
 
   tracer.putAnnotation('putEntitySuccess', true);
