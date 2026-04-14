@@ -18,14 +18,14 @@ Feature: User Data API
         And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
         When I send a post to '/v1/user-topics' with the body '{"data": {"test":"data"} }'
         Then I should receive a successful response
-        Then the response body contains '{"data":{"test":"data"}}'
+        Then the response body contains '{"data":{"test":"data"}, "last_updated": "2026-04-09T12:00:00.000Z"}'
 
     Scenario: Successfully Retrieve data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
         When I send a get to '/v1/user-topics'
         Then I should receive a successful response
-        Then the response body contains '{"data":{"test":"data"}}'
+        Then the response body contains '{"data":{"test":"data"}, "last_updated": "2026-04-09T12:00:00.000Z" }'
 
     Scenario: Successfully delete data
         Given I set header 'requesting-service' to 'app'

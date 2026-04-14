@@ -14,14 +14,14 @@ Feature: SAR Api
     Scenario: Setup - Add data for user
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
-        And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
+        And I set header 'requested-at' to '2026-04-09T13:00:00.000Z'
         When I send a post to '/v1/sar-test/data1' with the body '{"data": { "key":"value1", "testData": "important info" }}'
         Then I should receive a successful response
 
     Scenario: Setup - Add more data for the user
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
-        And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
+        And I set header 'requested-at' to '2026-04-09T14:00:00.000Z'
         When I send a post to '/v1/sar-test/data2' with the body '{"data": { "key":"value2", "moreData": "additional info" }}'
         Then I should receive a successful response
 
