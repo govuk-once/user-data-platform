@@ -51,7 +51,6 @@ Feature: Patch data
     Scenario: Successfully Retrive data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'patch-e2e-user-1'
-        And I set header 'requested-at' to '2026-04-09T12:00:01.000Z'
         When I send a get to '/v1/patch-test'
         Then I should receive a successful response
         Then the response body should contain '"key"'
@@ -60,7 +59,6 @@ Feature: Patch data
     Scenario: Successfully delete data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'patch-e2e-user-1'
-        And I set header 'requested-at' to '2026-04-09T12:00:02.000Z'
         When I send a delete to '/v1/patch-test'
         Then I should receive a successful response
 
