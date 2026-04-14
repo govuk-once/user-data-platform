@@ -74,13 +74,6 @@ export class S3Construct extends Construct {
       ],
     });
 
-    // Enable MFA Delete on the bucket's versioning configuration
-    const cfnBucket = this.bucket.node.defaultChild as s3.CfnBucket;
-    cfnBucket.addPropertyOverride(
-      'VersioningConfiguration.MFADelete',
-      'Enabled',
-    );
-
     // Restrict bucket access to VPC if VPC is provided
     // Note: VPC restrictions are incompatible with autoDeleteObjects since the
     // CDK cleanup Lambda runs outside the VPC. Only apply in production.
