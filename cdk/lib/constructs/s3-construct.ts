@@ -3,6 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface S3ConstructProps {
   developerId?: string;
@@ -37,16 +38,34 @@ export class S3Construct extends Construct {
 
     const enableAutoDelete = environment === 'dev';
 
+    const accessLogsBucket = new s3.Bucket(this, 'AccessLogsBucket', {
+      bucketName: `${fullBucketName}-access-logs`,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      removalPolicy: getRemovalPolicy(environment),
+      autoDeleteObjects: enableAutoDelete,
+      lifecycleRules: [
+        {
+          enabled: true,
+          expiration: Duration.days(360),
+        },
+      ],
+    });
+
     this.bucket = new s3.Bucket(this, 'Bucket', {
       bucketName: fullBucketName,
       encryption: s3.BucketEncryption.KMS,
       encryptionKey: kmsKey,
+      bucketKeyEnabled: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       versioned: true,
       removalPolicy:
         environment === 'dev' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
       autoDeleteObjects: enableAutoDelete,
+      serverAccessLogsBucket: accessLogsBucket,
+      serverAccessLogsPrefix: 'access-logs/',
       lifecycleRules: [
         {
           enabled: true,
