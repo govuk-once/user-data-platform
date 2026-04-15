@@ -288,6 +288,65 @@ export class VpcConstruct extends Construct {
       },
     });
 
+    const nacl = new ec2.NetworkAcl(this, 'RestrictedNacl', {
+      vpc: this.vpc,
+      networkAclName: `udp-restricted-nacl-${environment}`,
+    });
+
+    nacl.addEntry('DenyInboundSSH', {
+      ruleNumber: 50,
+      cidr: ec2.AclCidr.anyIpv4(),
+      traffic: ec2.AclTraffic.tcpPort(22),
+      direction: ec2.TrafficDirection.INGRESS,
+      ruleAction: ec2.Action.DENY,
+    });
+
+    nacl.addEntry('DenyInboundRDP', {
+      ruleNumber: 51,
+      cidr: ec2.AclCidr.anyIpv4(),
+      traffic: ec2.AclTraffic.tcpPort(3289),
+      direction: ec2.TrafficDirection.INGRESS,
+      ruleAction: ec2.Action.DENY,
+    });
+
+    nacl.addEntry('AllowAllInbound', {
+      ruleNumber: 100,
+      cidr: ec2.AclCidr.anyIpv4(),
+      traffic: ec2.AclTraffic.allTraffic(),
+      direction: ec2.TrafficDirection.INGRESS,
+      ruleAction: ec2.Action.ALLOW,
+    });
+
+    nacl.addEntry('AllowAllOutbound', {
+      ruleNumber: 100,
+      cidr: ec2.AclCidr.anyIpv4(),
+      traffic: ec2.AclTraffic.allTraffic(),
+      direction: ec2.TrafficDirection.EGRESS,
+      ruleAction: ec2.Action.ALLOW,
+    });
+
+    this.vpc.privateSubnets.forEach((subnet, index) => {
+      new ec2.SubnetNetworkAclAssociation(
+        this,
+        `PrivateSubnetNaclAssoc${index}`,
+        {
+          subnet,
+          networkAcl: nacl,
+        },
+      );
+    });
+
+    this.vpc.isolatedSubnets.forEach((subnet, index) => {
+      new ec2.SubnetNetworkAclAssociation(
+        this,
+        `IsolatedSubnetNaclAssoc${index}`,
+        {
+          subnet,
+          networkAcl: nacl,
+        },
+      );
+    });
+
     const flowLogGroup = new logs.LogGroup(this, 'FlowLogGroup', {
       logGroupName: `/aws/vpc/flow-logs-${environment}`,
       retention: getLogRetentionPeriod(environment),
