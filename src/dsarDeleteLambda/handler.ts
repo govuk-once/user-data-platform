@@ -29,7 +29,7 @@ const factory = new ServiceFactory({
   identityTableName: IDENTITY_TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
   tracer,
-  logger
+  logger,
 });
 
 export const lambdaHandler = async (event: SQSEvent) => {

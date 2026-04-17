@@ -34,7 +34,7 @@ const factory = new ServiceFactory({
   tableName: TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
   tracer,
-  logger
+  logger,
 });
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
