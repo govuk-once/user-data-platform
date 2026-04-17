@@ -242,6 +242,7 @@ export class MainStack extends Stack {
         environmentVariables: {
           STACK: stackPrefix,
           SERVICE_NAME: route.name,
+          POWERTOOLS_SERVICE_NAME: route.name,
         },
         ...(routeQueue
           ? {
