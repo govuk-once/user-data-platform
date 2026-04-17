@@ -18,6 +18,7 @@ export interface ServiceFactoryConfig {
   identityTableName: string;
   kmsKeyId?: string;
   tracer?: Tracer;
+  logger?: Logger;
 }
 
 export class ServiceFactory {
@@ -26,11 +27,14 @@ export class ServiceFactory {
   private kmsKeyId: string;
   private docClient: DynamoDBDocumentClient;
   private services: Map<string, unknown> = new Map();
+  private logger?: Logger;
 
   constructor(config: ServiceFactoryConfig) {
     this.identityTableName = config.identityTableName;
     this.tableName = config.tableName;
     this.kmsKeyId = config.kmsKeyId;
+
+    this.logger = config.logger ?? (console as unknown as Logger);
 
     const client = config.tracer
       ? config.tracer.captureAWSv3Client(new DynamoDBClient({}))
@@ -81,6 +85,7 @@ export class ServiceFactory {
       this.tableName,
       this.docClient,
       encryption,
+      this.logger,
     );
 
     return new DynamoDbDataService(repository);
@@ -100,7 +105,7 @@ export class ServiceFactory {
       this.identityTableName,
       this.docClient,
       encryption,
-      console as unknown as Logger,
+      this.logger,
     );
 
     return new DynamoDBIdentityService(repository);
@@ -112,6 +117,7 @@ export class ServiceFactory {
       this.tableName,
       this.docClient,
       encryption,
+      this.logger,
     );
 
     return repository;

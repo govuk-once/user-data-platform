@@ -33,6 +33,7 @@ const factory = new ServiceFactory({
   identityTableName: process.env.IDENTITY_TABLE_NAME || 'not-required',
   kmsKeyId: process.env.KMS_KEY_ID,
   tracer,
+  logger,
 });
 
 /**
