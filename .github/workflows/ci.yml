@@ -29,6 +29,12 @@ jobs:
       - name: Run Hygiene & Security Checks
         run: SKIP=format-check,linting-check,checkov-scan,semgrep pre-commit run --all-files --show-diff-on-failure
 
+      - name: Run Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.0
+        with:
+          fail-on-severity: high # Will fail on newly introduced vulnerabilities
+          license-check: false
+
       - name: NX - set SHAs
         uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4.4.0
 
