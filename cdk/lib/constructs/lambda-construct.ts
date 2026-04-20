@@ -190,17 +190,15 @@ export class LambdaApiConstruct extends Construct {
     httpMethod: string,
     cachingEnabled: boolean,
   ): void {
-    const usecaching = httpMethod === 'GET' && cachingEnabled;
+    const useCacheing = httpMethod === 'GET' && cachingEnabled;
     const pathParts = routePath.split('/').filter((p) => p.length > 0);
 
-    const pathParams = pathParts
+    const pathParms = pathParts
       .filter((p) => p.startsWith('{') && p.endsWith('}'))
-      .map((p) => p.replace(/[()+]/g, ''));
+      .map((p) => p.replace(/[{}+]/g, ''));
 
-    const { cacheKeyParameters, requestParameters } = this.buildCacheParameters(
-      usecaching,
-      pathParams,
-    );
+    const { cacheKeyParameters, requestParameters } =
+      this.buildCacheParameters(useCacheing, pathParms);
 
     const integration = new apigateway.LambdaIntegration(this.function, {
       proxy: true,
@@ -209,7 +207,7 @@ export class LambdaApiConstruct extends Construct {
     });
 
     let resource: apigateway.IResource = api.root;
-    for (const part of pathParams) {
+    for (const part of pathParts) {
       resource = resource.getResource(part) ?? resource.addResource(part);
     }
 
@@ -224,7 +222,7 @@ export class LambdaApiConstruct extends Construct {
 
   private buildCacheParameters(
     useCacheing: boolean,
-    pathParams: string[],
+    pathParms: string[],
   ): {
     cacheKeyParameters: string[];
     requestParameters: Record<string, boolean>;
@@ -237,9 +235,9 @@ export class LambdaApiConstruct extends Construct {
     }
 
     const keys = [
-      ...pathParams.map((p) => `method.request.path.${p}`),
-      'method.request.header.requesting-service',
-      'method.request.header.requesting-service-user-id',
+      ...pathParms.map((p) => `method.request.path.${p}`),
+      `method.request.header.requesting-service`,
+      `method.request.header.requesting-service-user-id`,
     ];
 
     for (const key of keys) {
