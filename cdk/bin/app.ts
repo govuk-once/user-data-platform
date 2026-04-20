@@ -50,7 +50,7 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 Aspects.of(app).add(new CheckovSuppressionAspect());
 
-const stackDescription = developerId ? ` for ${developerId}` : ''
+const stackDescription = developerId ? ` for ${developerId}` : '';
 
 if (!skipMainStack) {
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {

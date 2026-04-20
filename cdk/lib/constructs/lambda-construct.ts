@@ -197,8 +197,10 @@ export class LambdaApiConstruct extends Construct {
       .filter((p) => p.startsWith('{') && p.endsWith('}'))
       .map((p) => p.replace(/[{}+]/g, ''));
 
-    const { cacheKeyParameters, requestParameters } =
-      this.buildCacheParameters(useCacheing, pathParms);
+    const { cacheKeyParameters, requestParameters } = this.buildCacheParameters(
+      useCacheing,
+      pathParms,
+    );
 
     const integration = new apigateway.LambdaIntegration(this.function, {
       proxy: true,
