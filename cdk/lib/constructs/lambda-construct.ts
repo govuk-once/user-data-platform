@@ -180,55 +180,73 @@ export class LambdaApiConstruct extends Construct {
     }
 
     if (api && routePath && httpMethod) {
-      const isGetMethod = httpMethod === 'GET';
-      const useCacheing = isGetMethod && cachingEnabled;
-      const pathParts = routePath.split('/').filter((p) => p.length > 0);
-      let resource: apigateway.IResource = api.root;
-
-      const pathParms = pathParts
-        .filter((p) => p.startsWith('{') && p.endsWith('}'))
-        .map((p) => p.replace(/[{}+]/g, ''));
-
-      const cacheKeyParameters: string[] = [];
-      const requestParameters: Record<string, boolean> = {};
-
-      if (useCacheing) {
-        for (const param of pathParms) {
-          cacheKeyParameters.push(`method.request.path.${param}`);
-          requestParameters[`method.request.path.${param}`] = true;
-        }
-        cacheKeyParameters.push(`method.request.header.requesting-service`);
-        requestParameters[`method.request.header.requesting-service`] = true;
-
-        cacheKeyParameters.push(
-          `method.request.header.requesting-service-user-id`,
-        );
-        requestParameters[`method.request.header.requesting-service-user-id`] =
-          true;
-      }
-
-      const integration = new apigateway.LambdaIntegration(this.function, {
-        proxy: true,
-        cacheKeyParameters:
-          cacheKeyParameters.length > 0 ? cacheKeyParameters : undefined,
-      });
-
-      for (const part of pathParts) {
-        const existingResource = resource.getResource(part);
-        if (existingResource) {
-          resource = existingResource;
-        } else {
-          resource = resource.addResource(part);
-        }
-      }
-
-      resource.addMethod(httpMethod, integration, {
-        authorizationType: apigateway.AuthorizationType.IAM,
-        requestParameters:
-          Object.keys(requestParameters).length > 0
-            ? requestParameters
-            : undefined,
-      });
+      this.configureApiRoute(api, routePath, httpMethod, cachingEnabled);
     }
+  }
+
+  private configureApiRoute(
+    api: apigateway.RestApi,
+    routePath: string,
+    httpMethod: string,
+    cachingEnabled: boolean,
+  ): void {
+    const useCacheing = httpMethod === 'GET' && cachingEnabled;
+    const pathParts = routePath.split('/').filter((p) => p.length > 0);
+
+    const pathParms = pathParts
+      .filter((p) => p.startsWith('{') && p.endsWith('}'))
+      .map((p) => p.replace(/[{}+]/g, ''));
+
+    const { cacheKeyParameters, requestParameters } = this.buildCacheParameters(
+      useCacheing,
+      pathParms,
+    );
+
+    const integration = new apigateway.LambdaIntegration(this.function, {
+      proxy: true,
+      cacheKeyParameters:
+        cacheKeyParameters.length > 0 ? cacheKeyParameters : undefined,
+    });
+
+    let resource: apigateway.IResource = api.root;
+    for (const part of pathParts) {
+      resource = resource.getResource(part) ?? resource.addResource(part);
+    }
+
+    resource.addMethod(httpMethod, integration, {
+      authorizationType: apigateway.AuthorizationType.IAM,
+      requestParameters:
+        Object.keys(requestParameters).length > 0
+          ? requestParameters
+          : undefined,
+    });
+  }
+
+  private buildCacheParameters(
+    useCacheing: boolean,
+    pathParms: string[],
+  ): {
+    cacheKeyParameters: string[];
+    requestParameters: Record<string, boolean>;
+  } {
+    const cacheKeyParameters: string[] = [];
+    const requestParameters: Record<string, boolean> = {};
+
+    if (!useCacheing) {
+      return { cacheKeyParameters, requestParameters };
+    }
+
+    const keys = [
+      ...pathParms.map((p) => `method.request.path.${p}`),
+      `method.request.header.requesting-service`,
+      `method.request.header.requesting-service-user-id`,
+    ];
+
+    for (const key of keys) {
+      cacheKeyParameters.push(key);
+      requestParameters[key] = true;
+    }
+
+    return { cacheKeyParameters, requestParameters };
   }
 }

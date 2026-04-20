@@ -27,7 +27,7 @@ export class DynamoDbDataService {
     resourcePath: string,
     input: DataInput,
   ) {
-    const entity = await this.createFromInput(identity, resourcePath, input);
+    const entity = this.createFromInput(identity, resourcePath, input);
     return await this.repository.save(entity);
   }
 

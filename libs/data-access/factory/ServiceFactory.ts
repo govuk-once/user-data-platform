@@ -22,12 +22,12 @@ export interface ServiceFactoryConfig {
 }
 
 export class ServiceFactory {
-  private tableName: string;
-  private identityTableName?: string;
-  private kmsKeyId: string;
-  private docClient: DynamoDBDocumentClient;
-  private services: Map<string, unknown> = new Map();
-  private logger?: Logger;
+  private readonly tableName: string;
+  private readonly identityTableName?: string;
+  private readonly kmsKeyId: string;
+  private readonly docClient: DynamoDBDocumentClient;
+  private readonly services: Map<string, unknown> = new Map();
+  private readonly logger?: Logger;
 
   constructor(config: ServiceFactoryConfig) {
     this.identityTableName = config.identityTableName;

@@ -69,6 +69,7 @@ export class MainStack extends Stack {
   public readonly e2eTestConsumerSecret?: ISecret;
   public readonly e2eTestConsumerRole?: IRole;
   public readonly e2eTestConsumerApiKeyValue?: string;
+  public readonly waf: WafConstruct;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -180,7 +181,7 @@ export class MainStack extends Stack {
 
     this.api = apiGateway.api;
 
-    new WafConstruct(this, 'waf', {
+    this.waf = new WafConstruct(this, 'waf', {
       developerId,
       environment,
       namePrefix: 'api',

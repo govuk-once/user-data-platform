@@ -37,8 +37,8 @@ ENV_FILE="$E2E_DIR/.env"
 rm -f "$ENV_FILE"
 
 
-if [ "$USE_PERSONAL" = true ] && [ -z "$DEVELOPER_ID" ]; then
-    if [ -f "$CDK_DIR/scripts/set-developer.sh" ]; then
+if [[ "$USE_PERSONAL" = true ] && [ -z "$DEVELOPER_ID" ]]; then
+    if [[ -f "$CDK_DIR/scripts/set-developer.sh" ]]; then
         DEVELOPER_ID=$("$CDK_DIR/scripts/set-developer.sh")
         echo "Auto detected developer ID: $DEVELOPER_ID"
     else

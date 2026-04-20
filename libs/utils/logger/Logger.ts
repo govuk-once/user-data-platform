@@ -17,8 +17,8 @@ export interface CommonLogFields {
 let logger;
 
 export class Logger extends PowerToolLogger {
-  private redactedFields: string[];
-  private commonFields: CommonLogFields;
+  private readonly redactedFields: string[];
+  private readonly commonFields: CommonLogFields;
 
   constructor(commonFields: CommonLogFields, options?: LoggerOptions) {
     super({
