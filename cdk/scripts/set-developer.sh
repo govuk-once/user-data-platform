@@ -15,13 +15,13 @@ get_developer_id() {
     local first_name
 
     git_email=$(git config --get user.email 2>/dev/null || echo "")
-    if [ -z "$git_email" ]; then
+    if [[ -z "$git_email" ]]; then
         echo "Error: Git email not configured"
         exit 1
     fi
 
     git_name=$(git config --get user.name 2>/dev/null || echo "")
-    if [ -z "$git_name" ]; then
+    if [[ -z "$git_name" ]]; then
        first_name=$(echo "$git_name" | awk '{print tolower($1)}' | tr -cd 'a-z0-9')
     else
        first_name=$(echo "$git_email" | cut -d'@' -f1 | tr -cd 'a-z0-9' | cut -c1-10)

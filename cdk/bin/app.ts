@@ -50,13 +50,15 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 Aspects.of(app).add(new CheckovSuppressionAspect());
 
+const stackDescription = developerId ? ` for ${developerId}` : ''
+
 if (!skipMainStack) {
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `Main infrastructure stack ${stackDescription}`,
     vpc: vpcStack.vpc,
     lambdaSecurityGroup: vpcStack.lambdaSecurityGroup,
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
@@ -73,7 +75,7 @@ if (!skipMainStack) {
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `DSAR procession stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `DSAR procession stack ${stackDescription}`,
     table: mainStack.table,
     identityTable: mainStack.identityTable,
     kmsKey: mainStack.kmsKey,
@@ -97,7 +99,7 @@ if (!skipMainStack) {
       environment,
       stackPrefix,
       env: awsEnv,
-      description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
+      description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
       lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
@@ -112,7 +114,7 @@ if (!skipMainStack) {
     developerId,
     environment,
     env: awsEnv,
-    description: `E2E testing stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `E2E testing stack ${stackDescription}`,
     vpc: vpcStack.vpc,
     codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     kmsKeyAlias,
@@ -130,7 +132,7 @@ if (!skipMainStack) {
     developerId,
     environment,
     env: awsEnv,
-    description: `Performance test stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `Performance test stack ${stackDescription}`,
     vpc: vpcStack.vpc,
     codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     apiEndpoint: mainStack.api.url,
@@ -150,7 +152,7 @@ if (environment !== GovUkOnceEnvironments.Dev) {
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `Backup infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `Backup infrastructure stack ${stackDescription}`,
   });
 }
 
