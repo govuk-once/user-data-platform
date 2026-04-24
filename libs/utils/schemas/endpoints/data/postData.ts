@@ -8,7 +8,7 @@ extendZodWithOpenApi(z);
  Response Schemas & Types
 */
 
-const getCurrentTime = 1776867570
+const getCurrentTime = 1776867570;
 
 const dataObjectSchema = z
   .object()
