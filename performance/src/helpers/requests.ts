@@ -63,7 +63,7 @@ export function getLinkedIdentity(
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/identity/exchange?requiredService=${service}`);
   const reqHeaders = mergeHeaders(signedHeaders('GET', url), headers);
-  const res = http.get(url, { headers:reqHeaders });
+  const res = http.get(url, { headers: reqHeaders });
 
   if (![200, 404].includes(res.status)) {
     console.log('getIdentity', { status: res.status, resbody: res.body });
