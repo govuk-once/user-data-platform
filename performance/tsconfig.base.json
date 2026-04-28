@@ -13,6 +13,6 @@
     "baseUrl": ".",
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["vode_modules", "dist"]
 }
