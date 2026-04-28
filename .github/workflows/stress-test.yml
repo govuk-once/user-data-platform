@@ -21,4 +21,4 @@ jobs:
       stack-prefix: stag
       perf-target: ${{ inputs.perf-target }}
     secrets:
-      DEVELOPMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
