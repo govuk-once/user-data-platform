@@ -59,10 +59,11 @@ export function getIdentity(
 
 export function getLinkedIdentity(
   service: string,
+  headers?: Record<string, string>,
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/identity/exchange?requiredService=${service}`);
-  const headers = signedHeaders('GET', url);
-  const res = http.get(url, { headers });
+  const reqHeaders = mergeHeaders(signedHeaders('GET', url), headers);
+  const res = http.get(url, { headers: reqHeaders });
 
   if (![200, 404].includes(res.status)) {
     console.log('getIdentity', { status: res.status, resbody: res.body });

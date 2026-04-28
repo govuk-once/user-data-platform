@@ -92,7 +92,7 @@ export function createScenarioRunner(config: ScenarioConfig): {
         getIdentity(SERVICE_NAME, `identity-${user.appId}`);
         break;
       case 'getLinkedIdentity':
-        getLinkedIdentity(SERVICE_NAME);
+        getLinkedIdentity(SERVICE_NAME, user.headers);
         break;
       case 'postData':
         postData(
