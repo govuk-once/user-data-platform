@@ -25,6 +25,32 @@ Builds the typescript, then run the smoke test
 nx run @test/performance:smoke
 ```
 
+## Seeding read/delete scenarios
+
+`stress-reads` and `stress-deletes` are pure read/delete scenarios — they don't issue any writes, so they need data pre-populated in DynamoDB before the k6 run. Both targets declare `seed` in their `dependsOn`, so `nx run @test/performance:stress-reads` will invoke the seed automatically.
+
+The seed writes records directly to DynamoDB (BatchWriteItem) — bypassing the API Gateway throttle and per-Lambda concurrency limits — using deterministic udpIds so re-runs overwrite rather than grow the dataset.
+
+Required env vars (already exported by `e2e/scripts/extract-cdk-outputs.sh`):
+
+- `IDENTITY_TABLE_NAME`
+- `DYNAMODB_TABLE_NAME`
+- `AWS_REGION`
+
+Optional overrides:
+
+- `TEST_PREFIX` (default `per-stress-reads`) — must match the scenario's `testPrefix`. Set to `per-stress-deletes` when seeding for that scenario.
+- `SEED_VU_COUNT` (default `500`) — should match the scenario's `maxVUs`.
+- `RESOURCE_PATH` (default `topics`) — the data record sk.
+- `LINKED_SERVICE_NAME` (default `perf-svc`) — paired identity for the exchange flow.
+
+```bash
+nx run @test/performance:seed
+```
+
+> **stress-deletes caveat**: the seed populates `SEED_VU_COUNT` records; the delete scenario will exhaust them quickly. Increase `SEED_VU_COUNT` or re-seed mid-run to sustain a longer delete test.
+
+
 ### Cold start
 
 Measures Lambda cold-start latency by jumping from 0-100 RPS with no warm-up phase, uses intentionally loe pre-allocated VUs (10) to force reactive scaling. A custom `cold-start-latency` metric captures request durations during the first 30 sec of analysis
