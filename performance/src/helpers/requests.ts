@@ -109,7 +109,7 @@ export function patchData(
     console.log('patchData', { status: res.status, resbody: res.body });
   }
   check(res, {
-    [`DELETE /v1/{path} status is 200  or 404`]: (r) =>
+    [`PATCH /v1/{path} status is 200  or 404`]: (r) =>
       r.status === 200 || r.status === 404,
   });
 
