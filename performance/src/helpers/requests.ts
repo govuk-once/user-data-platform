@@ -91,7 +91,7 @@ export function postData(
   }
 
   check(res, {
-    [`POST  /v1/${path} status is 200`]: (r) => r.status === 200,
+    [`POST data /v1/${path} status is 200`]: (r) => r.status === 200,
   });
 
   return res;
@@ -109,7 +109,7 @@ export function patchData(
     console.log('patchData', { status: res.status, resbody: res.body });
   }
   check(res, {
-    [`PATCH /v1/{path} status is 200  or 404`]: (r) =>
+    [`PATCH data /v1/{path} status is 200  or 404`]: (r) =>
       r.status === 200 || r.status === 404,
   });
 
@@ -149,7 +149,7 @@ export function postUser(
   }
 
   check(res, {
-    [`POST /v1/user status is 200 or 204`]: (r) =>
+    [`POST user /v1/user status is 200 or 204`]: (r) =>
       r.status === 200 || r.status === 204,
   });
 
@@ -168,7 +168,7 @@ export function deleteData(
     console.log('deleteData', { status: res.status, resbody: res.body });
   }
   check(res, {
-    [`DELETE /v1/user status is 200  or 404`]: (r) =>
+    [`DELETE data /v1/{path} status is 200  or 404`]: (r) =>
       r.status === 200 || r.status === 404,
   });
 
