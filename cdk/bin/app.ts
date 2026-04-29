@@ -141,6 +141,8 @@ if (!skipMainStack) {
     e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
     sourceBucketName: e2eStack.sourceBucket.bucketName,
     warningTopic: monitoringStack.warningTopic,
+    identityTableName: mainStack.identityTable.tableName,
+    dataTableName: mainStack.table.tableName,
   });
 
   perStack.addDependency(mainStack);
