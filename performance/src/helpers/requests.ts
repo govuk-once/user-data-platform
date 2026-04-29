@@ -104,7 +104,7 @@ export function patchData(
 ): RefinedResponse<ResponseType> {
   const url = buildUrl(`/v1/${path}`);
   const reqHeeaders = mergeHeaders(signedHeaders('PATCH', url, body), headers);
-  const res = http.post(url, JSON.stringify(body), { headers: reqHeeaders });
+  const res = http.patch(url, JSON.stringify(body), { headers: reqHeeaders });
   if (![200, 404].includes(res.status)) {
     console.log('patchData', { status: res.status, resbody: res.body });
   }
