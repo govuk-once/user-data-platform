@@ -37,7 +37,7 @@ export default function () {
   postIdentity('smoke-svc', IDENTITY_ID, { appId: APP_ID });
   getIdentity('smoke-svc', IDENTITY_ID);
   deleteIdentity('smoke-svc', IDENTITY_ID);
-  getLinkedIdentity('smoke-svc');
+  getLinkedIdentity('smoke-svc', dataHeaders);
 
   deleteIdentity('app', APP_ID);
 }
