@@ -18,6 +18,8 @@ export interface PerfStackProps extends StackProps {
   readonly e2eTestConsumerApiKeyValue?: string;
   readonly sourceBucketName: string;
   readonly warningTopic: ITopic;
+  readonly identityTableName: string;
+  readonly dataTableName: string;
 }
 
 export class PerfStack extends Stack {
@@ -37,6 +39,8 @@ export class PerfStack extends Stack {
       e2eTestConsumerApiKeyValue,
       sourceBucketName,
       warningTopic,
+      identityTableName,
+      dataTableName,
     } = props;
 
     const resourcePrefix = developerId
@@ -54,6 +58,8 @@ export class PerfStack extends Stack {
       sourceBucket: sourceBucketName,
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,
+      identityTableName,
+      dataTableName,
     });
 
     new Rule(this, `PerfTestFailureRule`, {
