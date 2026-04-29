@@ -1,6 +1,7 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
-SUMMARY_FILE="tmp/k6-summary.json"
+SUMMARY_FILE="/tmp/k6-summary.json"
 
 if [[ ! -f "$SUMMARY_FILE" ]]; then
     echo "No k6 file found at ${SUMMARY_FILE} - skipping Cloudwatch publish"
