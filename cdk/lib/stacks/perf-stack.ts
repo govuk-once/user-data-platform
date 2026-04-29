@@ -40,7 +40,7 @@ export class PerfStack extends Stack {
       sourceBucketName,
       warningTopic,
       identityTableName,
-      dataTableName
+      dataTableName,
     } = props;
 
     const resourcePrefix = developerId
@@ -59,7 +59,7 @@ export class PerfStack extends Stack {
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,
       identityTableName,
-      dataTableName
+      dataTableName,
     });
 
     new Rule(this, `PerfTestFailureRule`, {
