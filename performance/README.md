@@ -50,7 +50,6 @@ nx run @test/performance:seed
 
 > **stress-deletes caveat**: the seed populates `SEED_VU_COUNT` records; the delete scenario will exhaust them quickly. Increase `SEED_VU_COUNT` or re-seed mid-run to sustain a longer delete test.
 
-
 ### Cold start
 
 Measures Lambda cold-start latency by jumping from 0-100 RPS with no warm-up phase, uses intentionally loe pre-allocated VUs (10) to force reactive scaling. A custom `cold-start-latency` metric captures request durations during the first 30 sec of analysis
