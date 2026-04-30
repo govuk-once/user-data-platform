@@ -63,6 +63,6 @@ export function handleSummary(
 ): Record<string, string> {
   return {
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
-    '/tmp/k6-summary-write-heavy-burst.json': JSON.stringify(data),
+    '/tmp/k6-summary.json': JSON.stringify(data),
   };
 }

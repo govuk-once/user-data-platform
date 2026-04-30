@@ -273,7 +273,7 @@ export class MainStack extends Stack {
     };
 
     const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
-      test: { rateLimit: 100, burstLimit: 200 },
+      test: { rateLimit: 500, burstLimit: 1000 },
     };
 
     for (const [consumerName, consumerConfig] of Object.entries(
