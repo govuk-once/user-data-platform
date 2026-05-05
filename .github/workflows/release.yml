@@ -363,5 +363,3 @@ jobs:
       perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
-
-  
