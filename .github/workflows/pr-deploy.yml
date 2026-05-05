@@ -191,7 +191,7 @@ jobs:
 
   perf-test:
     name: 'Performance Tests'
-    needs: [deploy, e2e-tests]
+    needs: deploy
     uses: './.github/workflows/__perf-test.yml'
     with:
       environment: dev
