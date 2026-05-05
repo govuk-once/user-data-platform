@@ -107,7 +107,9 @@ export function zodValidator(
       } catch (error) {
         if (error instanceof ZodError) {
           const formattedError = formatZodValidationError(error);
-          logger.error(formattedError.message);
+          logger.error(formattedError.message, {
+            errorPaths: formattedError.errorPaths,
+          });
           throw formattedError;
         }
 
@@ -133,7 +135,9 @@ export function zodValidator(
       } catch (error) {
         if (error instanceof ZodError) {
           const formattedError = formatZodValidationError(error);
-          logger.error(formattedError.message);
+          logger.error(formattedError.message, {
+            errorPaths: formattedError.errorPaths,
+          });
           return;
         }
 
