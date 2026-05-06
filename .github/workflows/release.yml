@@ -187,7 +187,7 @@ jobs:
 
   perf-test-dev:
     name: 'Performance Tests'
-    needs: [deploy-dev, e2e-dev]
+    needs: deploy-dev
     uses: './.github/workflows/__perf-test.yml'
     with:
       environment: dev
@@ -354,7 +354,7 @@ jobs:
 
   perf-test-staging:
     name: 'Performance Tests'
-    needs: [deploy-staging, e2e-staging]
+    needs: deploy-staging
     uses: './.github/workflows/__perf-test.yml'
     with:
       environment: stag
@@ -363,47 +363,3 @@ jobs:
       perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
-
-  # Temp disable until defined and permissions correct on repo
-  # deploy-production:
-  #   name: Deploy to production
-  #   needs: e2e-staging
-  #   runs-on: ubuntu-latest
-  #   environment: production
-
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ github.ref_name }}
-
-  #     - name: Setup pnpm
-  #       run: |
-  #         npm install -g pnpm@latest-10
-  #         pnpm install
-
-  #     - name: Setup Node
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-  #         cache: 'pnpm'
-
-  #     - name: Install Dependencies
-  #       run: pnpm i --frozen-lockfile
-
-  #     - name: Configure AWS Credentials
-  #       id: aws-creds-prod
-  #       uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-  #       with:
-  #         role-to-assume: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         output-credentials: true
-
-  #     - name: Deploy to production
-  #       run: npx run cdk:deploy:prod
-  #       env:
-  #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.authenticated-arn}}
-
-  #     - name: Tag Deployment
-  #       run: |
-  #         echo "Deployed version ${{ github.ref_name }} to production"
