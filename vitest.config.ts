@@ -9,10 +9,10 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.ts'],
     coverage: {
-      enabled: false,
+      enabled: true,
       provider: 'v8',
-      reportsDirectory: './coverage',
-      reporter: ['text'],
+      reportsDirectory: process.env.VITEST_COVERAGE_DIR ?? './coverage',
+      reporter: ['text', 'lcov'],
     },
   },
   resolve: {
