@@ -4,6 +4,7 @@ import { config } from '../config';
 import { signedHeaders } from './auth';
 
 const okOrNotFound = http.expectedStatuses(200, 404);
+const okOrNoContent = http.expectedStatuses(200, 204);
 
 function buildUrl(path: string): string {
   const base = config.apiBaseUrl.replace(/\/+$/, '');
@@ -155,7 +156,7 @@ export function postUser(
   const headers = signedHeaders('POST', url, body);
   const res = http.post(url, JSON.stringify(body), {
     headers,
-    responseCallback: okOrNotFound,
+    responseCallback: okOrNoContent,
   });
 
   if (![200, 204].includes(res.status)) {
