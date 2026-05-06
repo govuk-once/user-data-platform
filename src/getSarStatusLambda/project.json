@@ -6,7 +6,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run src/getSarStatusLambda/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/getSarStatusLambda vitest run src/getSarStatusLambda/*"
       }
     },
     "build": {

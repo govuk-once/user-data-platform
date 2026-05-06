@@ -6,7 +6,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run src/postDataLambda/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/postDataLambda vitest run src/postDataLambda/*"
       }
     },
     "build": {

@@ -6,7 +6,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run src/dsarDeleteLambda/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/dsarDeleteLambda vitest run src/dsarDeleteLambda/*"
       }
     },
     "build": {

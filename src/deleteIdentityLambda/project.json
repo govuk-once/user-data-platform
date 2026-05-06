@@ -6,7 +6,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run src/deleteIdentityLambda/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/deleteIdentityLambda vitest run src/deleteIdentityLambda/*"
       }
     },
     "build": {
