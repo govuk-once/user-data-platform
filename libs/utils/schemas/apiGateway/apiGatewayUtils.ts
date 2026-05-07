@@ -3,10 +3,9 @@ import type { ZodObject } from 'zod';
 import {
   Model,
   JsonSchemaType,
-  type RestApi,
-  ModelOptions,
   MethodOptions,
   RequestValidator,
+  type RestApi,
 } from 'aws-cdk-lib/aws-apigateway';
 
 export function bodyToApiGatewayModelJson(

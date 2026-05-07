@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 
 import { App, Stack } from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
@@ -9,7 +9,6 @@ import {
   RestApi,
   AuthorizationType,
   LambdaIntegration,
-  CfnMethodProps,
 } from 'aws-cdk-lib/aws-apigateway';
 import { Function, Code, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
