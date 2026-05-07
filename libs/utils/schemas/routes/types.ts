@@ -16,6 +16,7 @@ export interface RouteConfig<
   TResponse extends z.ZodTypeAny = z.ZodTypeAny,
 > {
   name: string;
+  testApiGatewayModel?: boolean;
   dynamoDbActions?: string[];
   identityTableActions?: string[];
   environmentVariables?: Record<string, string>;

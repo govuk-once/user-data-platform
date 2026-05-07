@@ -21,4 +21,6 @@ export * from './endpoints/sar-dsar/sar';
 export * from './routes/routes';
 export * from './routes/types';
 
-export * from './openApi/opeanApiRegistry';
+export * from './openApi/openApiRegistry';
+
+export * from './apiGateway/apiGatewayUtils';

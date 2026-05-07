@@ -9,8 +9,12 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration } from 'aws-cdk-lib';
 import * as path from 'path';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { bodyToApiGatewayModel, applyModelRequestValidator } from '@libs/utils';
+import type { RouteBody } from '@libs/utils/schemas';
+import { ZodObject } from 'zod';
 
 export interface LambdaApiConstructProps {
+  readonly testApiGatewayModel?: boolean;
   readonly developerId?: string;
   readonly environment: string;
   readonly functionName: string;
@@ -28,6 +32,7 @@ export interface LambdaApiConstructProps {
   readonly identityDbActions?: string[];
   readonly api?: apigateway.RestApi;
   readonly httpMethod?: string;
+  readonly body?: RouteBody;
   readonly routePath?: string;
   readonly logRetentionDays?: logs.RetentionDays;
   readonly vpc?: ec2.IVpc;
@@ -47,6 +52,7 @@ export class LambdaApiConstruct extends Construct {
     super(scope, id);
 
     const {
+      testApiGatewayModel = false,
       developerId,
       environment,
       functionName,
@@ -64,6 +70,7 @@ export class LambdaApiConstruct extends Construct {
       identityDbActions = ['dynamodb:GetItem'],
       api,
       httpMethod,
+      body,
       logRetentionDays = logs.RetentionDays.ONE_YEAR,
       routePath,
       vpc,
@@ -127,7 +134,6 @@ export class LambdaApiConstruct extends Construct {
       environmentEncryption: kmsKey,
       logGroup: this.logGroup,
       tracing: lambda.Tracing.ACTIVE,
-
       vpc,
       vpcSubnets: vpc
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
@@ -180,16 +186,30 @@ export class LambdaApiConstruct extends Construct {
     }
 
     if (api && routePath && httpMethod) {
-      this.configureApiRoute(api, routePath, httpMethod, cachingEnabled);
+      this.configureApiRoute(
+        scope,
+        api,
+        id,
+        routePath,
+        httpMethod,
+        cachingEnabled,
+        testApiGatewayModel,
+        body,
+      );
     }
   }
 
   private configureApiRoute(
+    scope: Construct,
     api: apigateway.RestApi,
+    id: string,
     routePath: string,
     httpMethod: string,
     cachingEnabled: boolean,
+    testApiGatewayModel?: boolean,
+    body?: ZodObject,
   ): void {
+    testApiGatewayModel = testApiGatewayModel ?? false;
     const useCacheing = httpMethod === 'GET' && cachingEnabled;
     const pathParts = routePath.split('/').filter((p) => p.length > 0);
 
@@ -213,13 +233,28 @@ export class LambdaApiConstruct extends Construct {
       resource = resource.getResource(part) ?? resource.addResource(part);
     }
 
-    resource.addMethod(httpMethod, integration, {
+    let methodOptions: apigateway.MethodOptions = {
       authorizationType: apigateway.AuthorizationType.IAM,
       requestParameters:
         Object.keys(requestParameters).length > 0
           ? requestParameters
           : undefined,
-    });
+    };
+
+    if (
+      testApiGatewayModel &&
+      (httpMethod === 'POST' || httpMethod === 'PUT') &&
+      body
+    ) {
+      const model = bodyToApiGatewayModel(id, { restApi: api, body });
+      methodOptions = applyModelRequestValidator(scope, id, {
+        restApi: api,
+        methodOptions,
+        model,
+      });
+    }
+
+    resource.addMethod(httpMethod, integration, methodOptions);
   }
 
   private buildCacheParameters(

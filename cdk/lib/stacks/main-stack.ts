@@ -31,7 +31,6 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   getLogRetentionPeriod,
-  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,
@@ -223,6 +222,7 @@ export class MainStack extends Stack {
         : undefined;
 
       const lambda = new LambdaApiConstruct(this, route.name, {
+        testApiGatewayModel: route.testApiGatewayModel,
         developerId,
         environment,
         functionName: `${route.name}Lambda`,
@@ -239,6 +239,7 @@ export class MainStack extends Stack {
           : ['dynamodb:GetItem'],
         api: apiGateway.api,
         httpMethod: route.method,
+        body: route.body,
         routePath: route.path,
         environmentVariables: {
           STACK: stackPrefix,

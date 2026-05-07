@@ -3,5 +3,7 @@
     "eu-west-2a",
     "eu-west-2b",
     "eu-west-2c"
-  ]
+  ],
+  "ssm:account=542403648748:parameterName=/development/udp-param/udp/externalConsumers:region=eu-west-2": "{\"flex\":{\"accountId\":\"308036881389\",\"permissions\":[\"read\",\"write\",\"delete\"],\"description\":\"Flex integration\",\"vpcEndpointId\":\"vpce-0fda65abeaa732a68\"},\"gdsuns\":{\"accountId\":\"674663567518\",\"permissions\":[\"read\",\"write\",\"delete\"],\"description\":\"UNS integration\",\"vpcEndpointId\":\"vpce-0067983e5c41dfbaf\"}}",
+  "ssm:account=542403648748:parameterName=/development/udp-param/udp/monitoring:region=eu-west-2": "{\"workspaceId\":\"T8GT9416G\",\"channelId\":\"C08T9GHBDEF\"}"
 }

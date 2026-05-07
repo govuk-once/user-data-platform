@@ -48,6 +48,7 @@ export * from './types';
 
 export const routes: Record<string, RouteConfig> = {
   createUser: {
+    testApiGatewayModel: true,
     name: 'createUser',
     dynamoDbActions: [
       'dynamodb:PutItem',
