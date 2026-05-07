@@ -29,9 +29,6 @@
 
     "lint": {
       "executor": "@nx/eslint:lint",
-      "configurations": {
-        "scripts": "echo \"Override inferred @nx/eslint:lint\""
-      },
       "cache": true,
       "options": {
         "lintFilePatterns": [ "{projectRoot}/**/*.{ts,js}" ],
