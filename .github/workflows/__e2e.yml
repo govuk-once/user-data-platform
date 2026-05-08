@@ -1,0 +1,118 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      codebuild-project:
+        description: 'CodeBuild project name to run e2e tests'
+        required: true
+        type: string
+      source-bucket:
+        description: 'S3 bucket for source upload'
+        required: true
+        type: string
+      source-path:
+        description: 'S3 path/key for source upload'
+        required: true
+        type: string
+      aws-region:
+        required: false
+        type: string
+        default: 'eu-west-2'
+      node-version:
+        required: false
+        type: string
+        default: '20'
+    secrets:
+      DEPLOYMENT_ROLE:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm@latest-10
+          pnpm install
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Upload source to S3
+        env:
+          SOURCE_BUCKET: ${{ inputs.source-bucket }}
+          SOURCE_PATH: ${{ inputs.source-path }}
+        run: |
+          echo "UPLOADING source to s3 get store path"
+          STORE_PATH=$(pnpm store path)
+          pnpm store prune
+
+          mkdir -p .pnpm-store
+          cp -r "${STORE_PATH}"/* .pnpm-store/
+
+          echo "UPLOADING source to s3 for e2e"
+          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
+          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
+
+      - name: Trigger Codebuild and wait for completion
+        id: codebuild
+        env:
+          CODEBUILD_PROJECT: ${{ inputs.codebuild-project }}
+          AWS_REGION: ${{ inputs.aws-region }}
+        run: |
+          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
+
+          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
+
+          echo "Build started ${BUILD_ID}"
+          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
+
+          while true; do
+            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
+            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
+
+            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
+
+            case "${BUILD_STATUS}" in
+              SUCCEEDED)
+                echo "E2E tests passed!"
+                exit 0
+                ;;
+              FAILED|FAULT|STOPPED|TIMED_OUT)
+                echo "E2E tests failed with status ${BUILD_STATUS}"
+                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
+                exit 1
+                ;;
+              IN_PROGRESS)
+                sleep 30
+                ;;
+              *)
+                echo "unknown status: ${BUILD_STATUS}"
+                sleep 30
+                ;;
+            esac
+          done
