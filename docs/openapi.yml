@@ -41,8 +41,15 @@ paths:
                   type: string
                   description: The Users Identifier for the GOVUK App
                   example: 8538bc99-3596-4eb3-8101-263e70519315
+                serviceName:
+                  type: string
+                  enum:
+                    - app
+                  description: The service name
+                  example: app
               required:
                 - appId
+                - serviceName
       responses:
         '204':
           description: No Content

@@ -13,6 +13,10 @@ export const createUserRequestSchema = z.object({
     description: 'The Users Identifier for the GOVUK App',
     example: '8538bc99-3596-4eb3-8101-263e70519315',
   }),
+  serviceName: z.enum(['app']).openapi({
+    description: 'The service name',
+    example: 'app',
+  }),
 });
 
 export const CreateUserResponseSchema = z.object({}).strict().required();
