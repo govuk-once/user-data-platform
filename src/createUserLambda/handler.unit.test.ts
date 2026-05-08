@@ -45,6 +45,7 @@ describe('createItentityHandler', () => {
 
   describe('Create App User', () => {
     const mockAppId = 'app123';
+    const mockServiceName = 'app';
     const mockUdpId = 'mock-string-uuid4';
     const mockAppIdentity: IdentityRecordEntity = {
       pk: `app#${mockAppId}`,
@@ -55,7 +56,7 @@ describe('createItentityHandler', () => {
     };
 
     describe('Validation Errors', () => {
-      it('Should throw validation error if the appId is not set in the body', async () => {
+      it('Should throw validation error if the body is empty', async () => {
         const event: APIGatewayProxyEventV2 = {
           headers: {
             'Content-Type': 'application/json',
@@ -76,7 +77,57 @@ describe('createItentityHandler', () => {
           errorCode: 400,
           errorType: 'BAD_REQUEST',
           errorMessage: 'Validation Errors',
+          errorPaths: ['appId', 'serviceName'],
+        });
+      });
+
+      it('Should throw validation error if the appId is not set in the body', async () => {
+        const event: APIGatewayProxyEventV2 = {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          requestContext: {} as any,
+          isBase64Encoded: false,
+          rawPath: '/v1/user',
+          rawQueryString: '',
+          version: '2.0',
+          routeKey: 'POST /v1/user',
+          body: JSON.stringify({ serviceName: mockServiceName }) as any,
+        };
+
+        const result = await handler(event, mockContext);
+
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body)).toMatchObject({
+          errorCode: 400,
+          errorType: 'BAD_REQUEST',
+          errorMessage: 'Validation Errors',
           errorPaths: ['appId'],
+        });
+      });
+
+      it('Should throw validation error if the serviceName is not set in the body', async () => {
+        const event: APIGatewayProxyEventV2 = {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          requestContext: {} as any,
+          isBase64Encoded: false,
+          rawPath: '/v1/user',
+          rawQueryString: '',
+          version: '2.0',
+          routeKey: 'POST /v1/user',
+          body: JSON.stringify({ appId: mockAppId }) as any,
+        };
+
+        const result = await handler(event, mockContext);
+
+        expect(result.statusCode).toBe(400);
+        expect(JSON.parse(result.body)).toMatchObject({
+          errorCode: 400,
+          errorType: 'BAD_REQUEST',
+          errorMessage: 'Validation Errors',
+          errorPaths: ['serviceName'],
         });
       });
     });
@@ -94,6 +145,7 @@ describe('createItentityHandler', () => {
         routeKey: 'POST /v1/user',
         body: JSON.stringify({
           appId: mockAppId,
+          serviceName: mockServiceName,
         }) as any,
       };
 
@@ -123,6 +175,7 @@ describe('createItentityHandler', () => {
         routeKey: 'POST /v1/user',
         body: JSON.stringify({
           appId: mockAppId,
+          serviceName: mockServiceName,
         }) as any,
       };
 
@@ -147,6 +200,8 @@ describe('createItentityHandler', () => {
         routeKey: 'POST /v1/user',
         body: JSON.stringify({
           appId: mockAppId,
+          serviceName: mockServiceName,
+          
         }) as any,
       };
 
