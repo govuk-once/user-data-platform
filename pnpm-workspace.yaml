@@ -3,5 +3,9 @@ packages:
   - cdk/*
   - src/*
 
-onlyBuiltDependencies:
-  - nx
+allowBuilds:
+  '@swc/core': true
+  aws-sdk: true
+  esbuild: true
+  nx: true
+  unrs-resolver: true
