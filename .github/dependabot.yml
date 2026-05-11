@@ -33,5 +33,5 @@ updates:
           - '@nx/*'
       production:
         dependency-type: production
-      dev:
+      development:
         dependency-type: development
