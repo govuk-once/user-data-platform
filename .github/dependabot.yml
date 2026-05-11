@@ -14,8 +14,24 @@ updates:
     allow:
       - dependency-type: direct
     groups:
-      production-deps:
+      aws-sdk:
+        patterns:
+          - '@aws-sdk/*'
+          - '@aws-lambda-powertools/*'
+          - '@aws-crypto/*'
+          - '@smithy/*'
+          - 'aws-sdk-client-mock*'
+      aws-cdk:
+        patterns:
+          - aws-cdk
+          - aws-cdk-lib
+          - cdk-nag
+          - constructs
+      nx:
+        patterns:
+          - nx
+          - '@nx/*'
+      production:
         dependency-type: production
-      dev-deps:
+      dev:
         dependency-type: development
-
