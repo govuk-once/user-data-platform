@@ -22,172 +22,35 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
-    permissions:
-      contents: write
-      id-token: write
-    secrets:
-      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
-      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
   deploy-dev:
     name: Deploy to dev
     needs: version
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: dev
-    outputs:
-      codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
-      source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
-      source-path: ${{ steps.get-outputs.outputs.source-path }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm@latest-10
-          pnpm install
-
-      - name: Setup NODE_VERSION
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Configure AWS Credentials
-        id: aws-creds-dev
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-          output-credentials: true
-
-      - name: Sync version from git tag
-        run: |
-          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-          npm version "${VERSION}" --no-git-tag-version
-          echo "Set local package.json version to ${VERSION}"
-
-      - name: Deploy CDK stack to dev
-        run: npx nx run cdk:deploy:dev
-        env:
-          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.authenticated-arn}}
-
-      - name: Get Stack outputs
-        id: get-outputs
-        working-directory: cdk
-        run: |
-          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
-          echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
-          echo "COdebuild Project: ${CODEBUILD_PROJECT}"
-          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
-          echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
-          echo "Source Bucket: ${SOURCE_BUCKET}"
-          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name dev-e2e --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
-          echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
-          echo "Source Path: ${SOURCE_PATH}"
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      environment: dev
+      stack-prefix: dev
+      nx-target: cdk:deploy:dev
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
   e2e-dev:
     name: E2E tests on dev
     needs: deploy-dev
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm@latest-10
-          pnpm install
-
-      - name: Setup NODE_VERSION
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Upload source to S3
-        env:
-          SOURCE_BUCKET: ${{ needs.deploy-dev.outputs.source-bucket }}
-          SOURCE_PATH: ${{ needs.deploy-dev.outputs.source-path }}
-        run: |
-          echo "UPLOADING source to s3 get store path"
-          STORE_PATH=$(pnpm store path)
-          pnpm store prune
-
-          mkdir -p .pnpm-store
-          cp -r "${STORE_PATH}"/* .pnpm-store/
-
-          echo "UPLOADING source to s3 for e2e"
-          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
-
-      - name: Trigger Codebuild and wait for completion
-        id: codebuild
-        env:
-          CODEBUILD_PROJECT: ${{ needs.deploy-dev.outputs.codebuild-project }}
-        run: |
-          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
-
-          # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
-
-          echo "Build started ${BUILD_ID}"
-          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
-
-          # poll for completion
-          while true; do
-            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
-            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
-
-            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
-
-            case "${BUILD_STATUS}" in
-              SUCCEEDED)
-                echo "E2E tests passed!"
-                exit 0
-                ;;
-              FAILED|FAULT|STOPPED|TIMED_OUT)
-                echo "E2E tests failed with status &{BUILD_STATUS}"
-
-                # get build logs
-                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].arn' --output text)
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
-
-                exit 1
-                ;;
-              IN_PROGRESS)
-                sleep 30
-                ;;
-              *)
-                echo "unknown status: ${BUILD_STATUS}"
-                sleep 30
-                ;;
-            esac
-          done
+    uses: ./.github/workflows/__e2e.yml
+    with:
+      codebuild-project: ${{ needs.deploy-dev.outputs.codebuild-project }}
+      source-bucket: ${{ needs.deploy-dev.outputs.source-bucket }}
+      source-path: ${{ needs.deploy-dev.outputs.source-path }}
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
   perf-test-dev:
     name: 'Performance Tests'
-    needs: [deploy-dev, e2e-dev]
+    needs: deploy-dev
     uses: './.github/workflows/__perf-test.yml'
     with:
       environment: dev
@@ -199,162 +62,31 @@ jobs:
 
   deploy-staging:
     name: Deploy to staging
-    needs: e2e-dev
-    runs-on: ubuntu-latest
-    environment: staging
-    outputs:
-      codebuild-project: ${{ steps.get-outputs.outputs.codebuild-project }}
-      source-bucket: ${{ steps.get-outputs.outputs.source-bucket }}
-      source-path: ${{ steps.get-outputs.outputs.source-path }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm@latest-10
-          pnpm install
-
-      - name: Setup NODE_VERSION
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Configure AWS Credentials
-        id: aws-creds-stag
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-          output-credentials: true
-
-      - name: Sync version from git tag
-        run: |
-          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-          npm version "${VERSION}" --no-git-tag-version
-          echo "Set local package.json version to ${VERSION}"
-
-      - name: Deploy CDK stack to staging
-        run: npx nx run cdk:deploy:stag
-        env:
-          CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-stag.outputs.authenticated-arn}}
-
-      - name: Get Stack outputs
-        id: get-outputs
-        working-directory: cdk
-        run: |
-          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
-          echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
-          echo "COdebuild Project: ${CODEBUILD_PROJECT}"
-          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
-          echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
-          echo "Source Bucket: ${SOURCE_BUCKET}"
-          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name stag-e2e --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
-          echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
-          echo "Source Path: ${SOURCE_PATH}"
+    needs: [e2e-dev, version]
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      environment: staging
+      stack-prefix: stag
+      nx-target: cdk:deploy:stag
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   e2e-staging:
     name: E2E tests on staging
     needs: deploy-staging
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm@latest-10
-          pnpm install
-
-      - name: Setup NODE_VERSION
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Upload source to S3
-        env:
-          SOURCE_BUCKET: ${{ needs.deploy-staging.outputs.source-bucket }}
-          SOURCE_PATH: ${{ needs.deploy-staging.outputs.source-path }}
-        run: |
-          echo "UPLOADING source to s3 get store path"
-          STORE_PATH=$(pnpm store path)
-          pnpm store prune
-
-          mkdir -p .pnpm-store
-          cp -r "${STORE_PATH}"/* .pnpm-store/
-
-          echo "UPLOADING source to s3 for e2e"
-          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
-
-      - name: Trigger Codebuild and wait for completion
-        id: codebuild
-        env:
-          CODEBUILD_PROJECT: ${{ needs.deploy-staging.outputs.codebuild-project }}
-        run: |
-          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
-
-          # Start Build
-          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
-
-          echo "Build started ${BUILD_ID}"
-          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
-
-          # poll for completion
-          while true; do
-            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
-            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
-
-            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
-
-            case "${BUILD_STATUS}" in
-              SUCCEEDED)
-                echo "E2E tests passed!"
-                exit 0
-                ;;
-              FAILED|FAULT|STOPPED|TIMED_OUT)
-                echo "E2E tests failed with status &{BUILD_STATUS}"
-
-                # get build logs
-                BUILD_ARN=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].arn' --output text)
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
-
-                exit 1
-                ;;
-              IN_PROGRESS)
-                sleep 30
-                ;;
-              *)
-                echo "unknown status: ${BUILD_STATUS}"
-                sleep 30
-                ;;
-            esac
-          done
+    uses: ./.github/workflows/__e2e.yml
+    with:
+      codebuild-project: ${{ needs.deploy-staging.outputs.codebuild-project }}
+      source-bucket: ${{ needs.deploy-staging.outputs.source-bucket }}
+      source-path: ${{ needs.deploy-staging.outputs.source-path }}
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   perf-test-staging:
     name: 'Performance Tests'
-    needs: [deploy-staging, e2e-staging]
+    needs: deploy-staging
     uses: './.github/workflows/__perf-test.yml'
     with:
       environment: stag
@@ -364,46 +96,67 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
-  # Temp disable until defined and permissions correct on repo
-  # deploy-production:
-  #   name: Deploy to production
-  #   needs: e2e-staging
-  #   runs-on: ubuntu-latest
-  #   environment: production
+  tag-prod:
+    name: Tag production release
+    needs: [version, e2e-staging, perf-test-staging]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ github.ref_name }}
+    steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+          private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
-  #     - name: Setup pnpm
-  #       run: |
-  #         npm install -g pnpm@latest-10
-  #         pnpm install
+      - name: Create and push tag via GitHub API
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          NEW_VERSION: ${{ needs.version.outputs.version }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "Tagging commit: ${COMMIT_SHA}"
 
-  #     - name: Setup Node
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-  #         cache: 'pnpm'
+          # Create an annotated tag object
+          TAG_SHA=$(jq -n \
+            --arg tag "v${NEW_VERSION}" \
+            --arg message "Release version ${NEW_VERSION}" \
+            --arg object "${COMMIT_SHA}" \
+            '{tag: $tag, message: $message, object: $object, type: "commit"}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/tags" -X POST --input - -q '.sha')
+          echo "Tag SHA: ${TAG_SHA}"
 
-  #     - name: Install Dependencies
-  #       run: pnpm i --frozen-lockfile
+          # Create the tag reference
+          jq -n \
+            --arg ref "refs/tags/v${NEW_VERSION}" \
+            --arg sha "${TAG_SHA}" \
+            '{ref: $ref, sha: $sha}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/git/refs" -X POST --input -
+          echo "Created and pushed tag v${NEW_VERSION}"
 
-  #     - name: Configure AWS Credentials
-  #       id: aws-creds-prod
-  #       uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-  #       with:
-  #         role-to-assume: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         output-credentials: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          NEW_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "v${NEW_VERSION}" \
+            --title "Release v${NEW_VERSION}" \
+            --notes "## Changes in v${NEW_VERSION}
 
-  #     - name: Deploy to production
-  #       run: npx run cdk:deploy:prod
-  #       env:
-  #         CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-prod.outputs.authenticated-arn}}
+          This release was automatically generated from commits to main."
 
-  #     - name: Tag Deployment
-  #       run: |
-  #         echo "Deployed version ${{ github.ref_name }} to production"
+  deploy-prod:
+    name: Deploy to production
+    needs: [version, tag-prod]
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      stack-prefix: prod
+      nx-target: cdk:deploy:prod
+      version: ${{ needs.version.outputs.version }}
+      expose-outputs: false
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}

@@ -110,42 +110,44 @@ if (!skipMainStack) {
 
   monitoringStack.addDependency(sarStack);
 
-  const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
-    developerId,
-    environment,
-    env: awsEnv,
-    description: `E2E testing stack ${stackDescription}`,
-    vpc: vpcStack.vpc,
-    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
-    kmsKeyAlias,
-    apiEndpoint: mainStack.api.url,
-    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
-    apiId: mainStack.api.restApiId,
-    identityTableName: mainStack.identityTable.tableName,
-    kmsKeyArn: mainStack.kmsKey.keyArn,
-    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
-  });
+  if (environment !== GovUkOnceEnvironments.Prod) {
+    const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
+      developerId,
+      environment,
+      env: awsEnv,
+      description: `E2E testing stack ${stackDescription}`,
+      vpc: vpcStack.vpc,
+      codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
+      kmsKeyAlias,
+      apiEndpoint: mainStack.api.url,
+      e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+      apiId: mainStack.api.restApiId,
+      identityTableName: mainStack.identityTable.tableName,
+      kmsKeyArn: mainStack.kmsKey.keyArn,
+      e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
+    });
 
-  e2eStack.addDependency(mainStack);
+    e2eStack.addDependency(mainStack);
 
-  const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
-    developerId,
-    environment,
-    env: awsEnv,
-    description: `Performance test stack ${stackDescription}`,
-    vpc: vpcStack.vpc,
-    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
-    apiEndpoint: mainStack.api.url,
-    apiId: mainStack.api.restApiId,
-    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
-    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
-    sourceBucketName: e2eStack.sourceBucket.bucketName,
-    warningTopic: monitoringStack.warningTopic,
-    identityTableName: mainStack.identityTable.tableName,
-    dataTableName: mainStack.table.tableName,
-  });
+    const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
+      developerId,
+      environment,
+      env: awsEnv,
+      description: `Performance test stack ${stackDescription}`,
+      vpc: vpcStack.vpc,
+      codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
+      apiEndpoint: mainStack.api.url,
+      apiId: mainStack.api.restApiId,
+      e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+      e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
+      sourceBucketName: e2eStack.sourceBucket.bucketName,
+      warningTopic: monitoringStack.warningTopic,
+      identityTableName: mainStack.identityTable.tableName,
+      dataTableName: mainStack.table.tableName,
+    });
 
-  perStack.addDependency(mainStack);
+    perStack.addDependency(mainStack);
+  }
 }
 
 if (environment !== GovUkOnceEnvironments.Dev) {
