@@ -1,9 +1,37 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-
 version: 2
 updates:
-  - package-ecosystem: 'npm' # See documentation for possible values
-    directory: '/' # Location of package manifests
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /e2e
+      - /performance
+      - /src/*
+      - /libs/*
+      - /cdk/*
     schedule:
-      interval: 'weekly'
+      interval: weekly
+    versioning-strategy: increase
+    allow:
+      - dependency-type: direct
+    groups:
+      aws-sdk:
+        patterns:
+          - '@aws-sdk/*'
+          - '@aws-lambda-powertools/*'
+          - '@aws-crypto/*'
+          - '@smithy/*'
+          - aws-sdk-client-mock*
+      aws-cdk:
+        patterns:
+          - aws-cdk
+          - aws-cdk-lib
+          - cdk-nag
+          - constructs
+      nx:
+        patterns:
+          - nx
+          - '@nx/*'
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
