@@ -20,7 +20,7 @@ updates:
           - '@aws-lambda-powertools/*'
           - '@aws-crypto/*'
           - '@smithy/*'
-          - 'aws-sdk-client-mock*'
+          - aws-sdk-client-mock*
       aws-cdk:
         patterns:
           - aws-cdk
