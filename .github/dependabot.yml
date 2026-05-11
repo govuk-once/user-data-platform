@@ -7,7 +7,7 @@ updates:
       - /performance
       - /src/*
       - /libs/*
-      - /cdk/*      
+      - /cdk/*
     schedule:
       interval: weekly
     versioning-strategy: increase
