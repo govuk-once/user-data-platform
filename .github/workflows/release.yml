@@ -144,6 +144,7 @@ jobs:
           NEW_VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release create "v${NEW_VERSION}" \
+            --target main \
             --title "Release v${NEW_VERSION}" \
             --notes "## Changes in v${NEW_VERSION}
 
