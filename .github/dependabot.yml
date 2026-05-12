@@ -3,11 +3,6 @@ updates:
   - package-ecosystem: npm
     directories:
       - /
-      - /e2e
-      - /performance
-      - /src/*
-      - /libs/*
-      - /cdk/*
     schedule:
       interval: weekly
     versioning-strategy: increase
