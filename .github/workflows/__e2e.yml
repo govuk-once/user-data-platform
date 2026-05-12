@@ -44,7 +44,7 @@ jobs:
 
       - name: Setup pnpm
         run: |
-          npm install -g pnpm@latest-10
+          npm install -g pnpm
           pnpm install
 
       - name: Setup Node
