@@ -1,9 +1,8 @@
 import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
-import { UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
-import { ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
   BlockPublicAccess,
   Bucket,

@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface KmsConstructProps {
