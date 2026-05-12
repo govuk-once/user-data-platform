@@ -10,8 +10,6 @@ const __dirname = path.dirname(__filename);
 const OUTPUT_PATH = path.resolve(__dirname, '../docs/openapi.yml');
 const DOCS_DIR = path.dirname(OUTPUT_PATH);
 
-console.log('test');
-
 async function main(): Promise<number> {
   try {
     if (!fs.existsSync(DOCS_DIR)) {
