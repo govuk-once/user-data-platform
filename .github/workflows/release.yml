@@ -140,6 +140,7 @@ jobs:
           NEW_VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release create "v${NEW_VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "Release v${NEW_VERSION}" \
             --notes "## Changes in v${NEW_VERSION}
 
