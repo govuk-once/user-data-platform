@@ -1,6 +1,13 @@
 {
   "root": true,
-  "ignorePatterns": ["dist", "node_modules", "coverage", "build", ".nx", "cdk.out"],
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "build",
+    ".nx",
+    "cdk.out"
+  ],
   "plugins": ["@typescript-eslint", "prettier"],
   "extends": [
     "eslint:recommended",
