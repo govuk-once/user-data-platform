@@ -189,7 +189,7 @@ export class MainStack extends Stack {
       environment,
       namePrefix: 'api',
       apiGatewayStageArn: apiGateway.stageArn,
-      rateLimiting: { enabled: true, limit: 50000 },
+      rateLimiting: { enabled: true, limit: 300000 },
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
       kmsKey: kmsConstruct.key,
