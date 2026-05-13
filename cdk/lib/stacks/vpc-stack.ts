@@ -26,8 +26,8 @@ export class VpcStack extends Stack {
       environment,
       vpcCidr,
       maxAzs,
-      enablePrivateLink = false,
-      privateLinkAllowedPrincipalArns = [],
+      // enablePrivateLink = false,
+      // privateLinkAllowedPrincipalArns = [],
     } = props;
 
     const kmsConstruct = new KmsConstruct(this, 'kms', {

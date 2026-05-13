@@ -25,6 +25,15 @@
         "cwd": "."
       },
       "cache": true
+    },
+
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["{projectRoot}/**/*.{ts,js}"],
+        "eslintConfig": "./.eslintrc.json"
+      },
+      "cache": true
     }
   }
 }

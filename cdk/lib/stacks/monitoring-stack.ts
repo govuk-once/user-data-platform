@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps, Duration, Fn } from 'aws-cdk-lib';
+import { Stack, StackProps, Duration } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -101,7 +101,11 @@ export class MonitoringStack extends Stack {
       } = {};
       try {
         monitoringConfig = JSON.parse(ssmValue);
-      } catch {}
+      } catch {
+        console.log(
+          'JSON.parse(monitoringConfig) error externalConsumers in MonitoringStack',
+        );
+      }
 
       if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
         const slackChannel = new SlackChannelConfiguration(

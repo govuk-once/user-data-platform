@@ -31,7 +31,6 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   getLogRetentionPeriod,
-  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,
@@ -96,7 +95,11 @@ export class MainStack extends Stack {
     > = {};
     try {
       externalConsumers = JSON.parse(ssmValue);
-    } catch {}
+    } catch {
+      console.log(
+        'JSON.parse(externalConsumers) error externalConsumers in MainStack',
+      );
+    }
 
     const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
       .map((c) => c.vpcEndpointId)
@@ -216,7 +219,7 @@ export class MainStack extends Stack {
       eventQueues.set(eventQueueName, queue);
     }
 
-    let lambdasList = [];
+    const lambdasList = [];
     for (const route of Object.values(routes)) {
       const routeQueue = route.queueName
         ? eventQueues.get(route.queueName)
