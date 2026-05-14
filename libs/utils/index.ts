@@ -4,3 +4,4 @@ export * from './Errors';
 export * from './middleware';
 export * from './schemas';
 export * from './env';
+export * from './zod';

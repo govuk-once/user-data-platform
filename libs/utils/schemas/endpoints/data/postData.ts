@@ -1,6 +1,8 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
 
+import '../../../../utils/zod';
+
 extendZodWithOpenApi(z);
 
 /*
@@ -20,7 +22,8 @@ const dataObjectSchema = z
       identifier: 'abc123',
     },
   })
-  .loose();
+  .loose()
+  .maxKB(380, 'Object to large to');
 
 export const postDataRequestSchema = z.object({
   configuration: z

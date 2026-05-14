@@ -17,7 +17,14 @@
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
-    "serve:openapi": "npx serve docs"
+    "serve:openapi": "npx serve docs",
+    "sam:up": "pnpm sam:down && docker compose -f sam/docker-compose.yml up -d && tsx sam/init.ts",
+    "sam:down": "docker compose -f sam/docker-compose.yml down",
+    "sam:synth": "cdk synth -a 'tsx sam/app.ts' -o sam/.aws-sam",
+    "sam:start": "pnpm sam:synth && sam local start-api -t sam/.aws-sam/SAMLocalTestStack.template.json --docker-network udp-local --region eu-west-2",
+    "sam:invoke": "pnpm sam:synth && sam local invoke -t sam/.aws-sam/SAMLocalTestStack.template.json --docker-network udp-local --region eu-west-2",
+    "sam:clean": "docker ps -a --format '{{.ID}} {{.Image}}' | grep 'public.ecr.aws/lambda' | awk '{print $1}' | xargs -r docker rm -f",
+    "sam:test": "vitest --config sam/vitest.config.ts"
   },
   "devDependencies": {
     "@nx/esbuild": "22.3.3",
@@ -89,5 +96,18 @@
   "workspaces": [
     "libs/*",
     "cdk/*"
-  ]
+  ],
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": [
+        "current",
+        "linux"
+      ],
+      "cpu": [
+        "current",
+        "x64",
+        "arm64"
+      ]
+    }
+  }
 }

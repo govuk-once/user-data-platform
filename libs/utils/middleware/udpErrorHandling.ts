@@ -114,6 +114,12 @@ export function udpErrorHandling(
         statusCode: 500,
         body: responseBody,
       };
+
+      if ('AWS_SAM_LOCAL' in process.env && process.env.AWS_SAM_LOCAL) {
+        console.log('\n\n**** Error in Lambda ****\n');
+        console.error(error);
+        console.log('\n\n**** End Error in Lambda ****\n');
+      }
     },
   };
 }

@@ -14,14 +14,14 @@
 pnpm install
 ```
 
-2. Install pre-commit and security tools:
+2. Install pre-commit, test and security tools:
 
 ```bash
 # macOS
-brew install pre-commit detect-secrets
+brew install pre-commit detect-secrets aws-sam-cli
 
 # Or using pip
-pip install pre-commit detect-secrets
+pip install pre-commit detect-secrets aws-sam-cli
 ```
 
 3. Install the git hook scripts:

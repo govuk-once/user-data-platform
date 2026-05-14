@@ -19,7 +19,8 @@
       "@libs/utils": ["libs/utils/index.ts"],
       "@libs/*": ["libs/*/src"],
       "@modules/*": ["modules/*/src"]
-    }
+    },
+    "types": ["node"]
   },
   "exclude": ["node_modules", "tmp"]
 }

@@ -1,0 +1,44 @@
+networks:
+  udp-local:
+    name: udp-local
+    driver: bridge
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: udp-dynamodb-local
+    networks: [udp-local]
+    command: -jar DynamoDBLocal.jar -sharedDb -inMemory
+    ports:
+      - 8000:8000
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -s -o /dev/null -w "%{http_code}" http://localhost:8000 | grep -q 400',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: udp-dynamodb-admin-local
+    networks: [udp-local]
+    ports:
+      - 8001:8001
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb:8000
+      - AWS_REGION=eu-west-2
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb
+  elasticmq:
+    image: softwaremill/elasticmq:latest
+    container_name: udp-elasticmq-local
+    networks: [udp-local]
+    ports:
+      - 9324:9324
+      - 9325:9325
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf:ro
