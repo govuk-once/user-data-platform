@@ -1,0 +1,133 @@
+opencollection: 1.0.0
+info:
+  name: UDP SAM Local
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ''
+      port: ''
+      auth:
+        username: ''
+        password: ''
+      bypassProxy: ''
+  environments:
+    - name: SAM Local
+      variables:
+        - name: url
+          value: http://localhost:3000/v1/
+        - name: appService
+          value: app
+        - name: appId
+          value: 8538bc99-3596-4eb3-8101-263e70519315
+        - name: dvlaService
+          value: dvla
+        - name: dvlaId
+          value: 6ed49c2f-2688-4d23-adde-473f32ebe466
+items:
+  - info:
+      name: Identity
+      type: folder
+      seq: 1
+    request:
+      auth: inherit
+    items:
+      - info:
+          name: Read Identity
+          type: http
+          seq: 1
+        http:
+          method: GET
+          url: '{{url}}identity/{{appService}}/{{appId}}'
+          auth: inherit
+        settings:
+          encodeUrl: true
+          timeout: 0
+          followRedirects: true
+          maxRedirects: 5
+      - info:
+          name: Create Identity
+          type: http
+          seq: 2
+        http:
+          method: POST
+          url: '{{url}}identity/{{dvlaService}}/{{dvlaId}}'
+          body:
+            type: json
+            data: |+
+              {
+                "appId": "{{appId}}",
+                "accessToken": "access-token",
+                "refreshToken": "refresh-token",
+                "idToken": "id-token"
+              }
+
+          auth: inherit
+        settings:
+          encodeUrl: true
+          timeout: 0
+          followRedirects: true
+          maxRedirects: 5
+      - info:
+          name: Create User
+          type: http
+          seq: 3
+        http:
+          method: POST
+          url: '{{url}}user'
+          body:
+            type: json
+            data: |-
+              {
+                "appId": "{{appId}}"
+              }
+          auth: inherit
+        settings:
+          encodeUrl: true
+          timeout: 0
+          followRedirects: true
+          maxRedirects: 5
+  - info:
+      name: Data
+      type: folder
+      seq: 2
+    request:
+      auth: inherit
+    items:
+      - info:
+          name: Create Data
+          type: http
+          seq: 1
+        http:
+          method: POST
+          url: '{{url}}topics/{{dvlaService}}/{{dvlaId}}'
+          headers:
+            - name: Requesting-Service
+              value: '{{dvlaService}}'
+            - name: Requesting-Service-User-Id
+              value: '{{dvlaId}}'
+          body:
+            type: json
+            data: |
+              {
+                "data": { "isEnabled": true, "thing": false }
+              }
+          auth: inherit
+        settings:
+          encodeUrl: true
+          timeout: 0
+          followRedirects: true
+          maxRedirects: 5
+request:
+  headers:
+    - name: Content-Type
+      value: application/json
+bundled: true
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+    exportedAt: '2026-05-14T15:14:02.463Z'
+    exportedUsing: Bruno

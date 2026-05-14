@@ -29,6 +29,8 @@ repos:
             'migrations.json',
             '--exclude-files',
             'sam/init.ts',
+            '--exclude-files',
+            'sam/bruno.collection.yml',
           ]
 
   - repo: local
