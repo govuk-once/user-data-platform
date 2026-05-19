@@ -5,16 +5,20 @@ import {
   EncryptionConfig,
   IdentityRecordEntity,
   SAREntity,
+  S3Entity,
 } from '../types/Entity';
 import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { S3Client } from '@aws-sdk/client-s3';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDbDataService } from '../services/DynamoDbDataService';
 import { Tracer } from '@aws-lambda-powertools/tracer';
 import { Logger } from '@libs/utils';
+import { S3Repository } from '../repositories/S3Repository';
 
 export interface ServiceFactoryConfig {
   tableName: string;
+  bucketName: string;
   identityTableName: string;
   kmsKeyId?: string;
   tracer?: Tracer;
@@ -23,15 +27,18 @@ export interface ServiceFactoryConfig {
 
 export class ServiceFactory {
   private readonly tableName: string;
+  private readonly bucketName: string;
   private readonly identityTableName?: string;
   private readonly kmsKeyId: string;
   private readonly docClient: DynamoDBDocumentClient;
+  private readonly s3Client: S3Client;
   private readonly services: Map<string, unknown> = new Map();
   private readonly logger?: Logger;
 
   constructor(config: ServiceFactoryConfig) {
     this.identityTableName = config.identityTableName;
     this.tableName = config.tableName;
+    this.bucketName = config.bucketName;
     this.kmsKeyId = config.kmsKeyId;
 
     this.logger = config.logger ?? (console as unknown as Logger);
@@ -42,6 +49,10 @@ export class ServiceFactory {
     this.docClient = DynamoDBDocumentClient.from(client, {
       marshallOptions: { removeUndefinedValues: true },
     });
+
+    this.s3Client = config.tracer
+      ? config.tracer.captureAWSv3Client(new S3Client({}))
+      : new S3Client({});
   }
 
   getService(name: 'data'): DynamoDbDataService;
@@ -87,8 +98,13 @@ export class ServiceFactory {
       encryption,
       this.logger,
     );
+    const s3Repository = new S3Repository<S3Entity>(
+      this.bucketName,
+      this.s3Client,
+      this.logger,
+    );
 
-    return new DynamoDbDataService(repository);
+    return new DynamoDbDataService(repository, s3Repository);
   }
 
   private createIdentityService() {

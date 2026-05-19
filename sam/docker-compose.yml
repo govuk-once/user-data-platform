@@ -20,6 +20,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  kms:
+    image: nsmithuk/local-kms:latest
+    container_name: udp-kms-local
+    networks: [udp-local]
+    ports:
+      - 8087:8080
+    environment:
+      REGION: eu-west-2
+    volumes:
+      - ./local-kms.yml:/init/seed.yaml:ro
   dynamodb-admin:
     image: aaronshaf/dynamodb-admin:latest
     container_name: udp-dynamodb-admin-local
@@ -33,10 +43,25 @@ services:
       - AWS_SECRET_ACCESS_KEY=local
     depends_on:
       - dynamodb
+  s3:
+    image: adobe/s3mock:latest
+    container_name: udp-s3-local
+    networks: [udp-local]
+    ports:
+      - 9090:9090
+      - 9091:9091
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: udp-local-bucket
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: 'true'
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockFileStore
+      COM_ADOBE_TESTING_S3MOCK_STORE_REGION: eu-west-2
+    volumes:
+      - ./.aws-s3-file-store:/s3mockFileStore
   elasticmq:
     image: softwaremill/elasticmq:latest
     container_name: udp-elasticmq-local
     networks: [udp-local]
+    command: server /data --console-accress ":9001"
     ports:
       - 9324:9324
       - 9325:9325

@@ -22,8 +22,9 @@ const dataObjectSchema = z
       identifier: 'abc123',
     },
   })
-  .loose()
-  .maxKB(380, 'Object to large to');
+  .loose();
+// This is to test validation. Needs to chain off the loose()
+// .maxKB(380, 'Object to large to');
 
 export const postDataRequestSchema = z.object({
   configuration: z
@@ -40,6 +41,8 @@ export const postDataRequestSchema = z.object({
     })
     .optional(),
   data: dataObjectSchema,
+  // test: z.string(),
+  // testMax: z.string().maxKB(380),
 });
 
 export const postDataResponseSchema = dataObjectSchema;

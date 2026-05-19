@@ -7,9 +7,14 @@ import {
   PutCommand,
   QueryCommand,
   UpdateCommand,
+  TransactWriteCommand,
+  ExecuteTransactionCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import { InvalidDynamoKeyError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import { EncryptedData } from '../services/EncryptionService';
+
+/** Set maximum data chunk size as 300KB */
+const CHUNK_BYTES = 200 * 1024;
 
 /**
  * DynamoDB repository implementation for composite key (pk/sk) entities.
@@ -90,12 +95,14 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
 
     this.logger?.debug('Item retrieved successfully', { pk, sk });
 
-    return this.encryption
+    const item = this.encryption
       ? ((await this.encryption.service.decryptFields(
           response.Item as Record<string, unknown> & EncryptedData,
           this.encryption.dataFields,
         )) as T)
       : (response.Item as T);
+
+    return item;
   }
 
   async getByPk(pk: string): Promise<T | null> {
@@ -405,6 +412,58 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       sk: entity.sk,
       hasTtl: entity.ttl !== undefined,
     });
+    const itemToStore = this.encryption
+      ? await this.encryption.service.encryptFields(
+          entity as Record<string, unknown>,
+          this.encryption.dataFields,
+        )
+      : entity;
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: itemToStore,
+    });
+
+    await this.client.send(command);
+
+    this.logger?.debug('Item saved successfully', {
+      pk: entity.pk,
+      sk: entity.sk,
+    });
+
+    return entity;
+  }
+
+  /**
+   * Saves an entity to DynamoDB.
+   * If an entity with the same key(s) exists, it will be overwritten.
+   * Undefined values are automatically removed from the entity before saving.
+   * @param entity - The entity to save
+   * @returns A promise that resolves when the save operation is complete
+   */
+  async s3Save(
+    entity: T,
+  ): Promise<{ entity: T; key: string; content: string }> {
+    const key = `${entity.pk}#${entity.sk}`;
+
+    this.logger?.debug('Saving item to DynamoDB and S3', {
+      operation: 'save',
+      tableName: this.tableName,
+      pk: entity.pk,
+      sk: entity.sk,
+      key,
+      hasTtl: entity.ttl !== undefined,
+    });
+
+    const content =
+      typeof entity.data === 'string'
+        ? entity.data
+        : JSON.stringify(entity.data as unknown as string);
+
+    // @ts-ignore
+    entity.data = key;
+    // @ts-ignore
+    entity.__s3 = true;
 
     const itemToStore = this.encryption
       ? await this.encryption.service.encryptFields(
@@ -416,6 +475,79 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     const command = new PutCommand({
       TableName: this.tableName,
       Item: itemToStore,
+    });
+
+    await this.client.send(command);
+
+    this.logger?.debug('Item saved successfully', {
+      pk: entity.pk,
+      sk: entity.sk,
+      key,
+    });
+
+    return { entity, key, content };
+  }
+
+  /**
+   * Chunk Saves an entity to DynamoDB.
+   * If an entity with the same key(s) exists, it will be overwritten.
+   * Undefined values are automatically removed from the entity before saving.
+   * @param entity - The entity to save
+   * @returns A promise that resolves when the save operation is complete
+   */
+  async chunkSave(entity: T): Promise<T> {
+    this.logger?.debug('Saving item and continued chunks to DynamoDB', {
+      operation: 'chunkSave',
+      tableName: this.tableName,
+      pk: entity.pk,
+      sk: entity.sk,
+      hasTtl: entity.ttl !== undefined,
+    });
+
+    const dataString =
+      typeof entity.data === 'string'
+        ? entity.data
+        : JSON.stringify(entity.data as unknown as string);
+    const transactionItems: ExecuteTransactionCommandInput[] = [];
+    let chunkIndex = 0;
+    for (let i = 0; i < dataString.length; i += CHUNK_BYTES) {
+      const chunckedEntity = { ...entity };
+
+      if (i === 0) {
+        // @ts-ignore
+        chunckedEntity.__chunked = true;
+        // @ts-ignore
+        chunckedEntity.__chunk = chunkIndex;
+      }
+
+      if (i > 0) {
+        chunckedEntity.sk = `${chunckedEntity.sk}#chunck-${chunkIndex}`;
+        // @ts-ignore
+        chunckedEntity.__chunk = chunkIndex;
+      }
+
+      // @ts-ignore
+      chunckedEntity.data = dataString.slice(i, i + CHUNK_BYTES);
+
+      const transactionItem = {
+        Put: {
+          TableName: this.tableName,
+          Item: this.encryption
+            ? await this.encryption.service.encryptFields(
+                chunckedEntity as Record<string, unknown>,
+                this.encryption.dataFields,
+              )
+            : chunckedEntity,
+        },
+      };
+
+      // @ts-ignore
+      transactionItems.push(transactionItem);
+      chunkIndex++;
+    }
+
+    const command = new TransactWriteCommand({
+      TransactItems: transactionItems,
     });
 
     await this.client.send(command);

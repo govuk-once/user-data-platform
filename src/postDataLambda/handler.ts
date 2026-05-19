@@ -23,13 +23,15 @@ const logger = getLogger({
   environment: stack,
 });
 
-const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+const { TABLE_NAME, IDENTITY_TABLE_NAME, BUCKET_NAME } = requireEnvVars(
+  'BUCKET_NAME',
   'TABLE_NAME',
   'IDENTITY_TABLE_NAME',
 );
 
 const factory = new ServiceFactory({
   tableName: TABLE_NAME,
+  bucketName: BUCKET_NAME,
   identityTableName: IDENTITY_TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
   tracer,

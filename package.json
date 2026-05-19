@@ -21,7 +21,7 @@
     "sam:up": "pnpm sam:down && docker compose -f sam/docker-compose.yml up -d && tsx sam/init.ts",
     "sam:down": "docker compose -f sam/docker-compose.yml down",
     "sam:synth": "cdk synth -a 'tsx sam/app.ts' -o sam/.aws-sam",
-    "sam:start": "pnpm sam:synth && sam local start-api -t sam/.aws-sam/SAMLocalTestStack.template.json --docker-network udp-local --region eu-west-2",
+    "sam:start": "pnpm sam:up && pnpm sam:synth && sam local start-api -t sam/.aws-sam/SAMLocalTestStack.template.json --docker-network udp-local --region eu-west-2",
     "sam:invoke": "pnpm sam:synth && sam local invoke -t sam/.aws-sam/SAMLocalTestStack.template.json --docker-network udp-local --region eu-west-2",
     "sam:clean": "docker ps -a --format '{{.ID}} {{.Image}}' | grep 'public.ecr.aws/lambda' | awk '{print $1}' | xargs -r docker rm -f",
     "sam:test": "vitest --config sam/vitest.config.ts"

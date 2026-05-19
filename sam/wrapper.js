@@ -9,6 +9,15 @@ const TSCONFIG = path.join(TASK_ROOT, 'tsconfig.base.json');
 
 const cache = new Map();
 
+const s3Mod = require('@aws-sdk/client-s3');
+const OriginalS3Client = s3Mod.S3Client;
+class PatchedS3Client extends OriginalS3Client {
+  constructor(config = {}) {
+    super({ forcePathStyle: true, ...config });
+  }
+}
+s3Mod.S3Client = PatchedS3Client;
+
 function logEnv() {
   console.log(
     '\n\nEnv Config:\n\n',

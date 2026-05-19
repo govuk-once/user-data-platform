@@ -3,8 +3,10 @@ import { Repository } from '../repositories/Repository';
 import {
   DataInput,
   DynamoDBDataEntity,
+  S3Entity,
   IdentityRecordEntity,
 } from '../types/Entity';
+import { S3Repository } from '../repositories/S3Repository';
 
 /**
  * Service class for DynamoDB Data entity operations with business logic.
@@ -17,6 +19,7 @@ export class DynamoDbDataService {
 
   constructor(
     private readonly repository: Repository<DynamoDBDataEntity>,
+    private readonly s3Repository: S3Repository<S3Entity>,
     logger?: Logger,
   ) {
     this.logger = logger;
@@ -28,7 +31,33 @@ export class DynamoDbDataService {
     input: DataInput,
   ) {
     const entity = this.createFromInput(identity, resourcePath, input);
-    return await this.repository.save(entity);
+
+    try {
+      return await this.repository.save(entity);
+    } catch (error) {
+      const e = error as { name?: string; message?: string };
+
+      if (
+        e?.name === 'ValidationException' &&
+        e?.message === 'Item size has exceeded the maximum allowed size'
+      ) {
+        const origEntity = { ...entity };
+        // try {
+        //   return await this.repository.chunkSave(entity);
+        // } catch (chunkSaveError) {
+        //   throw chunkSaveError;
+        // }
+        try {
+          const { key, content } = await this.repository.s3Save(entity);
+          await this.s3Repository.save(key, content);
+          return origEntity;
+        } catch (s3SaveError) {
+          throw s3SaveError;
+        }
+      }
+
+      throw error;
+    }
   }
 
   public async getByKey(identity: IdentityRecordEntity, resourcePath: string) {
@@ -45,6 +74,32 @@ export class DynamoDbDataService {
         identity.serviceId,
         resourcePath,
       );
+    }
+
+    if (
+      '__s3' in result &&
+      result.__s3 &&
+      'data' in result &&
+      typeof result.data === 'string'
+    ) {
+      // try {
+      //   return await this.repository.chunkSave(entity);
+      // } catch (chunkSaveError) {
+      //   throw chunkSaveError;
+      // }
+      try {
+        const s3Object = await this.s3Repository.get({
+          key: result.data as unknown as string,
+        });
+
+        result.data = JSON.parse(s3Object.body as unknown as string);
+
+        delete result.__s3;
+
+        return result;
+      } catch (s3SaveError) {
+        throw s3SaveError;
+      }
     }
 
     return result;

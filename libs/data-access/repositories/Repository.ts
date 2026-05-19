@@ -83,6 +83,14 @@ export interface Repository<T extends Entity> {
   save(entity: T): Promise<T>;
 
   /**
+   * Saves an entity to the repository and s3.
+   * If an entity with the same key(s) exists, it will be overwritten.
+   * @param entity - The entity to save
+   * @returns A promise that resolves when the save operation is complete
+   */
+  s3Save(entity: T): Promise<{ entity: T; key: string; content: string }>;
+
+  /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
    * @param keys - Partial entity containing key properties to identitfy the entity
@@ -98,4 +106,12 @@ export interface Repository<T extends Entity> {
    * @returns A promise that resolves when the delete operation is complete
    */
   delete(keys: Partial<T>): Promise<boolean | null>;
+}
+
+export interface S3RepositoryBase<T extends Entity> {
+  get(keys: Partial<T>): Promise<T | null>;
+
+  save(key: string, content: string): Promise<void>;
+
+  delete(key: string): Promise<boolean | null>;
 }

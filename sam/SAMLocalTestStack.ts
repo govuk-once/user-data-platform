@@ -26,6 +26,10 @@ const SHARED_ENV: Record<string, string> = {
   STACK: 'local',
   AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000',
   AWS_ENDPOINT_URL_SQS: 'http://elasticmq:9324',
+  AWS_ENDPOINT_URL_KMS: 'http://kms:8080',
+  AWS_ENDPOINT_URL_S3: 'http://s3:9090',
+  KMS_KEY_ID: 'alias/udp-local',
+  BUCKET_NAME: 'udp-local-bucket',
 };
 
 const ASSET_EXCLUDES = [

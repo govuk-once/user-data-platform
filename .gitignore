@@ -17,3 +17,4 @@ coverage
 .github/instructions/nx.instructions.md
 
 sam/.aws-sam
+sam/.aws-s3-file-store

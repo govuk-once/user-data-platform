@@ -190,3 +190,10 @@ export interface CreateUserResult {
   udpId: string;
   created: boolean;
 }
+
+export interface S3Entity {
+  key: string;
+  body: string;
+  contentType: string;
+  metadata?: Record<string, string>;
+}

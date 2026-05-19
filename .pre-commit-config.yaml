@@ -31,6 +31,8 @@ repos:
             'sam/init.ts',
             '--exclude-files',
             'sam/bruno.collection.yml',
+            '--exclude-files',
+            'sam/local-kms.yml',
           ]
 
   - repo: local
