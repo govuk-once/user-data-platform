@@ -91,6 +91,14 @@ export interface Repository<T extends Entity> {
   s3Save(entity: T): Promise<{ entity: T; key: string; content: string }>;
 
   /**
+   * Saves an entity to the repository and s3.
+   * If an entity with the same key(s) exists, it will be overwritten.
+   * @param entity - The entity to save
+   * @returns A promise that resolves when the save operation is complete
+   */
+  chunkSave(entity: T): Promise<{ entity: T; key: string; content: string }>;
+
+  /**
    * Saves an entity to the repository.
    * If an entity with the same key(s) exists, it will be overwritten.
    * @param keys - Partial entity containing key properties to identitfy the entity

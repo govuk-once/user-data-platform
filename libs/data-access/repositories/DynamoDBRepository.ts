@@ -511,33 +511,33 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
     const transactionItems: ExecuteTransactionCommandInput[] = [];
     let chunkIndex = 0;
     for (let i = 0; i < dataString.length; i += CHUNK_BYTES) {
-      const chunckedEntity = { ...entity };
+      const chunkedEntity = { ...entity };
 
       if (i === 0) {
         // @ts-ignore
-        chunckedEntity.__chunked = true;
+        chunkedEntity.__chunked = true;
         // @ts-ignore
-        chunckedEntity.__chunk = chunkIndex;
+        chunkedEntity.__chunk = chunkIndex;
       }
 
       if (i > 0) {
-        chunckedEntity.sk = `${chunckedEntity.sk}#chunck-${chunkIndex}`;
+        chunkedEntity.sk = `${chunkedEntity.sk}#chunk-${chunkIndex}`;
         // @ts-ignore
-        chunckedEntity.__chunk = chunkIndex;
+        chunkedEntity.__chunk = chunkIndex;
       }
 
       // @ts-ignore
-      chunckedEntity.data = dataString.slice(i, i + CHUNK_BYTES);
+      chunkedEntity.data = dataString.slice(i, i + CHUNK_BYTES);
 
       const transactionItem = {
         Put: {
           TableName: this.tableName,
           Item: this.encryption
             ? await this.encryption.service.encryptFields(
-                chunckedEntity as Record<string, unknown>,
+                chunkedEntity as Record<string, unknown>,
                 this.encryption.dataFields,
               )
-            : chunckedEntity,
+            : chunkedEntity,
         },
       };
 
@@ -545,6 +545,11 @@ export class DynamoDBRepository<T extends DynamoDBEntity>
       transactionItems.push(transactionItem);
       chunkIndex++;
     }
+
+    const itemZero = transactionItems[0];
+    // @ts-ignore
+    itemZero.Put.Item.__chunks = transactionItems.length;
+    transactionItems[0] = itemZero;
 
     const command = new TransactWriteCommand({
       TransactItems: transactionItems,

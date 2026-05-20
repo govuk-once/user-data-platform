@@ -141,6 +141,10 @@ export interface DynamoDBDataEntity {
   sk: string;
   data?: Record<string, unknown>;
   ttl?: number;
+  __chunked?: boolean;
+  __chunks?: number;
+  __chunk?: number;
+  __s3?: boolean;
 }
 
 export interface SAREntity {

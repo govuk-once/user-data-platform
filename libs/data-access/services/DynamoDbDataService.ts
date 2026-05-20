@@ -42,18 +42,18 @@ export class DynamoDbDataService {
         e?.message === 'Item size has exceeded the maximum allowed size'
       ) {
         const origEntity = { ...entity };
-        // try {
-        //   return await this.repository.chunkSave(entity);
-        // } catch (chunkSaveError) {
-        //   throw chunkSaveError;
-        // }
         try {
-          const { key, content } = await this.repository.s3Save(entity);
-          await this.s3Repository.save(key, content);
-          return origEntity;
-        } catch (s3SaveError) {
-          throw s3SaveError;
+          return await this.repository.chunkSave(entity);
+        } catch (chunkSaveError) {
+          throw chunkSaveError;
         }
+        // try {
+        //   const { key, content } = await this.repository.s3Save(entity);
+        //   await this.s3Repository.save(key, content);
+        //   return origEntity;
+        // } catch (s3SaveError) {
+        //   throw s3SaveError;
+        // }
       }
 
       throw error;
@@ -61,7 +61,7 @@ export class DynamoDbDataService {
   }
 
   public async getByKey(identity: IdentityRecordEntity, resourcePath: string) {
-    const result = await this.repository.get({
+    let result = await this.repository.get({
       pk: identity.udpId,
       sk: resourcePath,
     });
@@ -76,30 +76,14 @@ export class DynamoDbDataService {
       );
     }
 
-    if (
-      '__s3' in result &&
-      result.__s3 &&
-      'data' in result &&
-      typeof result.data === 'string'
-    ) {
-      // try {
-      //   return await this.repository.chunkSave(entity);
-      // } catch (chunkSaveError) {
-      //   throw chunkSaveError;
-      // }
-      try {
-        const s3Object = await this.s3Repository.get({
-          key: result.data as unknown as string,
-        });
+    // if (this.resultIsS3(result)) {
+    //   // Does result overflow into S3?
+    //   result = await this.enrichFromS3(result);
+    // }
 
-        result.data = JSON.parse(s3Object.body as unknown as string);
-
-        delete result.__s3;
-
-        return result;
-      } catch (s3SaveError) {
-        throw s3SaveError;
-      }
+    if (this.resultIsChunked(result)) {
+      // Does the result need to be recompiled from chunks?
+      result = await this.recompileFromChunks(identity, resourcePath, result);
     }
 
     return result;
@@ -156,6 +140,72 @@ export class DynamoDbDataService {
     }
 
     return result;
+  }
+
+  private resultIsChunked(result: DynamoDBDataEntity) {
+    return (
+      '__chunked' in result &&
+      result.__chunked &&
+      'data' in result &&
+      typeof result.data === 'string'
+    );
+  }
+
+  private async recompileFromChunks(
+    identity: IdentityRecordEntity,
+    resourcePath: string,
+    initialResult: DynamoDBDataEntity,
+  ): Promise<DynamoDBDataEntity> {
+    const result = initialResult;
+
+    if (result.data && '__chunks' in initialResult && initialResult.__chunks) {
+      try {
+        for (let index = 1; index < initialResult.__chunks; index++) {
+          const chunkedResult = await this.repository.get({
+            pk: identity.udpId,
+            sk: `${resourcePath}#chunk-${index}`,
+          });
+
+          if (chunkedResult?.data) {
+            // @ts-ignore
+            result.data += chunkedResult?.data;
+          }
+        }
+      } catch (chunkError) {
+        throw chunkError;
+      }
+
+      result.data = JSON.parse(result.data as unknown as string);
+    }
+
+    return result;
+  }
+
+  private resultIsS3(result: DynamoDBDataEntity) {
+    return (
+      '__chunked' in result &&
+      result.__chunked &&
+      'data' in result &&
+      typeof result.data === 'string'
+    );
+  }
+
+  private async enrichFromS3(
+    result: DynamoDBDataEntity,
+  ): Promise<DynamoDBDataEntity> {
+    try {
+      const s3Object = await this.s3Repository.get({
+        key: result.data as unknown as string,
+      });
+
+      result.data = JSON.parse(s3Object.body as unknown as string);
+
+      delete result.__s3;
+
+      return result;
+    } catch (s3SaveError) {
+      throw s3SaveError;
+    }
   }
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
