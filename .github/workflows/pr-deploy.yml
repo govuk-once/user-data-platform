@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: eu-west-2
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   DEVELOPER_ID: pr-${{ github.event.pull_request.number }}
   GITHUB_OWNER: ${{ github.repository_owner }}
   GITHUB_REPO: ${{ github.event.repository.name }}
