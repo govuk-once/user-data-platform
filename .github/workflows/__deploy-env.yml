@@ -32,7 +32,7 @@ on:
       node-version:
         required: false
         type: string
-        default: '20'
+        default: '22'
       expose-outputs:
         description: 'Whether to fetch e2e stack outputs (set false when no e2e stack exists, e.g. prod).'
         required: false
