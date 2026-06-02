@@ -20,10 +20,6 @@ import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 
-import {
-  ConsumerConfigConstruct,
-  ExternalConsumerConfig,
-} from '../constructs/consumer-config-construct';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { IRole } from 'aws-cdk-lib/aws-iam';
 import {
@@ -39,6 +35,7 @@ import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
+import { AdmissionReconcilerConstruct } from '../constructs/addmission-reconciler-construct';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -49,7 +46,6 @@ export interface MainStackProps extends StackProps {
   version: string;
   stackPrefix: string;
   vpcEndpointId?: string;
-  crossAccountPrincipals?: string[];
   vpc?: ec2.IVpc;
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
@@ -84,29 +80,11 @@ export class MainStack extends Stack {
       version,
       stackPrefix,
       vpcEndpointId,
-      crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
     } = props;
 
-    const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
-    const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
-
-    let externalConsumers: Record<
-      string,
-      ExternalConsumerConfig & { vpcEndpointId?: string }
-    > = {};
-    try {
-      externalConsumers = JSON.parse(ssmValue);
-    } catch {
-      console.log(
-        'JSON.parse(externalConsumers) error externalConsumers in MainStack',
-      );
-    }
-
-    const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
-      .map((c) => c.vpcEndpointId)
-      .filter((id): id is string => !!id);
+    const consumerParamPath = `${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
     cdk.Tags.of(this).add('TeamName', teamName || 'UnknownTeam');
@@ -177,15 +155,23 @@ export class MainStack extends Stack {
       environment,
       apiName: 'api',
       ownVpcEndpointId: vpcEndpointId,
-      policyVpcEndpointIds: vpcEndpointId
-        ? [vpcEndpointId, ...consumerVpcEndpointIds]
-        : [],
-      crossAccountPrincipals,
       kmsKey: kmsConstruct.key,
       cachingEnabled,
     });
 
     this.api = apiGateway.api;
+
+    if (vpcEndpointId) {
+      new AdmissionReconcilerConstruct(this, 'AdmissionReconciler', {
+        developerId,
+        environment,
+        api: this.api,
+        ownVpcEndpointId: vpcEndpointId,
+        consumerParamPath,
+        kmsKey: kmsConstruct.key,
+        logRetentionDays: getLogRetentionPeriod(environment),
+      });
+    }
 
     this.waf = new WafConstruct(this, 'waf', {
       developerId,
@@ -223,8 +209,16 @@ export class MainStack extends Stack {
     this.dsarQueue = eventQueues.get('dsarQueue')!;
     this.sarQueue = eventQueues.get('sarQueue')!;
 
-    const { IamConsumerConfigs, consumerthrottleConfigs } =
-      this.buildConsumerConfigs(externalConsumers);
+    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
+      test: {
+        permissions: ['read', 'write', 'delete'],
+        description: 'Internal E2E test consumer {codebuild}',
+      },
+    };
+
+    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
+      test: { rateLimit: 500, burstLimit: 1000 },
+    };
 
     const iamConsumers = new IamConsumerConstruct(this, 'IamConsumers', {
       developerId,
@@ -243,23 +237,26 @@ export class MainStack extends Stack {
     this.e2eTestConsumerApiKeyValue = usagePlans.apiKeyValues.get('test');
     this.e2eTestConsumerRole = iamConsumers.consumerRoles.get('test');
 
-    if (Object.keys(externalConsumers).length > 0) {
-      const consumerConfig = new ConsumerConfigConstruct(
-        this,
-        'ConsumerConfig',
-        {
-          developerId,
-          environment,
-          region: this.region,
-          accountId: this.account,
-          consumerRoles: iamConsumers.consumerRoles,
-          externalConsumers,
-          apiUrl: this.api.url,
-          apiKeyValues: usagePlans.apiKeyValues,
-        },
-      );
+    if (!developerId) {
+      const apiParamPrefix = `/${environmentLongNames[environment]}/udp-param/udp/api`;
 
-      this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
+      new StringParameter(this, 'ApiRestApiIdParam', {
+        parameterName: `${apiParamPrefix}/restApiId`,
+        stringValue: this.api.restApiId,
+        description: `UDP REST API id for external consumer provisioning`,
+      });
+
+      new StringParameter(this, 'ApiUrlParam', {
+        parameterName: `${apiParamPrefix}/apiUrl`,
+        stringValue: this.api.url,
+        description: `UDP REST API URL for external consumer provisioning`,
+      });
+
+      new StringParameter(this, 'ApiStageNameParam', {
+        parameterName: `${apiParamPrefix}/stageName`,
+        stringValue: this.api.deploymentStage.stageName,
+        description: `UDP REST stage name for external consumer usage plans`,
+      });
     }
 
     if (!developerId?.startsWith('pr')) {
