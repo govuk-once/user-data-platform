@@ -167,7 +167,7 @@ jobs:
 
       - name: Post test results to PR
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           BUILD_ID: ${{ steps.codebuild.outputs.build-id }}
           JOB_STATUS: ${{ job.status }}
