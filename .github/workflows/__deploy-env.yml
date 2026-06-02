@@ -32,7 +32,7 @@ on:
       node-version:
         required: false
         type: string
-        default: '20'
+        default: '22'
       expose-outputs:
         description: 'Whether to fetch e2e stack outputs (set false when no e2e stack exists, e.g. prod).'
         required: false
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
@@ -76,7 +76,7 @@ jobs:
           pnpm install
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'pnpm'
