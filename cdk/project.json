@@ -3,6 +3,7 @@
   "$schema": "../node_modules/nk/schemas/project-schema.json",
   "sourceRoot": "cdk",
   "implicitDependencies": [
+    "@src/admissionReconcillerLambda",
     "@src/createUserLambda",
     "@src/deleteDataLambda",
     "@src/postDataLambda",
