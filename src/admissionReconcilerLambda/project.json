@@ -1,12 +1,12 @@
 {
-  "name": "@src/admissionReconcillerLambda",
+  "name": "@src/admissionReconcilerLambda",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "targets": {
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "VITEST_COVERAGE_DIR=coverage/admissionReconcillerLambda vitest run src/admissionReconcillerLambda/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/admissionReconcilerLambda vitest run src/admissionReconcilerLambda/*"
       }
     },
     "build": {
@@ -14,9 +14,9 @@
       "executor": "@nx/esbuild:esbuild",
       "outputs": ["{option.outputPath}"],
       "options": {
-        "main": "src/admissionReconcillerLambda/handler.ts",
-        "tsConfig": "src/admissionReconcillerLambda/tsconfig.json",
-        "outputPath": "build/admissionReconcillerLambda",
+        "main": "src/admissionReconcilerLambda/handler.ts",
+        "tsConfig": "src/admissionReconcilerLambda/tsconfig.json",
+        "outputPath": "build/admissionReconcilerLambda",
         "minify": true,
         "bundle": true,
         "thirdParty": true,
@@ -27,7 +27,7 @@
         "external": ["@aws-sdk/*"],
         "skipTypeCheck": true,
         "esbuildOptions": {
-          "outfile": "./build/admissionReconcillerLambda/index.js"
+          "outfile": "./build/admissionReconcilerLambda/index.js"
         }
       }
     }
