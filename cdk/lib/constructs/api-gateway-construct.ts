@@ -64,6 +64,31 @@ export class ApiGatewayConstruct extends Construct {
         ]
       : [];
 
+    const resourcePolicy = ownVpcEndpointId
+      ? new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.DENY,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['execute-api:Invoke'],
+              resources: ['execute-api/*'],
+              conditions: {
+                StringNotEquals: { 'aws:sourceVpce': ownVpcEndpointId },
+              },
+            }),
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['execute-api:Invoke'],
+              resources: ['execute-api/*'],
+              conditions: {
+                StringEquals: { 'aws:sourceVpce': ownVpcEndpointId },
+              },
+            }),
+          ],
+        })
+      : undefined;
+
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName(role)],
@@ -89,6 +114,7 @@ export class ApiGatewayConstruct extends Construct {
         types: [apigateway.EndpointType.PRIVATE],
         vpcEndpoints,
       },
+      policy: resourcePolicy,
       deployOptions: {
         stageName: environment,
         throttlingBurstLimit,
