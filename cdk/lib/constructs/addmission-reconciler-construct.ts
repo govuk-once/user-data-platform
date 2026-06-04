@@ -102,7 +102,7 @@ export class AdmissionReconcilerConstruct extends Construct {
       ruleName: `${fullName}-ssm-change`,
       description: `Reconcile API admission policy on consumer SSM param Change`,
       eventPattern: {
-        source: ['aws:ssm'],
+        source: ['aws.ssm'],
         detailType: ['Parameter Store Change'],
         detail: {
           name: [{ prefix: `${consumerParamPath}/` }],
