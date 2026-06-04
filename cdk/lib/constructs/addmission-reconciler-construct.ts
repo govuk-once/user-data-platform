@@ -90,7 +90,11 @@ export class AdmissionReconcilerConstruct extends Construct {
     this.function.addToRolePolicy(
       new PolicyStatement({
         effect: Effect.ALLOW,
-        actions: ['apigateway:PATCH', 'apigateway:POST'],
+        actions: [
+          'apigateway:PATCH',
+          'apigateway:POST',
+          'apigateway:UpdateRestApiPolicy',
+        ],
         resources: [
           `arn:aws:apigateway:${api.env.region}::/restapis/${api.restApiId}`,
           `arn:aws:apigateway:${api.env.region}::/restapis/${api.restApiId}/deployments`,
