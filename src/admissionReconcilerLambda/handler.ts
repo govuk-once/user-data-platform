@@ -47,6 +47,37 @@ function requireEnv(name: string): string {
   return value;
 }
 
+const ACCESS_DENIED = new Set([
+  'AccessDeniedException',
+  'AccessDenied',
+  'UnauthorizedException',
+  'UnauthorizedOperation',
+]);
+
+// The reconciler is invoked by a CDK Trigger immediately after its IAM policy is
+// created. IAM is eventually consistent, so the first calls can transiently fail
+// with AccessDenied while the policy propagates to the execution role. Retry
+// those (only) with a fixed backoff, well within the 2-minute timeout.
+async function sendWithRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxAttempts = 6,
+  delayMs = 5000,
+): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const name = (err as { name?: string })?.name ?? '';
+      if (attempt >= maxAttempts || !ACCESS_DENIED.has(name)) throw err;
+      console.warn(
+        `${label}: ${name} (attempt ${attempt}/${maxAttempts}) — IAM may still be propagating, retrying in ${delayMs}ms`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 // Read every per-consumer admission parameter under the path prefix.
 async function readConsumerParams(
   consumerPath: string,
@@ -56,13 +87,17 @@ async function readConsumerParams(
   let nextToken: string | undefined;
 
   do {
-    const res = await ssm.send(
-      new GetParametersByPathCommand({
-        Path: prefix,
-        Recursive: true,
-        WithDecryption: false,
-        NextToken: nextToken,
-      }),
+    const res = await sendWithRetry(
+      () =>
+        ssm.send(
+          new GetParametersByPathCommand({
+            Path: prefix,
+            Recursive: true,
+            WithDecryption: false,
+            NextToken: nextToken,
+          }),
+        ),
+      'ssm:GetParametersByPath',
     );
     for (const param of res.Parameters ?? ([] as Parameter[])) {
       const name = (param.Name ?? '').slice(prefix.length);
@@ -118,22 +153,30 @@ export async function reconcile(): Promise<ReconcileResult> {
     return { applied: false, valid: valid.length, rejected: errors.length };
   }
 
-  await apigw.send(
-    new UpdateRestApiCommand({
-      restApiId,
-      patchOperations: [
-        { op: 'replace', path: '/policy', value: JSON.stringify(policy) },
-      ],
-    }),
+  await sendWithRetry(
+    () =>
+      apigw.send(
+        new UpdateRestApiCommand({
+          restApiId,
+          patchOperations: [
+            { op: 'replace', path: '/policy', value: JSON.stringify(policy) },
+          ],
+        }),
+      ),
+    'apigateway:UpdateRestApi',
   );
 
   // Resource-policy changes only take effect after a (re)deployment.
-  await apigw.send(
-    new CreateDeploymentCommand({
-      restApiId,
-      stageName,
-      description: 'admission-reconciler: apply VPC endpoint allow-list',
-    }),
+  await sendWithRetry(
+    () =>
+      apigw.send(
+        new CreateDeploymentCommand({
+          restApiId,
+          stageName,
+          description: 'admission-reconciler: apply VPC endpoint allow-list',
+        }),
+      ),
+    'apigateway:CreateDeployment',
   );
 
   console.log(`Applied admission policy and redeployed stage ${stageName}`);

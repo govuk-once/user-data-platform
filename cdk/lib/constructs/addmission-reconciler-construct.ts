@@ -100,7 +100,7 @@ export class AdmissionReconcilerConstruct extends Construct {
 
     new Rule(this, 'SsmChangeRule', {
       ruleName: `${fullName}-ssm-change`,
-      description: `Reconcile API admission policy on consumer SSM param Change`,
+      description: `Reconcile API admission policy on consumer SSM param change`,
       eventPattern: {
         source: ['aws.ssm'],
         detailType: ['Parameter Store Change'],
@@ -112,6 +112,11 @@ export class AdmissionReconcilerConstruct extends Construct {
       targets: [new LambdaFunction(this.function)],
     });
 
+    // executeAfter must include `this.function` so the Trigger's custom resource
+    // depends on the function's role + DefaultPolicy (a child of the Function
+    // construct). Without it, the Trigger can invoke the reconciler before the
+    // ssm:GetParametersByPath / apigateway:* policy is attached, which fails the
+    // custom resource with "not authorized to perform ssm:GetParametersByPath".
     new Trigger(this, 'DeployReconcile', {
       handler: this.function,
       executeAfter: [api, this.function],
