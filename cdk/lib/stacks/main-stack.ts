@@ -84,7 +84,7 @@ export class MainStack extends Stack {
       lambdaSecurityGroup,
     } = props;
 
-    const consumerParamPath = `${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
+    const consumerParamPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
 
     cdk.Tags.of(this).add('ServiceName', serviceName || 'UnknownService');
     cdk.Tags.of(this).add('TeamName', teamName || 'UnknownTeam');
