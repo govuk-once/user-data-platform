@@ -100,10 +100,10 @@ export class AdmissionReconcilerConstruct extends Construct {
 
     new Rule(this, 'SsmChangeRule', {
       ruleName: `${fullName}-ssm-change`,
-      description: `Reconcile API asmission policy on consumer SSM param Change`,
+      description: `Reconcile API admission policy on consumer SSM param Change`,
       eventPattern: {
         source: ['aws:ssm'],
-        detailType: ['PArameter Store Change'],
+        detailType: ['Parameter Store Change'],
         detail: {
           name: [{ prefix: `${consumerParamPath}/` }],
           operation: ['Create', 'Update', 'Delete'],
@@ -114,7 +114,7 @@ export class AdmissionReconcilerConstruct extends Construct {
 
     new Trigger(this, 'DeployReconcile', {
       handler: this.function,
-      executeAfter: [api],
+      executeAfter: [api, this.function],
       executeOnHandlerChange: true,
     });
   }
