@@ -82,7 +82,13 @@ async function sendWithRetry<T>(
 async function readConsumerParams(
   consumerPath: string,
 ): Promise<RawConsumerEntry[]> {
-  const prefix = consumerPath.endsWith('/') ? consumerPath : `${consumerPath}/`;
+  // SSM authorizes GetParametersByPath against the ARN of the Path you pass. A
+  // trailing slash makes that resource `parameter/<path>/`, which would need to
+  // be granted explicitly; passing the path WITHOUT a trailing slash makes it
+  // `parameter/<path>`, matching the IAM grant exactly. The slash-terminated
+  // `prefix` is used only to strip the consumer name off each result.
+  const queryPath = consumerPath.replace(/\/+$/, '');
+  const prefix = `${queryPath}/`;
   const entries: RawConsumerEntry[] = [];
   let nextToken: string | undefined;
 
@@ -91,7 +97,7 @@ async function readConsumerParams(
       () =>
         ssm.send(
           new GetParametersByPathCommand({
-            Path: prefix,
+            Path: queryPath,
             Recursive: true,
             WithDecryption: false,
             NextToken: nextToken,
