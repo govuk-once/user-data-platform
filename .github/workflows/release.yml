@@ -18,6 +18,7 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
+    secrets: inherit
 
   deploy-dev:
     name: Deploy to dev
@@ -92,63 +93,9 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
-  tag-prod:
-    name: Tag production release
-    needs: [version, e2e-staging, perf-test-staging]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: write
-
-    steps:
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
-          private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
-
-      - name: Create and push tag via GitHub API
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          NEW_VERSION: ${{ needs.version.outputs.version }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          echo "Tagging commit: ${COMMIT_SHA}"
-
-          # Create an annotated tag object
-          TAG_SHA=$(jq -n \
-            --arg tag "v${NEW_VERSION}" \
-            --arg message "Release version ${NEW_VERSION}" \
-            --arg object "${COMMIT_SHA}" \
-            '{tag: $tag, message: $message, object: $object, type: "commit"}' \
-            | gh api "repos/${GITHUB_REPOSITORY}/git/tags" -X POST --input - -q '.sha')
-          echo "Tag SHA: ${TAG_SHA}"
-
-          # Create the tag reference
-          jq -n \
-            --arg ref "refs/tags/v${NEW_VERSION}" \
-            --arg sha "${TAG_SHA}" \
-            '{ref: $ref, sha: $sha}' \
-            | gh api "repos/${GITHUB_REPOSITORY}/git/refs" -X POST --input -
-          echo "Created and pushed tag v${NEW_VERSION}"
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          NEW_VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          gh release create "v${NEW_VERSION}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "Release v${NEW_VERSION}" \
-            --notes "## Changes in v${NEW_VERSION}
-
-          This release was automatically generated from commits to main."
-
   deploy-prod:
     name: Deploy to production
-    needs: [version, tag-prod]
+    needs: [version, e2e-staging, perf-test-staging]
     uses: ./.github/workflows/__deploy-env.yml
     with:
       stack-prefix: prod

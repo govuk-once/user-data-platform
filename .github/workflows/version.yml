@@ -1,105 +1,58 @@
-name: Compute Next Version
+name: Create Release
 
 on:
   workflow_call:
     outputs:
       version:
-        description: 'The new version number'
+        description: 'The new semantic version number'
         value: ${{ jobs.version.outputs.version }}
 
+env:
+  NODE_VERSION: '22'
+
 permissions:
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.new-version.outputs.version }}
+      version: ${{ steps.release.outputs.semVer }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+          private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
-      - name: Setup Node.js
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      - name: Get current version from tags
-        id: current-version
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            CURRENT_VERSION="0.0.0"
-          else
-            CURRENT_VERSION="${LAST_TAG#v}"
-          fi
-          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
 
-      - name: Determine version bump
-        id: bump
-        run: |
-          # Get commit messages since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-
-          if [ -z "$LAST_TAG" ]; then
-            # No tags yet, get all commits
-            COMMITS=$(git log --pretty=format:"%s" HEAD)
-          else
-            COMMITS=$(git log --pretty=format:"%s" ${LAST_TAG}..HEAD)
-          fi
-
-          echo "Analyzing commits:"
-          echo "$COMMITS"
-
-          # Determine bump type based on conventional commits
-          if echo "$COMMITS" | grep -qE "^(feat|feature)(\(.+\))?!:|^BREAKING CHANGE:"; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -qE "^(feat|feature)(\(.+\))?:"; then
-            BUMP="minor"
-          elif echo "$COMMITS" | grep -qE "^(fix|docs|style|refactor|perf|test|chore)(\(.+\))?:"; then
-            BUMP="patch"
-          else
-            BUMP="patch"
-          fi
-
-          echo "bump=$BUMP" >> $GITHUB_OUTPUT
-          echo "Version bump type: $BUMP"
-
-      - name: Calculate new version
-        id: new-version
+      - name: Run semantic release
+        id: release
+        run: pnpm run semantic:release
         env:
-          CURRENT_VERSION: ${{ steps.current-version.outputs.version }}
-          BUMP_TYPE: ${{ steps.bump.outputs.bump }}
-        run: |
-          CURRENT="${CURRENT_VERSION}"
-          BUMP="${BUMP_TYPE}"
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
-          # Split version into parts
-          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
-          MAJOR="${VERSION_PARTS[0]}"
-          MINOR="${VERSION_PARTS[1]}"
-          PATCH="${VERSION_PARTS[2]}"
-
-          # Increment based on bump type
-          case $BUMP in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION"
+      - name: Version
+        run: echo "The next version is ${{ steps.release.outputs.semVer }}"

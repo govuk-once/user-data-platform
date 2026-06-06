@@ -17,7 +17,8 @@
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
-    "serve:openapi": "npx serve docs"
+    "serve:openapi": "npx serve docs",
+    "semantic:release": "semantic-release"
   },
   "devDependencies": {
     "@nx/esbuild": "22.3.3",
@@ -49,7 +50,8 @@
     "tslib": "^2.3.0",
     "typescript": "5.9.3",
     "vite-tsconfig-paths": "5.1.4",
-    "vitest": "4.0.9"
+    "vitest": "4.0.9",
+    "semantic-release": "^25.0.3"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.0",
