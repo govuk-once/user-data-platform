@@ -39,6 +39,7 @@
     "aws-cdk": "^2.1121.0",
     "aws-sdk-client-mock": "^4.1.0",
     "aws-sdk-client-mock-vitest": "^7.0.1",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "esbuild": "0.27.0",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",
@@ -46,12 +47,12 @@
     "k6": "^0.0.0",
     "nx": "22.3.3",
     "prettier": "3.6.2",
+    "semantic-release": "^25.0.3",
     "ts-node": "10.9.2",
     "tslib": "^2.3.0",
     "typescript": "5.9.3",
     "vite-tsconfig-paths": "5.1.4",
-    "vitest": "4.0.9",
-    "semantic-release": "^25.0.3"
+    "vitest": "4.0.9"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.0",

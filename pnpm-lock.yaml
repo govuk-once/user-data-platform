@@ -162,6 +162,9 @@ importers:
       aws-sdk-client-mock-vitest:
         specifier: ^7.0.1
         version: 7.0.1(@smithy/types@4.14.1)(aws-sdk-client-mock@4.1.0)(vitest@4.0.9(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.3))
+      conventional-changelog-conventionalcommits:
+        specifier: ^9.3.1
+        version: 9.3.1
       esbuild:
         specifier: 0.27.0
         version: 0.27.0
@@ -4325,6 +4328,10 @@ packages:
 
   conventional-changelog-angular@8.3.1:
     resolution: {integrity: sha512-6gfI3otXK5Ph5DfCOI1dblr+kN3FAm5a97hYoQkqNZxOaYa5WKfXH+AnpsmS+iUH2mgVC2Cg2Qw9m5OKcmNrIg==}
+    engines: {node: '>=18'}
+
+  conventional-changelog-conventionalcommits@9.3.1:
+    resolution: {integrity: sha512-dTYtpIacRpcZgrvBYvBfArMmK2xvIpv2TaxM0/ZI5CBtNUzvF2x0t15HsbRABWprS6UPmvj+PzHVjSx4qAVKyw==}
     engines: {node: '>=18'}
 
   conventional-changelog-writer@8.4.0:
@@ -13471,6 +13478,10 @@ snapshots:
   content-type@2.0.0: {}
 
   conventional-changelog-angular@8.3.1:
+    dependencies:
+      compare-func: 2.0.0
+
+  conventional-changelog-conventionalcommits@9.3.1:
     dependencies:
       compare-func: 2.0.0
 
