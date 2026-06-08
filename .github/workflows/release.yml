@@ -104,3 +104,15 @@ jobs:
       expose-outputs: false
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+  
+  send-slack-notification:
+    name: Send Slack Notification
+    needs: [version, deploy-prod]
+    if: success()
+    uses: ./.github/workflows/slack-notification.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      type: ${{ needs.version.outputs.type }}
+      notes: ${{ needs.version.outputs.notes }}
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -6,6 +6,12 @@ on:
       version:
         description: 'The new semantic version number'
         value: ${{ jobs.version.outputs.version }}
+      type:
+        description: 'The type of release (major, minor, patch)'
+        value: ${{ jobs.version.outputs.type }}
+      notes:
+        description: 'The generated markdown release notes'
+        value: ${{ jobs.version.outputs.notes }}
 
 env:
   NODE_VERSION: '22'
@@ -20,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.semVer }}
+      type: ${{ steps.release.outputs.type }}
+      notes: ${{ steps.release.outputs.notes }}
 
     steps:
       - name: Checkout code

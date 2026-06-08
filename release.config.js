@@ -24,6 +24,12 @@ module.exports = {
       },
     ],
     [
+      '@semantic-release/exec',
+      {
+        successCmd: 'echo "version=${nextRelease.version}" >> $GITHUB_OUTPUT && echo "type=${nextRelease.type}" >> $GITHUB_OUTPUT && echo "notes=${nextRelease.notes}" >> $GITHUB_OUTPUT',
+      },
+    ],
+    [
       '@semantic-release/github',
       {
         successComment: false,
