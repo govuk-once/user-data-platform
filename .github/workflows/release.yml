@@ -15,19 +15,10 @@ permissions:
   contents: read
 
 jobs:
-  # version:
-  #   name: Version
-  #   uses: ./.github/workflows/version.yml
-  #   secrets: inherit
   version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: "1.40.0"
-      type: "minor"
-      notes: "### 🚀 Features\n* **test:** integrated slack notification\n"
-    steps:
-      - name: Mocking Release
-        run: echo "Bypassing real versioning engine for slack layout testing"
+    name: Version
+    uses: ./.github/workflows/version.yml
+    secrets: inherit
 
   # deploy-dev:
   #   name: Deploy to dev
