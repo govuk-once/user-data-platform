@@ -116,7 +116,8 @@ jobs:
   
   send-slack-notification:
     name: Send Slack Notification
-    needs: [version, deploy-prod]
+    # needs: [version, deploy-prod]
+    needs: [version]
     if: success()
     uses: ./.github/workflows/slack-notification.yml
     with:
