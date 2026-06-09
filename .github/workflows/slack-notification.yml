@@ -19,7 +19,7 @@ on:
 jobs:
   send-notification:
     runs-on: ubuntu-latest
-    if: ${{ inputs.type == 'major' || inputs.type == 'minor' }} 
+    if: ${{ inputs.type == 'major' || inputs.type == 'minor' }}
     steps:
       - name: Send Release Notification
         uses: slackapi/slack-github-action@v3

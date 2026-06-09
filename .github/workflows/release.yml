@@ -106,7 +106,7 @@ jobs:
       expose-outputs: false
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
-  
+
   send-slack-notification:
     name: Send Slack Notification
     needs: [version, deploy-prod]
