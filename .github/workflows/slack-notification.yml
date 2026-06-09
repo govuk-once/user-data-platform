@@ -21,12 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.type == 'major' || inputs.type == 'minor' }} 
     steps:
-      - name: Verify Release Inputs
-        run: |
-          echo "=== Slack Notification Release Data ==="
-          echo "Version received: ${{ inputs.version }}"
-          echo "Type received: ${{ inputs.type }}"
-          echo "Notes received: ${{ inputs.notes }}"
       - name: Send Release Notification
         uses: slackapi/slack-github-action@v3
         with:
