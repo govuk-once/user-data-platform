@@ -6,7 +6,8 @@
     "coverage",
     "build",
     ".nx",
-    "cdk.out"
+    "cdk.out",
+    "release.config.js"
   ],
   "plugins": ["@typescript-eslint", "prettier"],
   "extends": [
