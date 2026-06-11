@@ -1,4 +1,3 @@
-import { vi, beforeEach, describe, afterEach, it, expect } from 'vitest';
 import middy from '@middy/core';
 import {
   createEnvValidator,

@@ -2,7 +2,6 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { ApiClient } from 'src/helpers/api-client';
 import { ConsumerConfig, getConsumerConfig } from 'src/helpers/secrets-manager';
 import { CustomWorld } from 'src/helpers/world';
-import { expect } from 'vitest';
 
 let consumerConfig: ConsumerConfig | null = null;
 

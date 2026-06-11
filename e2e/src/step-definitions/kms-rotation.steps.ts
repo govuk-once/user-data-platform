@@ -2,7 +2,6 @@ import { Then, When } from '@cucumber/cucumber';
 import { config } from 'src/helpers/config';
 import { KMSClient, RotateKeyOnDemandCommand } from '@aws-sdk/client-kms';
 import { CustomWorld } from 'src/helpers/world';
-import { expect } from 'vitest';
 
 let rotationResponse: { KeyId?: string } | null = null;
 

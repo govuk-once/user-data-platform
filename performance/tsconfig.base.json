@@ -11,7 +11,8 @@
     "declaration": false,
     "sourceMap": false,
     "baseUrl": ".",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["vitest/globals", "node"]
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["vode_modules", "dist"]

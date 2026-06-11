@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Logger as PowerToolLogger } from '@aws-lambda-powertools/logger';
 import { Logger } from './Logger';
 
