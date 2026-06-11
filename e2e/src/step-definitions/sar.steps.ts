@@ -1,5 +1,6 @@
 import { Then, When } from '@cucumber/cucumber';
 import { CustomWorld } from '../helpers/world.js';
+import { expect } from 'vitest';
 
 When(
   'I wait for the SAR to complete',

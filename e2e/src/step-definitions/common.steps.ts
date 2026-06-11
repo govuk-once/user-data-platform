@@ -1,5 +1,6 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { CustomWorld } from '../helpers/world.js';
+import { expect } from 'vitest';
 import { registerCreateUser } from 'src/helpers/cleanup.js';
 
 Given('I am authenticated', async function (this: CustomWorld) {
