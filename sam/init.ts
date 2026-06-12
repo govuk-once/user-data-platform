@@ -3,6 +3,7 @@ import {
   DynamoDBClient,
   ResourceInUseException,
   ListTablesCommand,
+  GlobalSecondaryIndex,
 } from '@aws-sdk/client-dynamodb';
 import {
   CreateQueueCommand,
@@ -17,7 +18,30 @@ const DYNAMODB_ENDPOINT =
 const SQS_ENDPOINT = process.env.SQS_ENDPOINT ?? 'http://localhost:9324';
 const REGION = 'eu-west-2';
 
-const TABLES = ['udp-data-local', 'udp-identity-local'];
+type TableConfig = {
+  name: string;
+  globalSecordaryIndexes?: GlobalSecondaryIndex[];
+};
+
+const SK_INDEX: GlobalSecondaryIndex = {
+  IndexName: 'sk-index',
+  KeySchema: [
+    {
+      AttributeName: 'sk',
+      KeyType: 'HASH',
+    },
+    {
+      AttributeName: 'pk',
+      KeyType: 'RANGE',
+    },
+  ],
+  Projection: { ProjectionType: 'ALL' },
+};
+
+const TABLES: TableConfig[] = [
+  { name: 'udp-data-local' },
+  { name: 'udp-identity-local', globalSecordaryIndexes: [SK_INDEX] },
+];
 
 const ddb = new DynamoDBClient({
   endpoint: DYNAMODB_ENDPOINT,
@@ -53,11 +77,11 @@ async function waitFor(
   throw new Error(`${name} not ready. error: ${JSON.stringify(lastErr)}`);
 }
 
-async function createTable(tableName: string) {
+async function createTable({ name, globalSecordaryIndexes }: TableConfig) {
   try {
     await ddb.send(
       new CreateTableCommand({
-        TableName: tableName,
+        TableName: name,
         BillingMode: 'PAY_PER_REQUEST',
         KeySchema: [
           { AttributeName: 'pk', KeyType: 'HASH' },
@@ -67,13 +91,14 @@ async function createTable(tableName: string) {
           { AttributeName: 'pk', AttributeType: 'S' },
           { AttributeName: 'sk', AttributeType: 'S' },
         ],
+        GlobalSecondaryIndexes: globalSecordaryIndexes,
       }),
     );
 
-    console.log(`   created table ${tableName}`);
+    console.log(`   created table ${name}`);
   } catch (err) {
     if (err instanceof ResourceInUseException) {
-      console.log(`   table ${tableName} already exists`);
+      console.log(`   table ${name} already exists`);
       return;
     }
     throw err;
