@@ -1,5 +1,4 @@
 import { KMSClient } from '@aws-sdk/client-kms';
-import { beforeEach, vi, describe, expect, it } from 'vitest';
 import { EncryptionService } from './EncryptionService';
 
 const mockPlainTextKey = Buffer.alloc(32, 'a');

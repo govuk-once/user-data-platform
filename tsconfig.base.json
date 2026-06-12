@@ -14,6 +14,7 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
+    "types": ["vitest/globals", "node"],
     "paths": {
       "@libs/data-access": ["libs/data-access/index.ts"],
       "@libs/utils": ["libs/utils/index.ts"],
