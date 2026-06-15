@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, SQSEvent } from 'aws-lambda';
-import { beforeEach, describe, vi, expect, it } from 'vitest';
 import {
   DynamoDBDocumentClient,
   DeleteCommand,
