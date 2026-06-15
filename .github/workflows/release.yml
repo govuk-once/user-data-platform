@@ -107,11 +107,11 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
-  send-slack-notification:
-    name: Send Slack Notification
+  send-release-notification:
+    name: Send Release Notification
     needs: [version, deploy-prod]
     if: success()
-    uses: ./.github/workflows/slack-notification.yml
+    uses: ./.github/workflows/slack-release-notification.yml
     with:
       version: ${{ needs.version.outputs.version }}
       type: ${{ needs.version.outputs.type }}

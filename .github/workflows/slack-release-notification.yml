@@ -1,0 +1,54 @@
+name: Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      type:
+        required: true
+        type: string
+      notes:
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.type == 'major' || inputs.type == 'minor' }}
+    steps:
+      - name: Send Release Notification
+        uses: slackapi/slack-github-action@v3
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚀 UDP has released a new version: v${{ inputs.version }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": { "type": "plain_text", "text": "🚀 UDP has released a new version", "emoji": true }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Release Version:*\n`v${{ inputs.version }}`" },
+                    { "type": "mrkdwn", "text": "*Release Type:*\n${{ inputs.type }}" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*GitHub Release:*\n<https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}|View Release Notes on GitHub>" }
+                },
+                { "type": "divider" },
+                {
+                  "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*Release Summary:*\n${{ inputs.notes }}" }
+                }
+              ]
+            }
