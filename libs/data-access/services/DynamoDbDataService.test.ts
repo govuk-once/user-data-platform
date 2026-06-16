@@ -13,10 +13,18 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
+import {
+  DecryptCommand,
+  GenerateDataKeyCommand,
+  KMSClient,
+} from '@aws-sdk/client-kms';
 import { DataRecordNotFoundError, UDP_ERROR_TYPES } from '@libs/utils';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
+const kmsMock = mockClient(KMSClient);
 
 const getCommandCall = (command: any, callNumber: number) => {
   return dynamoMock.commandCalls(command)[callNumber - 1].args[0].input;
@@ -232,6 +240,160 @@ describe('DynamoDb Data Service', () => {
       await expect(
         service.deleteByKey(mockIdentity, mockResource),
       ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('Patch by Key', () => {
+    it('deep-merges into the existing record and updates it', async () => {
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockIdentity.udpId,
+          sk: mockResource,
+          data: { a: 1, nested: { x: 1 } },
+        },
+      });
+      const merged = { a: 1, b: 2, nested: { x: 1, y: 2 } };
+      dynamoMock.on(UpdateCommand).resolves({
+        Attributes: { pk: mockIdentity.udpId, sk: mockResource, data: merged },
+      });
+
+      const result = await service.patchByKey(mockIdentity, mockResource, {
+        b: 2,
+        nested: { y: 2 },
+      });
+
+      expect(getCommandCall(UpdateCommand, 1)).toMatchObject({
+        TableName: tableName,
+        Key: { pk: mockIdentity.udpId, sk: mockResource },
+        UpdateExpression: 'SET #data = :data',
+        ExpressionAttributeNames: { '#data': 'data' },
+        ExpressionAttributeValues: { ':data': merged },
+        ConditionExpression: 'attribute_exists(pk)',
+        ReturnValues: 'ALL_NEW',
+      });
+      expect(result).toMatchObject({ data: merged });
+    });
+
+    it('throws a DataRecordNotFoundError when the record does not exist', async () => {
+      dynamoMock.on(GetCommand).resolves({});
+
+      await expect(
+        service.patchByKey(mockIdentity, mockResource, { b: 2 }),
+      ).rejects.toBeInstanceOf(DataRecordNotFoundError);
+      expect(dynamoMock.commandCalls(UpdateCommand).length).toBe(0);
+    });
+  });
+
+  describe('Count by UDP ID', () => {
+    it('sums the counts across all pages', async () => {
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Count: 2, LastEvaluatedKey: { pk: '1', sk: '1' } })
+        .resolvesOnce({ Count: 3 });
+
+      const total = await service.countByUdpID(mockIdentity.udpId);
+
+      expect(total).toBe(5);
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': mockIdentity.udpId },
+        Select: 'COUNT',
+      });
+      expect(dynamoMock.commandCalls(QueryCommand).length).toBe(2);
+    });
+  });
+
+  describe('Get Key Page by UDP ID', () => {
+    it('returns only pk/sk projections and the pagination key', async () => {
+      const lastEvaluatedKey = { pk: mockIdentity.udpId, sk: 'topics' };
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [{ pk: mockIdentity.udpId, sk: 'topics', data: { a: 1 } }],
+        LastEvaluatedKey: lastEvaluatedKey,
+      });
+
+      const result = await service.getKeyPageByUdpID(mockIdentity.udpId);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': mockIdentity.udpId },
+        Limit: 100,
+        ProjectionExpression: 'pk, sk',
+      });
+      expect(result.items).toEqual([{ pk: mockIdentity.udpId, sk: 'topics' }]);
+      expect(result.lastEvaluatedKey).toEqual(lastEvaluatedKey);
+    });
+
+    it('forwards an exclusive start key when paginating', async () => {
+      const startKey = { pk: mockIdentity.udpId, sk: 'topics' };
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+      await service.getKeyPageByUdpID(mockIdentity.udpId, startKey);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        ExclusiveStartKey: startKey,
+      });
+    });
+  });
+
+  describe('Get All by UDP ID', () => {
+    it('returns every record across all pages', async () => {
+      const first = { pk: mockIdentity.udpId, sk: 'topics', data: { a: 1 } };
+      const second = { pk: mockIdentity.udpId, sk: 'prefs', data: { b: 2 } };
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({
+          Items: [first],
+          LastEvaluatedKey: { pk: '1', sk: '1' },
+        })
+        .resolvesOnce({ Items: [second] });
+
+      const result = await service.getAllByUdpID(mockIdentity.udpId);
+
+      expect(result).toEqual([first, second]);
+      expect(dynamoMock.commandCalls(QueryCommand).length).toBe(2);
+    });
+  });
+
+  describe('with encryption configured', () => {
+    const key = Buffer.alloc(32, 'a');
+    const encryptedKey = Buffer.from('encrypted-key-data');
+
+    const encryptedService: DynamoDbDataService = new ServiceFactory({
+      tableName,
+      identityTableName,
+      kmsKeyId: 'test-key-id',
+    }).getService('data');
+
+    beforeEach(() => {
+      kmsMock.reset();
+      kmsMock.on(GenerateDataKeyCommand).resolves({
+        Plaintext: key,
+        CiphertextBlob: encryptedKey,
+      });
+      kmsMock.on(DecryptCommand).resolves({ Plaintext: key });
+    });
+
+    it('encrypts the data field on save and decrypts it on read', async () => {
+      const input: DataInput = { data: { secret: 'value' } };
+      dynamoMock.on(PutCommand).resolves({});
+
+      await encryptedService.save(mockIdentity, mockResource, input);
+
+      const storedItem = getCommandCall(PutCommand, 1).Item;
+      expect(storedItem.__dataKey).toBe(encryptedKey.toString('base64'));
+      expect(storedItem.data).not.toEqual(input.data);
+
+      dynamoMock.on(GetCommand).resolves({ Item: storedItem });
+
+      const result = await encryptedService.getByKey(
+        mockIdentity,
+        mockResource,
+      );
+
+      expect(result.data).toEqual(input.data);
+      expect('__dataKey' in result).toBe(false);
     });
   });
 });

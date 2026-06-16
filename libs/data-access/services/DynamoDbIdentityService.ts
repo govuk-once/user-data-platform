@@ -1,33 +1,41 @@
 import {
-  CreateUserInput,
-  CreateUserResult,
-  IdentityInput,
-  IdentityRecordEntity,
-} from '../types/Entity';
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import {
   IdentityLinkingInvalidIdentitesError,
   IdentityRecordNotFoundError,
   Logger,
   UDP_ERROR_TYPES,
 } from '@libs/utils';
-import { Repository } from '../repositories/Repository';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  CreateUserInput,
+  CreateUserResult,
+  EncryptionConfig,
+  IdentityInput,
+  IdentityRecordEntity,
+} from '../types/Entity';
+import { decryptItem, encryptItem } from './crypto';
+
+const SK_INDEX = 'sk-index';
 
 /**
- * Service class for DynamoDB Identity entity operations with business logic.
- * Provides a higher-level API with validation, transformation, and orchestration.
- * Designed specifically for DynamoDB single-table design with composite keys.
- * @template T - The entity type that extends DynamoDBEntity
+ * Reads and writes identity records in DynamoDB.
+ *
+ * Identities are keyed by `{service}#{id}` (partition) and the shared udpId
+ * (sort), with a `sk-index` GSI for reverse lookups by udpId. Token fields are
+ * encrypted at rest when the factory is configured with a KMS key.
  */
-export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
-  private readonly logger;
-
+export class DynamoDBIdentityService {
   constructor(
-    private readonly repository: Repository<T>,
-    logger?: Logger,
-  ) {
-    this.logger = logger;
-  }
+    private readonly client: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    private readonly encryption?: EncryptionConfig,
+    private readonly logger?: Logger,
+  ) {}
 
   public async linkIdentity(input: IdentityInput) {
     if (input.appId === input.serviceId) {
@@ -38,8 +46,17 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
         input.serviceId,
       );
     }
-    const entity = await this.createFromInput(input);
-    await this.repository.save(entity);
+
+    const app = await this.getByServiceId('app', input.appId);
+
+    await this.put({
+      pk: `${input.serviceName}#${input.serviceId}`,
+      sk: app.udpId,
+      serviceName: input.serviceName,
+      serviceId: input.serviceId,
+      udpId: app.udpId,
+      ...(input.ttl ? { ttl: input.ttl } : {}),
+    });
   }
 
   public async createAppUser(
@@ -47,37 +64,19 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
   ): Promise<CreateUserResult> {
     const pk = `app#${input.appId}`;
 
-    this.logger?.debug('checking is user exists', { pk });
-
-    const exists = await this.repository.getByPk(pk);
-
-    if (exists) {
+    if (await this.findByPk(pk)) {
       this.logger?.debug('User already exists', { pk });
       return { udpId: '', created: false };
     }
 
     const udpId = uuidv4();
 
-    const entity = {
+    await this.put({
       pk,
       sk: udpId,
       udpId,
       serviceId: input.appId,
       serviceName: 'app',
-    } as unknown as T;
-
-    this.logger?.debug('Creating new app user', {
-      pk,
-      sk: udpId,
-      appId: input.appId,
-    });
-
-    await this.repository.save(entity);
-
-    this.logger?.debug('User successfully created', {
-      pk,
-      sk: udpId,
-      appId: input.appId,
     });
 
     return { udpId, created: true };
@@ -85,45 +84,28 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
   public async getByServiceId(serviceName: string, serviceId: string) {
     const pk = `${serviceName.toLowerCase()}#${serviceId}`;
-
-    this.logger?.debug('Getting service user', { pk });
-
-    const user = await this.repository.getByPk(pk);
+    const user = await this.findByPk(pk);
 
     if (!user) {
-      throw new IdentityRecordNotFoundError(
-        `Identity not found with service: ${serviceName} and id: ${serviceId}`,
-        UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
-        serviceName,
-        serviceId,
-      );
+      throw this.notFound(serviceName, serviceId);
     }
 
     return user;
   }
 
   public async deleteById(serviceName: string, serviceId: string) {
-    const identifier = await this.getByServiceId(serviceName, serviceId);
-
-    const result = await this.repository.delete({
-      pk: identifier.pk,
-      sk: identifier.sk,
-    } as Partial<T>);
+    const identity = await this.getByServiceId(serviceName, serviceId);
+    const result = await this.delete(identity.pk, identity.sk);
 
     if (!result) {
-      throw new IdentityRecordNotFoundError(
-        `Identity not found with service: ${serviceName} and id: ${serviceId}`,
-        UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
-        serviceName,
-        serviceId,
-      );
+      throw this.notFound(serviceName, serviceId);
     }
 
     return result;
   }
 
   public async deleteAllByUdpId(udpId: string): Promise<number> {
-    const identities = await this.repository.queryBySk(udpId);
+    const identities = await this.queryBySk(udpId);
 
     if (identities.length === 0) {
       this.logger?.debug(`No linked identities found for UDPID ${udpId}`);
@@ -134,13 +116,10 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
 
     for (const identity of identities) {
       try {
-        await this.repository.delete({
-          pk: identity.pk,
-          sk: identity.sk,
-        } as Partial<T>);
+        await this.delete(identity.pk, identity.sk);
         deletedCount++;
       } catch (error) {
-        if (error.name == 'ConditionalCheckFailedException') {
+        if (error.name === 'ConditionalCheckFailedException') {
           this.logger?.warn('Identity not found during bulk delete', {
             udpId,
             pk: identity.pk,
@@ -160,15 +139,10 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
     serviceId: string,
     requiredService: string,
   ) {
-    const identify = await this.getByServiceId(serviceName, serviceId);
+    const identity = await this.getByServiceId(serviceName, serviceId);
+    const linked = await this.queryLinked(identity.udpId, requiredService);
 
-    const linkedRecord = await this.repository.queryByGsi(
-      'sk-index',
-      identify.udpId,
-      requiredService,
-    );
-
-    if (!linkedRecord) {
+    if (!linked) {
       throw new IdentityRecordNotFoundError(
         `Linked identity not found for service ${requiredService}`,
         UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
@@ -177,20 +151,99 @@ export class DynamoDBIdentityService<T extends IdentityRecordEntity> {
       );
     }
 
-    return linkedRecord;
+    return linked;
   }
 
-  private async createFromInput(input: IdentityInput): Promise<T> {
-    // look up the udp id by app id
-    const appIdentifier = await this.getByServiceId('app', input.appId);
+  // --- DynamoDB access ---
 
-    return {
-      pk: `${input.serviceName}#${input.serviceId}`,
-      sk: appIdentifier.udpId,
-      serviceName: input.serviceName,
-      serviceId: input.serviceId,
-      udpId: appIdentifier.udpId,
-      ...(input.ttl ? { ttl: input.ttl } : {}),
-    } as T;
+  private async findByPk(pk: string): Promise<IdentityRecordEntity | null> {
+    const response = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        Limit: 1,
+      }),
+    );
+
+    const item = response.Items?.[0];
+    if (!item) {
+      return null;
+    }
+
+    return decryptItem<IdentityRecordEntity>(item, this.encryption);
+  }
+
+  private async queryBySk(sk: string): Promise<IdentityRecordEntity[]> {
+    const response = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: SK_INDEX,
+        KeyConditionExpression: 'sk = :sk',
+        ExpressionAttributeValues: { ':sk': sk },
+      }),
+    );
+
+    return (response.Items ?? []) as IdentityRecordEntity[];
+  }
+
+  private async queryLinked(
+    udpId: string,
+    servicePrefix: string,
+  ): Promise<IdentityRecordEntity | null> {
+    const response = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: SK_INDEX,
+        KeyConditionExpression: 'sk = :sk AND begins_with(pk, :pkPrefix)',
+        ExpressionAttributeValues: {
+          ':sk': udpId,
+          ':pkPrefix': `${servicePrefix}#`,
+        },
+      }),
+    );
+
+    const item = response.Items?.[0];
+    if (!item) {
+      return null;
+    }
+
+    return decryptItem<IdentityRecordEntity>(item, this.encryption);
+  }
+
+  private async put(entity: IdentityRecordEntity) {
+    await this.client.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: await encryptItem(entity, this.encryption),
+      }),
+    );
+  }
+
+  private async delete(pk: string, sk: string): Promise<boolean | null> {
+    try {
+      await this.client.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: { pk, sk },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private notFound(serviceName: string, serviceId: string) {
+    return new IdentityRecordNotFoundError(
+      `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+      UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+      serviceName,
+      serviceId,
+    );
   }
 }
