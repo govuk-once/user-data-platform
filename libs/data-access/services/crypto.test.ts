@@ -1,8 +1,8 @@
 import { EncryptionConfig } from '../types/Entity';
-import { encryptItem, decryptItem } from './crypto';
 import { EncryptionService } from './EncryptionService';
+import { decryptItem, encryptItem } from './crypto';
 
-describe('Crypto helpers', () => {
+describe('crypto helpers', () => {
   const encryptFields = vi.fn();
   const decryptFields = vi.fn();
 
@@ -15,7 +15,7 @@ describe('Crypto helpers', () => {
     vi.clearAllMocks();
   });
 
-  describe('encryoptItem', () => {
+  describe('encryptItem', () => {
     it('returns the item untouched when no encryption is configured', async () => {
       const item = { pk: '123', sk: 'topics', data: { a: 1 } };
 
@@ -27,7 +27,9 @@ describe('Crypto helpers', () => {
 
     it('delegates to EncryptionService with the configured fields', async () => {
       const item = { pk: '123', sk: 'topics', data: { a: 1 } };
-      const encrypted = { ...item, data: 'cipher', __datakey: 'key' };
+      const encrypted = { ...item, data: 'cipher', __dataKey: 'key' };
+      encryptFields.mockResolvedValue(encrypted);
+
       const result = await encryptItem(item, encryption);
 
       expect(encryptFields).toHaveBeenCalledWith(item, ['data']);
@@ -50,9 +52,8 @@ describe('Crypto helpers', () => {
         pk: '123',
         sk: 'topics',
         data: 'cipher',
-        __datakey: 'k',
+        __dataKey: 'k',
       };
-
       const plain = { pk: '123', sk: 'topics', data: { a: 1 } };
       decryptFields.mockResolvedValue(plain);
 
