@@ -43,7 +43,7 @@ describe('Identity Service', () => {
     udpId: 'mock-string-uuid4',
   };
 
-  const service: DynamoDBIdentityService<IdentityRecordEntity> =
+  const service: DynamoDBIdentityService =
     new ServiceFactory({
       tableName,
       identityTableName,
@@ -468,7 +468,7 @@ describe('Identity Service', () => {
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =
+      const testServiceConstructor: DynamoDBIdentityService =
         new ServiceFactory({
           tableName,
           identityTableName,
