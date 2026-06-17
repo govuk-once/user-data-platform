@@ -18,10 +18,10 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
-  
+
   sonar-scan:
     name: Run SonarQube Scan
-    uses: ./.github/workflows/sonar-scan.yml 
+    uses: ./.github/workflows/sonar-scan.yml
     secrets: inherit
 
   deploy-dev:

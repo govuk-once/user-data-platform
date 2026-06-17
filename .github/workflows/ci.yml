@@ -107,7 +107,7 @@ jobs:
         run: pnpm test:affected
 
       - name: Run SonarQube Scan
-        uses: ./.github/workflows/sonar-scan.yml 
+        uses: ./.github/workflows/sonar-scan.yml
         secrets: inherit
 
       - name: Checkov Security Scan
