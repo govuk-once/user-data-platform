@@ -43,11 +43,10 @@ describe('Identity Service', () => {
     udpId: 'mock-string-uuid4',
   };
 
-  const service: DynamoDBIdentityService =
-    new ServiceFactory({
-      tableName,
-      identityTableName,
-    }).getService('identity');
+  const service: DynamoDBIdentityService = new ServiceFactory({
+    tableName,
+    identityTableName,
+  }).getService('identity');
 
   beforeEach(() => {
     dynamoMock.reset();
