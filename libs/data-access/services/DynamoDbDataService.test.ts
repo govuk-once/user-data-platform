@@ -376,7 +376,7 @@ describe('DynamoDb Data Service', () => {
     });
 
     it('encrypts the data field on save and decrypts it on read', async () => {
-      const input: DataInput = { data: { secret: 'value' } };
+      const input: DataInput = { data: { secret: 'value' } }; // pragma: allowlist secret
       dynamoMock.on(PutCommand).resolves({});
 
       await encryptedService.save(mockIdentity, mockResource, input);
