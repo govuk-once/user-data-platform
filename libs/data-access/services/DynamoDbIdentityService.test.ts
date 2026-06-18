@@ -43,11 +43,10 @@ describe('Identity Service', () => {
     udpId: 'mock-string-uuid4',
   };
 
-  const service: DynamoDBIdentityService<IdentityRecordEntity> =
-    new ServiceFactory({
-      tableName,
-      identityTableName,
-    }).getService('identity');
+  const service: DynamoDBIdentityService = new ServiceFactory({
+    tableName,
+    identityTableName,
+  }).getService('identity');
 
   beforeEach(() => {
     dynamoMock.reset();
@@ -468,7 +467,7 @@ describe('Identity Service', () => {
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =
+      const testServiceConstructor: DynamoDBIdentityService =
         new ServiceFactory({
           tableName,
           identityTableName,
