@@ -7,7 +7,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration } from 'aws-cdk-lib';
-import * as path from 'path';
+import * as path from 'node:path';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface LambdaApiConstructProps {
@@ -47,127 +47,20 @@ export class LambdaApiConstruct extends Construct {
     super(scope, id);
 
     const {
-      developerId,
-      environment,
-      functionName,
-      handler = 'index.handler',
-      runtime = lambda.Runtime.NODEJS_20_X,
-      timeout = Duration.seconds(30),
-      memorySize = 512,
-      sourcePath,
-      environmentVariables = {},
-      kmsKey,
       dbKmsKey,
-      dynamoDBtable,
-      dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
-      identityDbTable,
-      identityDbActions = ['dynamodb:GetItem'],
+      kmsKey,
       api,
-      httpMethod,
-      logRetentionDays = logs.RetentionDays.ONE_YEAR,
       routePath,
-      vpc,
-      vpcSubnets,
-      securityGroups,
+      httpMethod,
       cachingEnabled = false,
-      sqsQueueUrl,
-      sqsQueueArn,
     } = props;
+    const fullFunctionName = this.getFullFunctionName(props);
 
-    const fullFunctionName = developerId
-      ? `${developerId}-${functionName}-${environment}`
-      : `${functionName}-${environment}`;
-
-    this.logGroup = new logs.LogGroup(this, 'LogGroup', {
-      logGroupName: `/aws/lambda/${fullFunctionName}`,
-      retention: logRetentionDays,
-      removalPolicy: getRemovalPolicy(environment),
-      encryptionKey: kmsKey,
-    });
-
-    const envVars: Record<string, string> = {
-      NODE_ENV: environment,
-      ...environmentVariables,
-    };
-
-    if (dynamoDBtable) {
-      envVars['TABLE_NAME'] = dynamoDBtable.tableName;
-    }
-
-    if (identityDbTable) {
-      envVars['IDENTITY_TABLE_NAME'] = identityDbTable.tableName;
-    }
-
-    if (dbKmsKey) {
-      envVars['KMS_KEY_ID'] = dbKmsKey.keyId;
-    }
-
-    if (sqsQueueUrl) {
-      envVars['QUEUE_URL'] = sqsQueueUrl;
-    }
-
-    // Sanitize sourcePath to prevent path traversal by using only the basename
-    const sanitizedSourcePath = path.basename(sourcePath);
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const codePath = path.resolve(
-      process.cwd(),
-      '..',
-      'build',
-      sanitizedSourcePath,
-    );
-
-    this.function = new lambda.Function(this, 'Function', {
-      functionName: fullFunctionName,
-      runtime,
-      handler,
-      code: lambda.Code.fromAsset(codePath),
-      timeout,
-      memorySize,
-      environment: envVars,
-      environmentEncryption: kmsKey,
-      logGroup: this.logGroup,
-      tracing: lambda.Tracing.ACTIVE,
-
-      vpc,
-      vpcSubnets: vpc
-        ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
-        : undefined,
-      securityGroups: vpc ? securityGroups : undefined,
-      ...(environment === 'dev' ? {} : { reservedConcurrentExecutions: 50 }),
-    });
-
-    if (dynamoDBtable && dynamoDbActions.length > 0) {
-      this.function.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: dynamoDbActions,
-          resources: [
-            dynamoDBtable.tableArn,
-            `${dynamoDBtable.tableArn}/index/*`,
-          ],
-        }),
-      );
-    }
-
-    if (identityDbTable && identityDbActions.length > 0) {
-      this.function.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: identityDbActions,
-          resources: [
-            identityDbTable.tableArn,
-            `${identityDbTable.tableArn}/index/*`,
-          ],
-        }),
-      );
-    }
-
-    if (sqsQueueArn) {
-      this.function.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ['sqs:SendMessage'],
-          resources: [sqsQueueArn],
-        }),
-      );
-    }
+    this.logGroup = this.createLogGroup(fullFunctionName, props);
+    this.function = this.createLambdaFunction(fullFunctionName, props);
+    this.addDynamoDbPolicyToLambda(props);
+    this.addIdentityDbPolicyToLambda(props);
+    this.addSqsPolicyToLambda(props);
 
     if (dbKmsKey) {
       dbKmsKey.grantDecrypt(this.function);
@@ -248,5 +141,155 @@ export class LambdaApiConstruct extends Construct {
     }
 
     return { cacheKeyParameters, requestParameters };
+  }
+
+  private getFullFunctionName(props: LambdaApiConstructProps): string {
+    const { developerId, functionName, environment } = props;
+
+    return developerId
+      ? `${developerId}-${functionName}-${environment}`
+      : `${functionName}-${environment}`;
+  }
+
+  private createLogGroup(
+    fullFunctionName: string,
+    props: LambdaApiConstructProps,
+  ): logs.LogGroup {
+    const {
+      environment,
+      kmsKey,
+      logRetentionDays = logs.RetentionDays.ONE_YEAR,
+    } = props;
+
+    return new logs.LogGroup(this, 'LogGroup', {
+      logGroupName: `/aws/lambda/${fullFunctionName}`,
+      retention: logRetentionDays,
+      removalPolicy: getRemovalPolicy(environment),
+      encryptionKey: kmsKey,
+    });
+  }
+
+  private createLambdaFunction(
+    fullFunctionName: string,
+    props: LambdaApiConstructProps,
+  ): lambda.Function {
+    const {
+      handler = 'index.handler',
+      runtime = lambda.Runtime.NODEJS_20_X,
+      timeout = Duration.seconds(30),
+      memorySize = 512,
+      kmsKey,
+      vpc,
+      vpcSubnets,
+      securityGroups,
+    } = props;
+
+    // Sanitize sourcePath to prevent path traversal by using only the basename
+    const sanitizedSourcePath = path.basename(props.sourcePath);
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const codePath = path.resolve(
+      process.cwd(),
+      '..',
+      'build',
+      sanitizedSourcePath,
+    );
+    const envVars: Record<string, string> =
+      this.buildEnvironmentVariables(props);
+
+    return new lambda.Function(this, 'Function', {
+      functionName: fullFunctionName,
+      runtime,
+      handler,
+      code: lambda.Code.fromAsset(codePath),
+      timeout,
+      memorySize,
+      environment: envVars,
+      environmentEncryption: kmsKey,
+      logGroup: this.logGroup,
+      tracing: lambda.Tracing.ACTIVE,
+
+      vpc,
+      vpcSubnets: vpc
+        ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
+        : undefined,
+      securityGroups: vpc ? securityGroups : undefined,
+      ...(props.environment === 'dev'
+        ? {}
+        : { reservedConcurrentExecutions: 50 }),
+    });
+  }
+
+  private buildEnvironmentVariables(
+    props: LambdaApiConstructProps,
+  ): Record<string, string> {
+    const envVars: Record<string, string> = {
+      NODE_ENV: props.environment,
+      ...(props.environmentVariables ?? {}),
+    };
+    if (props.dynamoDBtable) {
+      envVars['TABLE_NAME'] = props.dynamoDBtable.tableName;
+    }
+
+    if (props.identityDbTable) {
+      envVars['IDENTITY_TABLE_NAME'] = props.identityDbTable.tableName;
+    }
+
+    if (props.dbKmsKey) {
+      envVars['KMS_KEY_ID'] = props.dbKmsKey.keyId;
+    }
+
+    if (props.sqsQueueUrl) {
+      envVars['QUEUE_URL'] = props.sqsQueueUrl;
+    }
+
+    return envVars;
+  }
+
+  private addDynamoDbPolicyToLambda(props: LambdaApiConstructProps): void {
+    const {
+      dynamoDBtable,
+      dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
+    } = props;
+    if (!dynamoDBtable && dynamoDbActions.length === 0) {
+      return;
+    }
+    this.function.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: dynamoDbActions,
+        resources: [
+          dynamoDBtable!.tableArn,
+          `${dynamoDBtable!.tableArn}/index/*`,
+        ],
+      }),
+    );
+  }
+
+  private addIdentityDbPolicyToLambda(props: LambdaApiConstructProps): void {
+    const { identityDbTable, identityDbActions = ['dynamodb:GetItem'] } = props;
+
+    if (!identityDbTable && identityDbActions.length === 0) {
+      return;
+    }
+    this.function.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: identityDbActions,
+        resources: [
+          identityDbTable!.tableArn,
+          `${identityDbTable!.tableArn}/index/*`,
+        ],
+      }),
+    );
+  }
+
+  private addSqsPolicyToLambda(props: LambdaApiConstructProps): void {
+    if (!props.sqsQueueArn) {
+      return;
+    }
+    this.function.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sqs:SendMessage'],
+        resources: [props.sqsQueueArn],
+      }),
+    );
   }
 }

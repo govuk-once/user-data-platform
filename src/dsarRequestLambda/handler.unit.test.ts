@@ -43,12 +43,14 @@ describe('dsarRequestLambda handler', () => {
     vi.clearAllMocks();
   });
 
+  const defaultSQSBody : Record<string, unknown> = {
+    dsarID: mockDsarId,
+    serviceName: mockRequestingService,
+    serviceUserId: mockRequestingServiceUserId,
+  };
+
   const createSQSEvent = (
-    body: Record<string, unknown> = {
-      dsarID: mockDsarId,
-      serviceName: mockRequestingService,
-      serviceUserId: mockRequestingServiceUserId,
-    },
+    body: Record<string, unknown> = defaultSQSBody
   ): SQSEvent => ({
     Records: [
       {

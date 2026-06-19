@@ -26,6 +26,10 @@ while [[ $# -gt 0 ]]; do
          USE_PERSONAL=true
          shift
          ;;
+         *)
+         echo "Unknown option: $1" >&2
+         exit 1
+         ;;
     esac
 done
 

@@ -16,7 +16,7 @@ get_developer_id() {
 
     git_email=$(git config --get user.email 2>/dev/null || echo "")
     if [[ -z "$git_email" ]]; then
-        echo "Error: Git email not configured"
+        echo "Error: Git email not configured" >&2
         exit 1
     fi
 

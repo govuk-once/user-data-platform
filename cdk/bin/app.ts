@@ -89,7 +89,8 @@ if (!skipMainStack) {
 
   sarStack.addDependency(mainStack);
 
-  const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`;
+  const kmsKeyPrefix = developerId ? `${developerId}-` : '';
+  const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
 
   const monitoringStack = new MonitoringStack(
     app,
@@ -151,7 +152,7 @@ if (!skipMainStack) {
 }
 
 if (environment !== GovUkOnceEnvironments.Dev) {
-  new BackupStack(app, `${stackPrefix}-backup`, {
+  const _backupStack = new BackupStack(app, `${stackPrefix}-backup`, {
     developerId,
     environment,
     stackPrefix,
