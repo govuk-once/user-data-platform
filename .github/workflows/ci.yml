@@ -116,6 +116,7 @@ jobs:
         run: checkov -d cdk --config-file cdk/.checkov.yaml
 
   sonar-scan:
+    needs: validate-pr
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
     secrets: inherit
