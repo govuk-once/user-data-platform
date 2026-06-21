@@ -222,9 +222,11 @@ export class LambdaApiConstruct extends Construct {
   private buildEnvironmentVariables(
     props: LambdaApiConstructProps,
   ): Record<string, string> {
+    const { environment, environmentVariables = {} } = props;
+
     const envVars: Record<string, string> = {
-      NODE_ENV: props.environment,
-      ...(props.environmentVariables ?? {}),
+      NODE_ENV: environment,
+      ...environmentVariables,
     };
     if (props.dynamoDBtable) {
       envVars['TABLE_NAME'] = props.dynamoDBtable.tableName;
@@ -246,7 +248,10 @@ export class LambdaApiConstruct extends Construct {
   }
 
   private addDynamoDbPolicyToLambda(props: LambdaApiConstructProps): void {
-    const { dynamoDBtable, dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'] } = props;
+    const {
+      dynamoDBtable,
+      dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
+    } = props;
 
     if (dynamoDBtable && dynamoDbActions.length > 0) {
       this.function.addToRolePolicy(
