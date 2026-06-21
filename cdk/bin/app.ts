@@ -152,7 +152,7 @@ if (!skipMainStack) {
 }
 
 if (environment !== GovUkOnceEnvironments.Dev) {
-  const _backupStack = new BackupStack(app, `${stackPrefix}-backup`, {
+  new BackupStack(app, `${stackPrefix}-backup`, {
     developerId,
     environment,
     stackPrefix,

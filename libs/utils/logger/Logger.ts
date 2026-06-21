@@ -31,15 +31,15 @@ export class Logger extends PowerToolLogger {
   }
   /** -------- Redaction Utilities -------- */
 
-  private redactObject<T>(input: T): T {
+  private redactObject<T extends object>(input: T): T {
     if (!input || typeof input !== 'object') return input;
 
     const clone = (Array.isArray(input) ? [...input] : { ...input }) as T;
 
     for (const key in clone) {
-      if (!Object.prototype.hasOwnProperty.call(clone, key)) continue;
+      if (!Object.hasOwn(clone, key)) continue;
 
-      if (this.redactedFields.includes(key as string)) {
+      if (this.redactedFields.includes(key)) {
         (clone as Record<string, unknown>)[key] = '***REDACTED***';
       } else if (typeof clone[key] === 'object' && clone[key] !== null) {
         (clone as Record<string, unknown>)[key] = this.redactObject(clone[key]);
@@ -91,4 +91,4 @@ export class Logger extends PowerToolLogger {
   }
 }
 
-export const getLogger = (options) => logger || new Logger(options);
+export const getLogger = (options) => logger ?? new Logger(options);

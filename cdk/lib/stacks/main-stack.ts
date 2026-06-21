@@ -318,7 +318,7 @@ export class MainStack extends Stack {
         ? `${developerId}-${eventQueueName}-queue-${environment}`
         : `${eventQueueName}-queue-${environment}`;
 
-      const constructId = `${eventQueueName.replace(/-/g, '')}Queue`;
+      const constructId = `${eventQueueName.replaceAll('-', '')}Queue`;
       const queue = new sqs.Queue(this, constructId, {
         queueName: fullQueueName,
         encryption: sqs.QueueEncryption.KMS,

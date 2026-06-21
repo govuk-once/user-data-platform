@@ -253,8 +253,8 @@ export class MonitoringStack extends Stack {
   private createApiMetric(
     api: apigateway.RestApi,
     stage: string,
-    metricName: string, 
-    statistic: string,  
+    metricName: string,
+    statistic: string,
   ): cloudwatch.Metric {
     return new cloudwatch.Metric({
       namespace: 'AWS/ApiGateway',

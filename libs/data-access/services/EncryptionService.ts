@@ -66,7 +66,7 @@ export class EncryptionService {
     const { __dataKey, ...rest } = data;
 
     if (!__dataKey) {
-      return rest as Omit<T, '__dataKey'>;
+      return rest;
     }
 
     const plaintextKey = await this.decryptDataKey(__dataKey);
@@ -88,7 +88,7 @@ export class EncryptionService {
       }
     }
 
-    return decryptedData as Omit<T, '__dataKey'>;
+    return decryptedData;
   }
 
   private async generateDataKey(): Promise<{

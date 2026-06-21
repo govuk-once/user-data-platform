@@ -93,7 +93,7 @@ export class ServiceFactory {
 
   private createIdentityService() {
     if (!this.identityTableName) {
-      throw Error('missing identity table');
+      throw new Error('missing identity table');
     }
 
     const encryption = this.getEncryptionConfig([
