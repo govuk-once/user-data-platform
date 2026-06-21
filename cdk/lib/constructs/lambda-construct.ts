@@ -246,39 +246,35 @@ export class LambdaApiConstruct extends Construct {
   }
 
   private addDynamoDbPolicyToLambda(props: LambdaApiConstructProps): void {
-    const {
-      dynamoDBtable,
-      dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
-    } = props;
-    if (!dynamoDBtable && dynamoDbActions.length === 0) {
-      return;
+    const { dynamoDBtable, dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'] } = props;
+
+    if (dynamoDBtable && dynamoDbActions.length > 0) {
+      this.function.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: dynamoDbActions,
+          resources: [
+            dynamoDBtable.tableArn,
+            `${dynamoDBtable.tableArn}/index/*`,
+          ],
+        }),
+      );
     }
-    this.function.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: dynamoDbActions,
-        resources: [
-          dynamoDBtable!.tableArn,
-          `${dynamoDBtable!.tableArn}/index/*`,
-        ],
-      }),
-    );
   }
 
   private addIdentityDbPolicyToLambda(props: LambdaApiConstructProps): void {
     const { identityDbTable, identityDbActions = ['dynamodb:GetItem'] } = props;
 
-    if (!identityDbTable && identityDbActions.length === 0) {
-      return;
+    if (identityDbTable && identityDbActions.length > 0) {
+      this.function.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: identityDbActions,
+          resources: [
+            identityDbTable.tableArn,
+            `${identityDbTable.tableArn}/index/*`,
+          ],
+        }),
+      );
     }
-    this.function.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: identityDbActions,
-        resources: [
-          identityDbTable!.tableArn,
-          `${identityDbTable!.tableArn}/index/*`,
-        ],
-      }),
-    );
   }
 
   private addSqsPolicyToLambda(props: LambdaApiConstructProps): void {
