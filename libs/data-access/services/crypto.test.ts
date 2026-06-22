@@ -41,7 +41,7 @@ describe('crypto helpers', () => {
     it('returns the item untouched when no encryption is configured', async () => {
       const item = { pk: '123', sk: 'topics', data: { a: 1 } };
 
-      const result = await decryptItem(item, undefined);
+      const result = await decryptItem(item);
 
       expect(result).toBe(item);
       expect(decryptFields).not.toHaveBeenCalled();
