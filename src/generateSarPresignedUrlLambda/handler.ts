@@ -44,7 +44,7 @@ export const lambdaHandler = async (event: S3Event) => {
     try {
       const bucket = record.s3.bucket.name;
       const objectKey = decodeURIComponent(
-        record.s3.object.key.replace(/\+/g, ' '),
+        record.s3.object.key.replaceAll('+', ' '),
       );
 
       logger.info('Processing S3 object created event', {
