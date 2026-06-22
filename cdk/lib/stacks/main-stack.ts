@@ -196,104 +196,32 @@ export class MainStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    const eventQueueNames = [
-      ...new Set(
-        Object.values(routes)
-          .map((r) => r.queueName)
-          .filter((q): q is string => !!q),
-      ),
-    ];
+    const eventQueues = this.createEventQueues(
+      developerId,
+      environment,
+      kmsConstruct.key,
+    );
 
-    const eventQueues = new Map<string, sqs.Queue>();
-    for (const eventQueueName of eventQueueNames) {
-      const fullQueueName = developerId
-        ? `${developerId}-${eventQueueName}-queue-${environment}`
-        : `${eventQueueName}-queue-${environment}`;
-
-      const constructId = `${eventQueueName.replace(/-/g, '')}Queue`;
-      const queue = new sqs.Queue(this, constructId, {
-        queueName: fullQueueName,
-        encryption: sqs.QueueEncryption.KMS,
-        encryptionMasterKey: kmsConstruct.key,
-      });
-      eventQueues.set(eventQueueName, queue);
-    }
-
-    const lambdasList = [];
-    for (const route of Object.values(routes)) {
-      const routeQueue = route.queueName
-        ? eventQueues.get(route.queueName)
-        : undefined;
-
-      const lambda = new LambdaApiConstruct(this, route.name, {
-        developerId,
-        environment,
-        functionName: `${route.name}Lambda`,
-        sourcePath: `${route.name}Lambda`,
-        kmsKey: kmsConstruct.key,
-        dbKmsKey: dbKms.key,
-        dynamoDBtable: db.table,
-        identityDbTable: identityDb.table,
-        identityDbActions: route.identityTableActions
-          ? route.identityTableActions
-          : ['dynamodb:GetItem'],
-        dynamoDbActions: route.dynamoDbActions
-          ? route.dynamoDbActions
-          : ['dynamodb:GetItem'],
-        api: apiGateway.api,
-        httpMethod: route.method,
-        routePath: route.path,
-        environmentVariables: {
-          STACK: stackPrefix,
-          SERVICE_NAME: route.name,
-          POWERTOOLS_SERVICE_NAME: route.name,
-        },
-        ...(routeQueue
-          ? {
-              sqsQueueUrl: routeQueue.queueUrl,
-              sqsQueueArn: routeQueue.queueArn,
-            }
-          : {}),
-        vpc,
-        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
-        cachingEnabled,
-        logRetentionDays: getLogRetentionPeriod(environment),
-      });
-
-      lambdasList.push(lambda.function);
-    }
-
-    this.lambdas = lambdasList;
+    this.lambdas = this.createLambdaFunctions({
+      developerId,
+      environment,
+      stackPrefix,
+      kmsKey: kmsConstruct.key,
+      dbKmsKey: dbKms.key,
+      db,
+      identityDb,
+      api: apiGateway.api,
+      eventQueues,
+      vpc,
+      lambdaSecurityGroup,
+      cachingEnabled,
+    });
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
     this.sarQueue = eventQueues.get('sarQueue')!;
 
-    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
-      test: {
-        permissions: ['read', 'write', 'delete'],
-        description: 'Internal E2E test consumer {codebuild}',
-      },
-    };
-
-    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
-      test: { rateLimit: 500, burstLimit: 1000 },
-    };
-
-    for (const [consumerName, consumerConfig] of Object.entries(
-      externalConsumers,
-    )) {
-      IamConsumerConfigs[consumerName] = {
-        permissions: consumerConfig.permissions,
-        accountId: consumerConfig.accountId,
-        externalId: consumerConfig.externalId,
-        description: consumerConfig.description,
-      };
-
-      consumerthrottleConfigs[consumerName] = {
-        rateLimit: consumerConfig.rateLimit,
-        burstLimit: consumerConfig.burstLimit,
-      };
-    }
+    const { IamConsumerConfigs, consumerthrottleConfigs } =
+      this.buildConsumerConfigs(externalConsumers);
 
     const iamConsumers = new IamConsumerConstruct(this, 'IamConsumers', {
       developerId,
@@ -331,52 +259,196 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    new CfnOutput(this, 'ApiEndpoint', {
-      value: this.api.url,
-      description: 'Api Endpoint url',
-      exportName: `${id}-ApiEndpoint`,
-    });
+    this.createCfnOutputs(id, [
+      {
+        outputId: 'ApiEndpoint',
+        value: this.api.url,
+        description: 'Api Endpoint url',
+      },
+      {
+        outputId: 'TableName',
+        value: db.table.tableName,
+        description: 'DynamoTableName',
+      },
+      {
+        outputId: 'IdentityTableName',
+        value: identityDb.table.tableName,
+        description: 'Identity DynamoTableName',
+      },
+      { outputId: 'AwsRegion', value: this.region, description: 'Aws Region' },
+      {
+        outputId: 'AppConfigApplicationId',
+        value: this.appConfigApplicationId,
+        description: 'AppConfig Application ID',
+      },
+      {
+        outputId: 'AppConfigEnvironmentId',
+        value: this.appConfigEnvironmentId,
+        description: 'AppConfig Environment ID',
+      },
+      {
+        outputId: 'AppConfigProfileId',
+        value: this.appConfigProfileId,
+        description: 'AppConfig Configuration Profile ID',
+      },
+      {
+        outputId: 'KmsKeyArn',
+        value: this.kmsKey.keyArn,
+        description: 'KMS Key ARN',
+      },
+    ]);
+  }
 
-    new CfnOutput(this, 'TableName', {
-      value: db.table.tableName,
-      description: 'DynamoTableName',
-      exportName: `${id}-TableName`,
-    });
+  private createEventQueues(
+    developerId: string | undefined,
+    environment: string,
+    kmsKey: kms.IKey,
+  ): Map<string, sqs.Queue> {
+    const eventQueueNames = [
+      ...new Set(
+        Object.values(routes)
+          .map((r) => r.queueName)
+          .filter((q): q is string => !!q),
+      ),
+    ];
 
-    new CfnOutput(this, 'IdentityTableName', {
-      value: identityDb.table.tableName,
-      description: 'Identity DynamoTableName',
-      exportName: `${id}-IdentityTableName`,
-    });
+    const eventQueues = new Map<string, sqs.Queue>();
+    for (const eventQueueName of eventQueueNames) {
+      const fullQueueName = developerId
+        ? `${developerId}-${eventQueueName}-queue-${environment}`
+        : `${eventQueueName}-queue-${environment}`;
 
-    new CfnOutput(this, 'AwsRegion', {
-      value: this.region,
-      description: 'Aws Region',
-      exportName: `${id}-AwsRegion`,
-    });
+      const constructId = `${eventQueueName.replaceAll('-', '')}Queue`;
+      const queue = new sqs.Queue(this, constructId, {
+        queueName: fullQueueName,
+        encryption: sqs.QueueEncryption.KMS,
+        encryptionMasterKey: kmsKey,
+      });
+      eventQueues.set(eventQueueName, queue);
+    }
+    return eventQueues;
+  }
 
-    new CfnOutput(this, 'AppConfigApplicationId', {
-      value: this.appConfigApplicationId,
-      description: 'AppConfig Application ID',
-      exportName: `${id}-AppConfigApplicationId`,
-    });
+  private createLambdaFunctions(params: {
+    developerId: string | undefined;
+    environment: string;
+    stackPrefix: string;
+    kmsKey: kms.IKey;
+    dbKmsKey: kms.IKey;
+    db: DynamoDBConstruct;
+    identityDb: DynamoDBConstruct;
+    api: apigateway.RestApi;
+    eventQueues: Map<string, sqs.Queue>;
+    vpc: ec2.IVpc | undefined;
+    lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
+    cachingEnabled: boolean;
+  }): lambda.Function[] {
+    const {
+      developerId,
+      environment,
+      stackPrefix,
+      kmsKey,
+      dbKmsKey,
+      db,
+      identityDb,
+      api,
+      eventQueues,
+      vpc,
+      lambdaSecurityGroup,
+      cachingEnabled,
+    } = params;
 
-    new CfnOutput(this, 'AppConfigEnvironmentId', {
-      value: this.appConfigEnvironmentId,
-      description: 'AppConfig Environment ID',
-      exportName: `${id}-AppConfigEnvironmentId`,
-    });
+    const lambdasList = [];
+    for (const route of Object.values(routes)) {
+      const routeQueue = route.queueName
+        ? eventQueues.get(route.queueName)
+        : undefined;
 
-    new CfnOutput(this, 'AppConfigProfileId', {
-      value: this.appConfigProfileId,
-      description: 'AppConfig Configuration Profile ID',
-      exportName: `${id}-AppConfigProfileId`,
-    });
+      const lambdaConstruct = new LambdaApiConstruct(this, route.name, {
+        developerId,
+        environment,
+        functionName: `${route.name}Lambda`,
+        sourcePath: `${route.name}Lambda`,
+        kmsKey,
+        dbKmsKey,
+        dynamoDBtable: db.table,
+        identityDbTable: identityDb.table,
+        identityDbActions: route.identityTableActions ?? ['dynamodb:GetItem'],
+        dynamoDbActions: route.dynamoDbActions ?? ['dynamodb:GetItem'],
+        api,
+        httpMethod: route.method,
+        routePath: route.path,
+        environmentVariables: {
+          STACK: stackPrefix,
+          SERVICE_NAME: route.name,
+          POWERTOOLS_SERVICE_NAME: route.name,
+        },
+        ...(routeQueue
+          ? {
+              sqsQueueUrl: routeQueue.queueUrl,
+              sqsQueueArn: routeQueue.queueArn,
+            }
+          : {}),
+        vpc,
+        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+        cachingEnabled,
+        logRetentionDays: getLogRetentionPeriod(environment),
+      });
 
-    new CfnOutput(this, 'KmsKeyArn', {
-      value: this.kmsKey.keyArn,
-      description: 'KMS Key ARN',
-      exportName: `${id}-kmsKeyArn`,
-    });
+      lambdasList.push(lambdaConstruct.function);
+    }
+    return lambdasList;
+  }
+
+  private buildConsumerConfigs(
+    externalConsumers: Record<
+      string,
+      ExternalConsumerConfig & { vpcEndpointId?: string }
+    >,
+  ): {
+    IamConsumerConfigs: Record<string, IamConsumerConfig>;
+    consumerthrottleConfigs: Record<string, ConsumerThrottleConfig>;
+  } {
+    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
+      test: {
+        permissions: ['read', 'write', 'delete'],
+        description: 'Internal E2E test consumer {codebuild}',
+      },
+    };
+
+    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
+      test: { rateLimit: 500, burstLimit: 1000 },
+    };
+
+    for (const [consumerName, consumerConfig] of Object.entries(
+      externalConsumers,
+    )) {
+      IamConsumerConfigs[consumerName] = {
+        permissions: consumerConfig.permissions,
+        accountId: consumerConfig.accountId,
+        externalId: consumerConfig.externalId,
+        description: consumerConfig.description,
+      };
+
+      consumerthrottleConfigs[consumerName] = {
+        rateLimit: consumerConfig.rateLimit,
+        burstLimit: consumerConfig.burstLimit,
+      };
+    }
+
+    return { IamConsumerConfigs, consumerthrottleConfigs };
+  }
+
+  private createCfnOutputs(
+    id: string,
+    outputs: { outputId: string; value: string; description: string }[],
+  ): void {
+    for (const { value, description, outputId } of outputs) {
+      new CfnOutput(this, outputId, {
+        value,
+        description,
+        exportName: `${id}-${outputId}`,
+      });
+    }
   }
 }

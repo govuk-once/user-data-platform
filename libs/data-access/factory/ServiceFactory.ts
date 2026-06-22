@@ -55,7 +55,7 @@ export class ServiceFactory {
         );
       case 'identity':
         if (!this.config.identityTableName) {
-          throw Error('missing identity table');
+          throw new Error('missing identity table');
         }
         return new DynamoDBIdentityService(
           this.docClient,

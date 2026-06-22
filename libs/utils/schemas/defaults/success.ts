@@ -3,7 +3,7 @@ import z from 'zod';
 
 extendZodWithOpenApi(z);
 
-export const defaultSucccessResponseSchema = z.object({
+export const defaultSuccessResponseSchema = z.object({
   message: z.string().openapi({
     description: 'Server response message',
     example: 'User successfully created',
@@ -11,5 +11,5 @@ export const defaultSucccessResponseSchema = z.object({
 });
 
 export type DefaultSuccessResponse = z.infer<
-  typeof defaultSucccessResponseSchema
+  typeof defaultSuccessResponseSchema
 >;

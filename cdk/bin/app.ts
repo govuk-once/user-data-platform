@@ -89,7 +89,8 @@ if (!skipMainStack) {
 
   sarStack.addDependency(mainStack);
 
-  const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`;
+  const kmsKeyPrefix = developerId ? `${developerId}-` : '';
+  const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
 
   const monitoringStack = new MonitoringStack(
     app,
