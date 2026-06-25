@@ -12,6 +12,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm
+          pnpm install
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test:all
+
       - name: Scan repository
         # nosemgrep - Ignore false positive
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
