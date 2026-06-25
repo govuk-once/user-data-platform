@@ -3,9 +3,14 @@ name: Release Candidate
 on:
   pull_request:
     branches: [main]
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
+  validate-pr:
+    name: Validate PR
+    uses: ./.github/workflows/__validate-pr.yml
   ci:
+    needs: validate-pr
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -110,6 +115,7 @@ jobs:
         run: checkov -d cdk --config-file cdk/.checkov.yaml
 
   sonar-scan:
+    needs: validate-pr
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
     secrets: inherit

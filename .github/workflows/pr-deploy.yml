@@ -3,7 +3,7 @@ name: PR Deploy & Tests
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [opened, edited, synchronize, reopened]
 
 env:
   AWS_REGION: eu-west-2
@@ -18,7 +18,11 @@ permissions:
   pull-requests: write
 
 jobs:
+  validate-pr:
+    name: Validate PR
+    uses: ./.github/workflows/__validate-pr.yml
   deploy:
+    needs: validate-pr
     name: Deploy PR Environment
     runs-on: ubuntu-latest
     outputs:
