@@ -17,7 +17,7 @@ jobs:
           TITLE="${{ github.event.pull_request.title }}"
           echo "Checking PR title: $TITLE"
 
-          if ! echo "$TITLE" | grep -Eq '^[A-Z]+-[0-9]+'; then
-            echo "::error ::PR title must start with a Jira ticket key, e.g UDP-123 Add endpoint"
+          if [[ ! $TITLE =~ ^[A-Z]{3,4}-[1-9][0-9]{0,4}:\ .+ ]]; then
+            echo "::error ::PR title must follow the format 'UDP-123: Description'"
             exit 1
           fi
