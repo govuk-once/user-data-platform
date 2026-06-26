@@ -28,9 +28,7 @@ type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
 
 const formatZodValidationError = (error: ZodError): ZodValidationError => {
   const errorMessage = 'Validation Errors';
-  const errorPaths = error.issues.map((issue) =>
-    issue.path.join('.'),
-  );
+  const errorPaths = error.issues.map((issue) => issue.path.join('.'));
   return new ZodValidationError(
     errorMessage,
     UDP_ERROR_TYPES.BAD_REQUEST,
