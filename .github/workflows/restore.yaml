@@ -93,14 +93,17 @@ jobs:
 
       - name: Resolve environment-specific values
         id: resolve
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          RESOURCE_NAME: ${{ inputs.resource_name }}
         run: |
-          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+          if [[ "$ENVIRONMENT" == "staging" ]]; then
             ENV_SUFFIX="stag"
           else
             ENV_SUFFIX="prod"
           fi
 
-          echo "full-resource-name=${{ inputs.resource_name }}-${ENV_SUFFIX}" >> $GITHUB_OUTPUT
+          echo "full-resource-name=${RESOURCE_NAME}-${ENV_SUFFIX}" >> $GITHUB_OUTPUT
           echo "vault-name=${ENV_SUFFIX}-backup-vault" >> $GITHUB_OUTPUT
 
   restore:
@@ -112,6 +115,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         run: |
@@ -147,54 +152,78 @@ jobs:
 
       - name: DynamoDB backup restore
         if: inputs.resource_type == 'dynamodb' && inputs.mode == 'backup'
+        env:
+          TABLE_NAME: ${{ needs.validate.outputs.full-resource-name }}
+          RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}]
+          VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
         run: |
           npx tsx scripts/dynamodb-restore.ts \
             --mode backup \
-            --table "${{ needs.validate.outputs.full-resource-name }}" \
-            --recovery-point-arn "${{ inputs.recovery_point_arn }}" \
-            --vault "${{ needs.validate.outputs.vault-name }}" \
-            --region "${{ env.AWS_REGION }}" \
+            --table "$TABLE_NAME" \
+            --recovery-point-arn "$RECOVERY_POINT_ARN" \
+            --vault "$VAULT_NAME" \
+            --region "$AWS_REGION" \
             ${{ inputs.swap && '--swap' || '' }}
 
       # ── S3 Restores ───────────────────────────────────────────────────
 
       - name: S3 list recovery points
         if: inputs.resource_type == 's3' && inputs.mode == 'list-recovery-points'
+        env:
+          BUCKET_NAME: ${{ needs.validate.outputs.full-resource-name }}
+          VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
         run: |
           npx tsx scripts/s3-restore.ts \
             --mode list-recovery-points \
-            --bucket "${{ needs.validate.outputs.full-resource-name }}" \
-            --vault "${{ needs.validate.outputs.vault-name }}" \
-            --region "${{ env.AWS_REGION }}"
+            --bucket "$BUCKET_NAME" \
+            --vault "$VAULT_NAME" \
+            --region "$AWS_REGION"
 
       - name: S3 backup restore
         if: inputs.resource_type == 's3' && inputs.mode == 'backup'
+        env:
+          BUCKET_NAME: ${{ needs.validate.outputs.full-resource-name }}
+          RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}
+          VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
+          NEW_BUCKET_NAME: ${{ inputs.new_bucket_name }}
         run: |
-          npx tsx scripts/s3-restore.ts \
-            --mode backup \
-            --bucket "${{ needs.validate.outputs.full-resource-name }}" \
-            --recovery-point-arn "${{ inputs.recovery_point_arn }}" \
-            --vault "${{ needs.validate.outputs.vault-name }}" \
-            --region "${{ env.AWS_REGION }}" \
-            ${{ inputs.new_bucket_name && format('--new-bucket "{0}"', inputs.new_bucket_name) || '' }}
+          args-(
+            --mode backup
+            --bucket "$BUCKET_NAME"
+            --recovery-point-arn "$RECOVERY_POINT_ARN"
+            --vault "$VAULT_NAME"
+            --region "$AWS_REGION"
+          )
+          if [-n "$NEW_BUCKET_NAME"]; then
+            args+=(--new-bucket "$NEW_BUCKET_NAME")
+          fi
+          npx tsx scripts/s3-restore.ts "${args[0]}"
 
       # ── Summary ────────────────────────────────────────────────────────
 
       - name: Summary
         if: always()
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          RESOURCE_TYPE: ${{ inputs.resource_type }}
+          MODE: ${{ inputs.mode }}
+          FULL_RESOURCE_NAME: ${{ needs.validate.outputs.full-resource-name }}
+          RESOURCE_TIME: ${{ inputs.restore_time }}
+          RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}
+          VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
         run: |
           echo "## Restore Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | \`${{ inputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Resource type | \`${{ inputs.resource_type }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mode | \`${{ inputs.mode }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Resource | \`${{ needs.validate.outputs.full-resource-name }}\` |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ inputs.mode }}" == "pitr" ]]; then
-            echo "| Restore time | \`${{ inputs.restore_time }}\` |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ inputs.mode }}" == "backup" ]]; then
-            echo "| Recovery point | \`${{ inputs.recovery_point_arn }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ENVIRONMENT}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource type | \`${RESOURCE_TYPE}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | \`${MODE}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | \`${FULL_RESOURCE_NAME}\` |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${MODE}" == "pitr" ]]; then
+            echo "| Restore time | \`${RESOURCE_TIME}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${MODE}" == "backup" ]]; then
+            echo "| Recovery point | \`${RECOVERY_POINT_ARN}\` |" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "| Vault | \`${{ needs.validate.outputs.vault-name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Region | \`${{ env.AWS_REGION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vault | \`${VAULT_NAME}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Region | \`${AWS_REGION}\` |" >> $GITHUB_STEP_SUMMARY
