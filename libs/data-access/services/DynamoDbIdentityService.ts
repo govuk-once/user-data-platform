@@ -154,6 +154,21 @@ export class DynamoDBIdentityService {
     return linked;
   }
 
+  public async getAllLinkedServices(
+    serviceName: string,
+    serviceId: string,
+  ): Promise<string[]> {
+    const identity = await this.getByServiceId(serviceName, serviceId);
+    const identities = await this.queryBySk(identity.udpId);
+    const linkedServices = identities.map((identity) => identity.serviceName);
+
+    if (linkedServices.length === 0) {
+      this.logger?.debug(`No linked service found for UDPID ${identity.udpId}`);
+    }
+
+    return linkedServices;
+  }
+
   // --- DynamoDB access ---
 
   private async findByPk(pk: string): Promise<IdentityRecordEntity | null> {

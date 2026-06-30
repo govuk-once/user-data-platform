@@ -14,6 +14,7 @@ export * from './endpoints/identity/readIdentity';
 export * from './endpoints/identity/createIdentity';
 export * from './endpoints/identity/deleteIdentity';
 export * from './endpoints/identity/exchangeIdentity';
+export * from './endpoints/identity/linkedServices';
 
 export * from './endpoints/sar-dsar/dsar';
 export * from './endpoints/sar-dsar/sar';
