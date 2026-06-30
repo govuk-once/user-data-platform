@@ -216,7 +216,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | \`${{ENVIRONMENT}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${ENVIRONMENT}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Resource type | \`${RESOURCE_TYPE}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Mode | \`${MODE}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Resource | \`${FULL_RESOURCE_NAME}\` |" >> $GITHUB_STEP_SUMMARY
