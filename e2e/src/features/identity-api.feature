@@ -57,6 +57,13 @@ Feature: identity Api
         When I send a get to '/v1/identity/exchange?requiredService=app'
         Then the response status should be 404
 
+    Scenario: Successfully retrieve linked services for a user
+        When I send a get to '/v1/identity/linked-services/app/123'
+        Then I should receive a successful response
+        Then I should receive a successful response
+        Then the response status should be 200
+        Then the response body should contain '"linkedServices"'
+
     Scenario: Successfully Delete linked Record
         When I send a delete to '/v1/identity/service2/321'
         Then I should receive a successful response
