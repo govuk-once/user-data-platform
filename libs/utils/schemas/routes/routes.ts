@@ -39,6 +39,7 @@ import {
   startSarResponseSchema,
 } from '../endpoints/sar-dsar/sar';
 import { exchangeIdentityQuerySchama } from '../endpoints/identity/exchangeIdentity';
+import { linkedServicesResponseSchema } from '../endpoints/identity/linkedServices';
 import {
   patchDataRequestSchema,
   patchDataResponseSchema,
@@ -490,6 +491,43 @@ export const routes: Record<string, RouteConfig> = {
         status: 404,
         description: 'Not Found',
         schema: getSarStatusNotFoundResponseSchema,
+      },
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
+  getAllLinkedService: {
+    name: 'getAllLinkedService',
+    dynamoDbActions: [],
+    identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
+    authorizationScopes: ['udp/read'],
+    method: 'GET',
+    path: '/v1/identity/{serviceName}/{identifier}/linked-services',
+    summary: 'Get All Linked Services',
+    description:
+      'Returns all service names linked to the same UDP user via the shared udpId',
+    tags: ['identity'],
+    params: identityEndpointPathSchema,
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: linkedServicesResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 400,
+        description: 'Bad Request',
+        schema: badRequestResponseSchema,
+      },
+      {
+        status: 404,
+        description: 'Not Found',
+        schema: identityNotFoundResponseSchema,
       },
       {
         status: 500,
