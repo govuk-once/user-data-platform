@@ -309,7 +309,7 @@ flowchart TD
 
 ### getAllLinkedServiceLambda
 
-**Route:** `GET /v1/identity/{serviceName}/{serviceId}/linked-services`
+**Route:** `GET /v1/identity/{serviceName}/{identifier}/linked-services`
 
 Returns all service names linked to the same UDP user via the shared `udpId`.
 
@@ -329,13 +329,13 @@ flowchart TD
 
 
 
-    A(["fa:fa-globe GET /v1/identity/linked-services<br/>/serviceName/serviceId"]):::apigw --> B[[fa:fa-check-circle Zod validates path params:<br/>serviceName + serviceId required]]:::validate
+    A(["fa:fa-globe GET /v1/identity/serviceName/identifier<br/>/linked-services"]):::apigw --> B[[fa:fa-check-circle Zod validates path params:<br/>serviceName + identifier required]]:::validate
 
     B --> C{Validation<br/>passes?}
 
     C -- No --> ERR1[fa:fa-times-circle 400 BAD_REQUEST]:::error
 
-    C -- Yes --> D[fa:fa-database Step 1: DynamoDB GetItem<br/>pk: serviceName#serviceId]:::dynamo
+    C -- Yes --> D[fa:fa-database Step 1: DynamoDB GetItem<br/>pk: serviceName#identifier]:::dynamo
 
     D --> E{Identity<br/>found?}
 

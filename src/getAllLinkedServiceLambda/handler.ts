@@ -41,7 +41,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     .getService('identity')
     .getAllLinkedServices(
       event.pathParameters.serviceName,
-      event.pathParameters.serviceId,
+      event.pathParameters.identifier,
     );
 
   return {

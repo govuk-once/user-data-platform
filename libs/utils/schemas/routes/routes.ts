@@ -39,10 +39,7 @@ import {
   startSarResponseSchema,
 } from '../endpoints/sar-dsar/sar';
 import { exchangeIdentityQuerySchama } from '../endpoints/identity/exchangeIdentity';
-import {
-  linkedServicesPathSchema,
-  linkedServicesResponseSchema,
-} from '../endpoints/identity/linkedServices';
+import { linkedServicesResponseSchema } from '../endpoints/identity/linkedServices';
 import {
   patchDataRequestSchema,
   patchDataResponseSchema,
@@ -508,12 +505,12 @@ export const routes: Record<string, RouteConfig> = {
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/read'],
     method: 'GET',
-    path: '/v1/identity/{serviceName}/{serviceId}/linked-services',
+    path: '/v1/identity/{serviceName}/{identifier}/linked-services',
     summary: 'Get All Linked Services',
     description:
       'Returns all service names linked to the same UDP user via the shared udpId',
     tags: ['identity'],
-    params: linkedServicesPathSchema,
+    params: identityEndpointPathSchema,
     successResponses: [
       {
         status: 200,

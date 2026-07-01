@@ -73,10 +73,10 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: '/v1/identity/linked-services',
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
         pathParameters: {
           serviceName: undefined,
-          serviceId: undefined,
+          identifier: undefined,
         },
       };
 
@@ -87,7 +87,7 @@ describe('getAllLinkedServiceLambda', () => {
         errorCode: 400,
         errorType: 'BAD_REQUEST',
         errorMessage: 'Validation Errors',
-        errorPaths: ['serviceName', 'serviceId'],
+        errorPaths: ['identifier', 'serviceName'],
       });
     });
   });
@@ -98,13 +98,13 @@ describe('getAllLinkedServiceLambda', () => {
         headers: { 'Content-Type': 'application/json' },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
+        rawPath: `/v1/identity/${mockServiceName}/${mockServiceId}/linked-services`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
-          serviceId: mockServiceId,
+          identifier: mockServiceId,
         },
       };
 
@@ -126,13 +126,13 @@ describe('getAllLinkedServiceLambda', () => {
         headers: { 'Content-Type': 'application/json' },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
+        rawPath: `/v1/identity/${mockServiceName}/${mockServiceId}/linked-services`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
-          serviceId: mockServiceId,
+          identifier: mockServiceId,
         },
       };
 
@@ -156,13 +156,13 @@ describe('getAllLinkedServiceLambda', () => {
         headers: { 'Content-Type': 'application/json' },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
+        rawPath: `/v1/identity/${mockServiceName}/${mockServiceId}/linked-services`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
-          serviceId: mockServiceId,
+          identifier: mockServiceId,
         },
       };
 
@@ -176,7 +176,6 @@ describe('getAllLinkedServiceLambda', () => {
         errorType: 'IDENTITY_NOT_FOUND',
         errorMessage: `Identity not found with service: ${mockServiceName} and id: ${mockServiceId}`,
         serviceName: mockServiceName,
-        serviceUserId: mockServiceId,
       });
     });
   });
@@ -187,13 +186,13 @@ describe('getAllLinkedServiceLambda', () => {
         headers: { 'Content-Type': 'application/json' },
         requestContext: {} as any,
         isBase64Encoded: false,
-        rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
+        rawPath: `/v1/identity/${mockServiceName}/${mockServiceId}/linked-services`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
-          serviceId: mockServiceId,
+          identifier: mockServiceId,
         },
       };
 

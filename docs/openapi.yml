@@ -1731,7 +1731,7 @@ paths:
                   - errorCode
                   - errorMessage
                   - errorType
-  /v1/identity/{serviceName}/{serviceId}/linked-services:
+  /v1/identity/{serviceName}/{identifier}/linked-services:
     get:
       summary: Get All Linked Services
       description: Returns all service names linked to the same UDP user via the shared udpId
@@ -1743,20 +1743,20 @@ paths:
         - schema:
             type: string
             minLength: 1
+            description: The provided User Identifier for the given service
+            example: 8538bc99-3596-4eb3-8101-263e70519315
+          required: true
+          description: The provided User Identifier for the given service
+          name: identifier
+          in: path
+        - schema:
+            type: string
+            minLength: 1
             description: The name of the service for which the identifier belongs
             example: app
           required: true
           description: The name of the service for which the identifier belongs
           name: serviceName
-          in: path
-        - schema:
-            type: string
-            minLength: 1
-            description: The provided User Identifier for the given service
-            example: 8538bc99-3596-4eb3-8101-263e70519315
-          required: true
-          description: The provided User Identifier for the given service
-          name: serviceId
           in: path
       responses:
         '200':
