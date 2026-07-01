@@ -58,7 +58,7 @@ Feature: identity Api
         Then the response status should be 404
 
     Scenario: Successfully retrieve linked services for a user
-        When I send a get to '/v1/identity/linked-services/app/123'
+        When I send a get to '/v1/identity/app/123/linked-services'
         Then I should receive a successful response
         Then I should receive a successful response
         Then the response status should be 200

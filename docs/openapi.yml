@@ -1731,7 +1731,7 @@ paths:
                   - errorCode
                   - errorMessage
                   - errorType
-  /v1/identity/linked-services/{serviceName}/{serviceId}:
+  /v1/identity/{serviceName}/{serviceId}/linked-services:
     get:
       summary: Get All Linked Services
       description: Returns all service names linked to the same UDP user via the shared udpId

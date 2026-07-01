@@ -73,7 +73,7 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: '/v1/identity/linked-services',
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/linked-services/{serviceName}/{serviceId}',
+        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
         pathParameters: {
           serviceName: undefined,
           serviceId: undefined,
@@ -101,7 +101,7 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/linked-services/{serviceName}/{serviceId}',
+        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
           serviceId: mockServiceId,
@@ -129,7 +129,7 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/linked-services/{serviceName}/{serviceId}',
+        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
           serviceId: mockServiceId,
@@ -159,7 +159,7 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/linked-services/{serviceName}/{serviceId}',
+        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
           serviceId: mockServiceId,
@@ -190,7 +190,7 @@ describe('getAllLinkedServiceLambda', () => {
         rawPath: `/v1/identity/linked-services/${mockServiceName}/${mockServiceId}`,
         rawQueryString: '',
         version: '2.0',
-        routeKey: 'GET /v1/identity/linked-services/{serviceName}/{serviceId}',
+        routeKey: 'GET /v1/identity/{serviceName}/{serviceId}/linked-services',
         pathParameters: {
           serviceName: mockServiceName,
           serviceId: mockServiceId,

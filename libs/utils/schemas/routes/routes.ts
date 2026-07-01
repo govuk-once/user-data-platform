@@ -508,7 +508,7 @@ export const routes: Record<string, RouteConfig> = {
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
     authorizationScopes: ['udp/read'],
     method: 'GET',
-    path: '/v1/identity/linked-services/{serviceName}/{serviceId}',
+    path: '/v1/identity/{serviceName}/{serviceId}/linked-services',
     summary: 'Get All Linked Services',
     description:
       'Returns all service names linked to the same UDP user via the shared udpId',

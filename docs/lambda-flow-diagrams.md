@@ -309,7 +309,7 @@ flowchart TD
 
 ### getAllLinkedServiceLambda
 
-**Route:** `GET /v1/identity/linked-services/{serviceName}/{serviceId}`
+**Route:** `GET /v1/identity/{serviceName}/{serviceId}/linked-services`
 
 Returns all service names linked to the same UDP user via the shared `udpId`.
 
