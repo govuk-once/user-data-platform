@@ -1,4 +1,4 @@
-name: Slack Notification
+name: Slack Release Notification
 
 on:
   workflow_call:
@@ -13,42 +13,48 @@ on:
         required: true
         type: string
     secrets:
-      SLACK_WEBHOOK_URL:
+      DEV_DEPLOYMENT_ROLE:
         required: true
+      RELEASE_NOTIFICATIONS_TOPIC_ARN:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   send-notification:
+    name: Send Release Notification
     runs-on: ubuntu-latest
-    if: ${{ inputs.type == 'major' || inputs.type == 'minor' }}
+    timeout-minutes: 10
     steps:
-      - name: Send Release Notification
-        uses: slackapi/slack-github-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": "🚀 UDP has released a new version: v${{ inputs.version }}",
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": { "type": "plain_text", "text": "🚀 UDP has released a new version", "emoji": true }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    { "type": "mrkdwn", "text": "*Release Version:*\n`v${{ inputs.version }}`" },
-                    { "type": "mrkdwn", "text": "*Release Type:*\n${{ inputs.type }}" }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "text": { "type": "mrkdwn", "text": "*GitHub Release:*\n<https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}|View Release Notes on GitHub>" }
-                },
-                { "type": "divider" },
-                {
-                  "type": "section",
-                  "text": { "type": "mrkdwn", "text": "*Release Summary:*\n${{ inputs.notes }}" }
-                }
-              ]
-            }
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: eu-west-2
+          role-session-name: ${{ github.run_id }}
+
+      - name: Publish to SNS
+        continue-on-error: true
+        env:
+          VERSION: ${{ inputs.version }}
+          TYPE: ${{ inputs.type }}
+          NOTES: ${{ inputs.notes }}
+          TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
+        run: |
+          MESSAGE=$(jq -n \
+            --arg title "UDP ${TYPE} release: v${VERSION}" \
+            --arg url "https://github.com/${{ github.repository }}/releases/tag/v${VERSION}" \
+            --arg notes "${NOTES}" \
+            '{
+              version: "1.0",
+              source: "custom",
+              content: {
+                textType: "client-markdown",
+                title: $title,
+                description: ($notes[0:1500] + "\n\n" + $url)
+              }
+            }')
+
+          aws sns publish --topic-arn "$TOPIC_ARN" --message "$MESSAGE"
