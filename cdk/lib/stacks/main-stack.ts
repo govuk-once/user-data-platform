@@ -263,48 +263,11 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    if (environment === GovUkOnceEnvironments.Dev) {
-      const releaseTopic = new sns.Topic(this, 'ReleaseTopic', {
-        topicName: 'udp-release-notifications',
-        displayName: 'UDP Release Notifications',
-        masterKey: this.kmsKey,
-      });
-
-      const param = `/${environmentLongNames[environment]}/udp-param/udp/monitoring`;
-      const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
-
-      let monitoringConfig: {
-        workspaceId?: string;
-        channelId?: string;
-        pagerDutyUrl?: string;
-      } = {};
-      try {
-        monitoringConfig = JSON.parse(ssmValue);
-      } catch {
-        console.log(
-          'JSON.parse(monitoringConfig) error in MonitoringStack',
-        );
-      }
-
-      const slackWorkspaceId = monitoringConfig.workspaceId ?? '';
-
-      const releaseChannelId = 'C0B8U7TQ9NJ'; // Test channel ID
-      const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
-        slackChannelConfigurationName: `udp-releases-notification`,
-        slackWorkspaceId: slackWorkspaceId,
-        slackChannelId: releaseChannelId,
-        notificationTopics: [releaseTopic],
-        guardrailPolicies: [
-          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-        ],
-      });
-
-      slack.role?.addToPrincipalPolicy(
-        new PolicyStatement({
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-          resources: [this.kmsKey.keyArn],
-        }),
-      );
+    if (
+      environment === GovUkOnceEnvironments.Dev &&
+      stackPrefix === GovUkOnceEnvironments.Dev
+    ) {
+      this.createReleaseNotifications(environment);
     }
 
     this.createCfnOutputs(id, [
@@ -497,6 +460,47 @@ export class MainStack extends Stack {
         description,
         exportName: `${id}-${outputId}`,
       });
+    }
+  }
+
+  private createReleaseNotifications(environment: string): void {
+    const releaseTopic = new sns.Topic(this, 'ReleaseTopic', {
+      topicName: 'udp-release-notifications',
+      displayName: 'UDP Release Notifications',
+      masterKey: this.kmsKey,
+    });
+
+    const param = `/${environmentLongNames[environment]}/udp-param/udp/monitoring`;
+    const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
+
+    let monitoringConfig: {
+      workspaceId?: string;
+      channelId?: string;
+      pagerDutyUrl?: string;
+    } = {};
+    try {
+      monitoringConfig = JSON.parse(ssmValue);
+    } catch {
+      console.log('JSON.parse(monitoringConfig) error in MonitoringStack');
+    }
+
+    if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
+      const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
+        slackChannelConfigurationName: `udp-releases-notification`,
+        slackWorkspaceId: monitoringConfig.workspaceId,
+        slackChannelId: 'C0B8U7TQ9NJ', // Test channel ID
+        notificationTopics: [releaseTopic],
+        guardrailPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
+
+      slack.role?.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [this.kmsKey.keyArn],
+        }),
+      );
     }
   }
 }
