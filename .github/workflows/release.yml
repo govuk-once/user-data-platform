@@ -114,7 +114,6 @@ jobs:
           app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
           permission-contents: write
-          permission-pull-requests: write
 
       - name: Create and push tag via GitHub API
         env:
