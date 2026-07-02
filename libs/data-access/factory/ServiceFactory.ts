@@ -1,17 +1,12 @@
-import { DynamoDBRepository } from '../repositories/DynamoDBRepository';
-import { EncryptionService } from '../services/EncryptionService';
-import {
-  DynamoDBDataEntity,
-  EncryptionConfig,
-  IdentityRecordEntity,
-  SAREntity,
-} from '../types/Entity';
-import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbDataService } from '../services/DynamoDbDataService';
 import { Tracer } from '@aws-lambda-powertools/tracer';
 import { Logger } from '@libs/utils';
+import { EncryptionService } from '../services/EncryptionService';
+import { DynamoDbDataService } from '../services/DynamoDbDataService';
+import { DynamoDBIdentityService } from '../services/DynamoDbIdentityService';
+import { SarService } from '../services/SarService';
+import { EncryptionConfig } from '../types/Entity';
 
 export interface ServiceFactoryConfig {
   tableName: string;
@@ -21,32 +16,27 @@ export interface ServiceFactoryConfig {
   logger?: Logger;
 }
 
+/**
+ * Builds and caches the data-access services, sharing a single DynamoDB
+ * document client across them. Each service is created lazily on first use.
+ */
 export class ServiceFactory {
-  private readonly tableName: string;
-  private readonly identityTableName?: string;
-  private readonly kmsKeyId: string;
   private readonly docClient: DynamoDBDocumentClient;
-  private readonly services: Map<string, unknown> = new Map();
-  private readonly logger?: Logger;
+  private readonly services = new Map<string, unknown>();
 
-  constructor(config: ServiceFactoryConfig) {
-    this.identityTableName = config.identityTableName;
-    this.tableName = config.tableName;
-    this.kmsKeyId = config.kmsKeyId;
-
-    this.logger = config.logger ?? (console as unknown as Logger);
-
+  constructor(private readonly config: ServiceFactoryConfig) {
     const client = config.tracer
       ? config.tracer.captureAWSv3Client(new DynamoDBClient({}))
       : new DynamoDBClient({});
+
     this.docClient = DynamoDBDocumentClient.from(client, {
       marshallOptions: { removeUndefinedValues: true },
     });
   }
 
   getService(name: 'data'): DynamoDbDataService;
-  getService(name: 'identity'): DynamoDBIdentityService<IdentityRecordEntity>;
-  getService(name: 'sar'): DynamoDBRepository<SAREntity>;
+  getService(name: 'identity'): DynamoDBIdentityService;
+  getService(name: 'sar'): SarService;
   public getService(name: string): unknown {
     if (!this.services.has(name)) {
       this.services.set(name, this.createService(name));
@@ -56,70 +46,43 @@ export class ServiceFactory {
 
   private createService(name: string) {
     switch (name) {
-      case 'identity':
-        return this.createIdentityService();
       case 'data':
-        return this.createDataService();
+        return new DynamoDbDataService(
+          this.docClient,
+          this.config.tableName,
+          this.encryptionFor(['data']),
+          this.config.logger,
+        );
+      case 'identity':
+        if (!this.config.identityTableName) {
+          throw new Error('missing identity table');
+        }
+        return new DynamoDBIdentityService(
+          this.docClient,
+          this.config.identityTableName,
+          this.encryptionFor(['accessToken', 'idToken', 'refreshToken']),
+          this.config.logger,
+        );
       case 'sar':
-        return this.createSARService();
+        return new SarService(
+          this.docClient,
+          this.config.tableName,
+          this.encryptionFor(['presignedURL']),
+          this.config.logger,
+        );
       default:
         throw new Error(`Unknown Service: ${name}`);
     }
   }
 
-  private getEncryptionConfig(
-    dataFields: string[],
-  ): EncryptionConfig | undefined {
-    if (this.kmsKeyId) {
-      return {
-        service: new EncryptionService({ kmsKeyId: this.kmsKeyId }),
-        dataFields,
-      };
-    }
-    return undefined;
-  }
-
-  private createDataService() {
-    const encryption = this.getEncryptionConfig(['data']);
-    const repository = new DynamoDBRepository<DynamoDBDataEntity>(
-      this.tableName,
-      this.docClient,
-      encryption,
-      this.logger,
-    );
-
-    return new DynamoDbDataService(repository);
-  }
-
-  private createIdentityService() {
-    if (!this.identityTableName) {
-      throw Error('missing identity table');
+  private encryptionFor(dataFields: string[]): EncryptionConfig | undefined {
+    if (!this.config.kmsKeyId) {
+      return undefined;
     }
 
-    const encryption = this.getEncryptionConfig([
-      'accessToken',
-      'idToken',
-      'refreshToken',
-    ]);
-    const repository = new DynamoDBRepository<IdentityRecordEntity>(
-      this.identityTableName,
-      this.docClient,
-      encryption,
-      this.logger,
-    );
-
-    return new DynamoDBIdentityService(repository);
-  }
-
-  private createSARService() {
-    const encryption = this.getEncryptionConfig(['presignedURL']);
-    const repository = new DynamoDBRepository<SAREntity>(
-      this.tableName,
-      this.docClient,
-      encryption,
-      this.logger,
-    );
-
-    return repository;
+    return {
+      service: new EncryptionService({ kmsKeyId: this.config.kmsKeyId }),
+      dataFields,
+    };
   }
 }

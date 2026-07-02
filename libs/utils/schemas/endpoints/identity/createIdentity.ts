@@ -1,9 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
-import {
-  defaultSucccessResponseSchema,
-  DefaultSuccessResponse,
-} from '../../defaults/success';
 
 extendZodWithOpenApi(z);
 
@@ -31,7 +27,6 @@ export const createIdentityRequestSchema = z.object({
   }),
 });
 
-export const createIdentityResponseSchema = defaultSucccessResponseSchema;
-
+export { defaultSuccessResponseSchema as createIdentityResponseSchema } from '../../defaults/success';
+export { DefaultSuccessResponse as CreateIdentityResponse } from '../../defaults/success';
 export type CreateIdentityRequest = z.infer<typeof createIdentityRequestSchema>;
-export type CreateIdentityResponse = DefaultSuccessResponse;

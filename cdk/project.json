@@ -15,6 +15,7 @@
     "@src/dsarRequestLambda",
     "@src/dsarDeleteLambda",
     "@src/exchangeIdentityLambda",
+    "@src/getAllLinkedServiceLambda",
     "@src/createSarFileLambda",
     "@src/generateSarPresignedUrlLambda",
     "@src/getSarStatusLambda",

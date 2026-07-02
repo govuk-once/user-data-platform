@@ -43,11 +43,10 @@ describe('Identity Service', () => {
     udpId: 'mock-string-uuid4',
   };
 
-  const service: DynamoDBIdentityService<IdentityRecordEntity> =
-    new ServiceFactory({
-      tableName,
-      identityTableName,
-    }).getService('identity');
+  const service: DynamoDBIdentityService = new ServiceFactory({
+    tableName,
+    identityTableName,
+  }).getService('identity');
 
   beforeEach(() => {
     dynamoMock.reset();
@@ -468,12 +467,95 @@ describe('Identity Service', () => {
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =
+      const testServiceConstructor: DynamoDBIdentityService =
         new ServiceFactory({
           tableName,
           identityTableName,
         }).getService('identity');
       expect(testServiceConstructor).toBeInstanceOf(DynamoDBIdentityService);
+    });
+  });
+
+  describe('Get All Linked Service', () => {
+    const serviceId = 'test';
+    const serviceName = 'test-service';
+    const udpId = 'mock-string-uuid4';
+    const pk = serviceName.concat('#', serviceId);
+    const identity = {
+      ...mockAppIdentityRecord,
+      pk,
+      serviceName,
+      serviceId,
+      udpId,
+    };
+
+    it('should return an array of linked service names', async () => {
+      const identities: IdentityRecordEntity[] = [
+        {
+          pk: 'app#app-id',
+          sk: udpId,
+          serviceName: 'app',
+          serviceId: 'app-id',
+          udpId,
+        },
+        {
+          pk: 'dwp#dwp-id',
+          sk: udpId,
+          serviceName: 'dwp',
+          serviceId: 'dwp-id',
+          udpId,
+        },
+      ];
+
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: identities });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        Limit: 1,
+      });
+      expect(getCommandCall(QueryCommand, 2)).toMatchObject({
+        TableName: identityTableName,
+        IndexName: 'sk-index',
+        KeyConditionExpression: 'sk = :sk',
+        ExpressionAttributeValues: { ':sk': udpId },
+      });
+      expect(result).toEqual(['app', 'dwp']);
+    });
+
+    it('should return an empty array and log when no linked services exist', async () => {
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: [] });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw IdentityRecordNotFoundError when the initial identity does not exist', async () => {
+      dynamoMock.on(QueryCommand).resolvesOnce({ Items: [] });
+
+      await expect(
+        service.getAllLinkedServices(serviceName, serviceId),
+      ).rejects.toThrow(IdentityRecordNotFoundError);
+    });
+
+    it('should throw underlying error if DB failure', async () => {
+      const mockError = new Error('DB Failure');
+
+      dynamoMock.on(QueryCommand).rejects(mockError);
+
+      await expect(
+        service.getAllLinkedServices(serviceName, serviceId),
+      ).rejects.toThrow(mockError);
     });
   });
 });

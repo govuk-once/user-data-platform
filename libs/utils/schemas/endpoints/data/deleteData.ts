@@ -1,9 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import z from 'zod';
-import {
-  defaultSucccessResponseSchema,
-  DefaultSuccessResponse,
-} from '../../defaults/success';
 
 extendZodWithOpenApi(z);
 
@@ -12,6 +8,5 @@ extendZodWithOpenApi(z);
  Response Schemas & Types
 */
 
-export const deleteDataResponseSchema = defaultSucccessResponseSchema;
-
-export type DeleteDataResponse = DefaultSuccessResponse;
+export { defaultSuccessResponseSchema as deleteDataResponseSchema } from '../../defaults/success';
+export type { DefaultSuccessResponse as DeleteDataResponse } from '../../defaults/success';

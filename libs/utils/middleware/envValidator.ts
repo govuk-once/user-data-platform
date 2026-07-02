@@ -143,7 +143,7 @@ export function createEnvValidator<
   const middleware = envValidator({
     ...rest,
     required: [...required] as string[],
-    optional: optional as OptionalEnvConfig,
+    optional: optional,
   });
 
   const origialBefore = middleware.before!;

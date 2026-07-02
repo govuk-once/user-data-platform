@@ -45,6 +45,3 @@ export type RouteBody<T extends RouteConfig> = T['body'] extends z.ZodAny
 export type RouteQuery<T extends RouteConfig> = T['query'] extends z.ZodAny
   ? z.infer<T['query']>
   : never;
-
-// export type RouteResponse<T extends RouteConfig> =
-//   T['response'] extends z.ZodAny ? z.infer<T['response']> : never;

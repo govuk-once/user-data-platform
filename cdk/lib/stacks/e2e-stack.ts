@@ -60,6 +60,7 @@ export class E2eStack extends Stack {
       encryption: BucketEncryption.S3_MANAGED,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
+      versioned: false,
       removalPolicy: getRemovalPolicy(environment),
       autoDeleteObjects: environment === GovUkOnceEnvironments.Dev,
       lifecycleRules: [
