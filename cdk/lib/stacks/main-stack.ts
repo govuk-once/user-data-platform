@@ -263,10 +263,7 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    if (
-      environment === GovUkOnceEnvironments.Dev &&
-      stackPrefix === GovUkOnceEnvironments.Dev
-    ) {
+    if (environment === GovUkOnceEnvironments.Dev) {
       this.createReleaseNotifications(environment);
     }
 
@@ -470,25 +467,24 @@ export class MainStack extends Stack {
       masterKey: this.kmsKey,
     });
 
-    const param = `/${environmentLongNames[environment]}/udp-param/udp/monitoring`;
+    const param = `/${environmentLongNames[environment]}/udp-param/udp/release`;
     const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
 
-    let monitoringConfig: {
+    let releaseConfig: {
       workspaceId?: string;
       channelId?: string;
-      pagerDutyUrl?: string;
     } = {};
     try {
-      monitoringConfig = JSON.parse(ssmValue);
+      releaseConfig = JSON.parse(ssmValue);
     } catch {
-      console.log('JSON.parse(monitoringConfig) error in MonitoringStack');
+      console.log('JSON.parse(releaseConfig) error in MainStack');
     }
 
-    if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
+    if (releaseConfig.workspaceId && releaseConfig.channelId) {
       const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
         slackChannelConfigurationName: `udp-releases-notification`,
-        slackWorkspaceId: monitoringConfig.workspaceId,
-        slackChannelId: 'C0B8U7TQ9NJ', // Test channel ID
+        slackWorkspaceId: releaseConfig.workspaceId,
+        slackChannelId: releaseConfig.channelId,
         notificationTopics: [releaseTopic],
         guardrailPolicies: [
           ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
