@@ -25,15 +25,9 @@ jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      version: "1.41.1"
-      type: minor
-      notes: |
-        ## Test release notes
-        - Change 1
-        - Change 2
-    #   version: ${{ steps.release.outputs.semVer }}
-    #   type: ${{ steps.release.outputs.type }}
-    #   notes: ${{ steps.release.outputs.notes }}
+      version: ${{ steps.release.outputs.semVer }}
+      type: ${{ steps.release.outputs.type }}
+      notes: ${{ steps.release.outputs.notes }}
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6

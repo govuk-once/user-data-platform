@@ -263,7 +263,10 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    if (environment === GovUkOnceEnvironments.Dev) {
+    if (
+      environment === GovUkOnceEnvironments.Dev &&
+      stackPrefix === GovUkOnceEnvironments.Dev
+    ) {
       this.createReleaseNotifications(environment);
     }
 
