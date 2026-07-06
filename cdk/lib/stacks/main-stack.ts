@@ -263,10 +263,7 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    if (
-      environment === GovUkOnceEnvironments.Dev &&
-      stackPrefix === GovUkOnceEnvironments.Dev
-    ) {
+    if (!developerId?.startsWith('pr')) {
       this.createReleaseNotifications(environment);
     }
 
@@ -465,8 +462,8 @@ export class MainStack extends Stack {
 
   private createReleaseNotifications(environment: string): void {
     const releaseTopic = new sns.Topic(this, 'ReleaseTopic', {
-      topicName: 'udp-release-notifications',
-      displayName: 'UDP Release Notifications',
+      topicName: `${environment}-release-notifications`,
+      displayName: `${environment}-release-notifications`,
       masterKey: this.kmsKey,
     });
 
@@ -485,7 +482,7 @@ export class MainStack extends Stack {
 
     if (releaseConfig.workspaceId && releaseConfig.channelId) {
       const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
-        slackChannelConfigurationName: `udp-releases-notification`,
+        slackChannelConfigurationName: `${environment}-release-notifications`,
         slackWorkspaceId: releaseConfig.workspaceId,
         slackChannelId: releaseConfig.channelId,
         notificationTopics: [releaseTopic],
