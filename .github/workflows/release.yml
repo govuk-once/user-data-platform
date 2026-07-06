@@ -120,7 +120,6 @@ jobs:
     with:
       version: ${{ needs.version.outputs.version }}
       type: ${{ needs.version.outputs.type }}
-      notes: ${{ needs.version.outputs.notes }}
     secrets:
       DEV_DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
