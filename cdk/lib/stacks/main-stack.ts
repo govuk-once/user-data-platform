@@ -13,7 +13,10 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
+import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 
@@ -259,6 +262,10 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
+    if (!developerId?.startsWith('pr')) {
+      this.createReleaseNotifications(environment);
+    }
+
     this.createCfnOutputs(id, [
       {
         outputId: 'ApiEndpoint',
@@ -449,6 +456,46 @@ export class MainStack extends Stack {
         description,
         exportName: `${id}-${outputId}`,
       });
+    }
+  }
+
+  private createReleaseNotifications(environment: string): void {
+    const releaseTopic = new sns.Topic(this, 'ReleaseTopic', {
+      topicName: `${environment}-release-notifications`,
+      displayName: `${environment}-release-notifications`,
+      masterKey: this.kmsKey,
+    });
+
+    const param = `/${environmentLongNames[environment]}/udp-param/udp/release`;
+    const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
+
+    let releaseConfig: {
+      workspaceId?: string;
+      channelId?: string;
+    } = {};
+    try {
+      releaseConfig = JSON.parse(ssmValue);
+    } catch {
+      console.log('JSON.parse(releaseConfig) error in MainStack');
+    }
+
+    if (releaseConfig.workspaceId && releaseConfig.channelId) {
+      const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
+        slackChannelConfigurationName: `${environment}-release-notifications`,
+        slackWorkspaceId: releaseConfig.workspaceId,
+        slackChannelId: releaseConfig.channelId,
+        notificationTopics: [releaseTopic],
+        guardrailPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
+
+      slack.role?.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [this.kmsKey.keyArn],
+        }),
+      );
     }
   }
 }
