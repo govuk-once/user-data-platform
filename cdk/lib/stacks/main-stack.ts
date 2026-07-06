@@ -33,7 +33,6 @@ import {
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
-  GovUkOnceEnvironments,
   getLogRetentionPeriod,
 } from 'cdk/constants/environment';
 import {
