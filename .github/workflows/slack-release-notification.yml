@@ -9,9 +9,6 @@ on:
       type:
         required: true
         type: string
-      notes:
-        required: true
-        type: string
     secrets:
       DEV_DEPLOYMENT_ROLE:
         required: true
@@ -38,15 +35,17 @@ jobs:
       - name: Publish to SNS
         continue-on-error: true
         env:
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           TYPE: ${{ inputs.type }}
-          NOTES: ${{ inputs.notes }}
           TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
         run: |
+          gh release view "v${VERSION}" --json body --jq .body > release-notes.md
+
           MESSAGE=$(jq -n \
             --arg title "UDP ${TYPE} release: v${VERSION}" \
             --arg url "https://github.com/${{ github.repository }}/releases/tag/v${VERSION}" \
-            --arg notes "${NOTES}" \
+            --rawfile notes release-notes.md \
             '{
               version: "1.0",
               source: "custom",
