@@ -9,9 +9,6 @@ on:
       type:
         description: 'The type of release (major, minor, patch)'
         value: ${{ jobs.version.outputs.type }}
-      notes:
-        description: 'The generated markdown release notes'
-        value: ${{ jobs.version.outputs.notes }}
 
 env:
   NODE_VERSION: '22'
@@ -25,7 +22,7 @@ jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.release.outputs.semVer }}
+      version: ${{ steps.release.outputs.version }}
       type: ${{ steps.release.outputs.type }}
     steps:
       - name: Checkout code
@@ -63,6 +60,6 @@ jobs:
 
       - name: Release Outputs
         run: |
-          echo "The next version is ${{ steps.release.outputs.semVer }}"
+          echo "The next version is ${{ steps.release.outputs.version }}"
           echo "The release type is ${{ steps.release.outputs.type }}"
           echo "The release notes are generated"
