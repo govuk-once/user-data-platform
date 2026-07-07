@@ -13,6 +13,7 @@ export interface S3ConstructProps {
   vpcId?: string;
   deploymentRoleArn?: string;
   enableMacie?: boolean;
+  macieSlrArn?: string;
 }
 
 type AllowedPrincipals = {
@@ -37,6 +38,7 @@ export class S3Construct extends Construct {
       vpcId,
       deploymentRoleArn,
       enableMacie,
+      macieSlrArn,
     } = props;
 
     const fullBucketName = developerId
@@ -91,14 +93,9 @@ export class S3Construct extends Construct {
         'aws:SourceVpc': vpcId,
       };
 
-      if (enableMacie) {
-        const macieArn = Fn.importValue('MacieSlrArn');
-
-        if (!macieArn) {
-          throw new Error('Output MacieSlrArn is not available');
-        }
-
-        allowedPrincipals['aws:PrincipalArn'] = macieArn;
+      // Allow Macie to inspect the bucket
+      if (enableMacie && macieSlrArn) {
+        allowedPrincipals['aws:PrincipalArn'] = macieSlrArn;
       }
 
       this.bucket.addToResourcePolicy(

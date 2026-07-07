@@ -113,6 +113,8 @@ if (!skipMainStack) {
       vpc: vpcStack.vpc,
       lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
       deploymentRoleArn,
+      enableMacie: true,
+      macieSlrArn: macieStack?.macieSlrArn,
     });
 
     sarStack.addDependency(mainStack);

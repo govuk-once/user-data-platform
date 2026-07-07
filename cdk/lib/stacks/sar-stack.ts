@@ -25,6 +25,8 @@ export interface SarStackProps extends StackProps {
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
+  enableMacie?: boolean;
+  macieSlrArn?: string;
 }
 
 export class SarStack extends Stack {
@@ -47,6 +49,8 @@ export class SarStack extends Stack {
       vpc,
       lambdaSecurityGroups,
       deploymentRoleArn,
+      enableMacie,
+      macieSlrArn,
     } = props;
 
     const sarName = developerId
@@ -142,7 +146,8 @@ export class SarStack extends Stack {
       kmsKey,
       vpcId: vpc?.vpcId,
       deploymentRoleArn,
-      enableMacie: true,
+      enableMacie,
+      macieSlrArn,
     });
 
     this.sarBucket = sarBucketConstruct.bucket;
