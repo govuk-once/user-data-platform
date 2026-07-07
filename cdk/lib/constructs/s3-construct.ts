@@ -2,7 +2,7 @@ import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Fn } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 
 export interface S3ConstructProps {
@@ -12,7 +12,13 @@ export interface S3ConstructProps {
   kmsKey: kms.IKey;
   vpcId?: string;
   deploymentRoleArn?: string;
+  enableMacie?: boolean;
 }
+
+type AllowedPrincipals = {
+  'aws:SourceVpc': string;
+  'aws:PrincipalArn'?: string;
+};
 
 /**
  * S3 bucket construct for storing SAR files with proper security and encryption
@@ -30,6 +36,7 @@ export class S3Construct extends Construct {
       kmsKey,
       vpcId,
       deploymentRoleArn,
+      enableMacie,
     } = props;
 
     const fullBucketName = developerId
@@ -80,6 +87,20 @@ export class S3Construct extends Construct {
     // CDK cleanup Lambda runs outside the VPC. Only apply in production.
     // Deny only plain-actions so cloudforamation can still manage bucket configuration
     if (vpcId && deploymentRoleArn && !enableAutoDelete) {
+      const allowedPrincipals: AllowedPrincipals = {
+        'aws:SourceVpc': vpcId,
+      };
+
+      if (enableMacie) {
+        const macieArn = Fn.importValue('MacieSlrArn');
+
+        if (!macieArn) {
+          throw new Error('Output MacieSlrArn is not available');
+        }
+
+        allowedPrincipals['aws:PrincipalArn'] = macieArn;
+      }
+
       this.bucket.addToResourcePolicy(
         new iam.PolicyStatement({
           sid: 'DenyAccessFromOutsideVPC',
@@ -97,9 +118,7 @@ export class S3Construct extends Construct {
           ],
           resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
           conditions: {
-            StringNotEquals: {
-              'aws:SourceVpc': vpcId,
-            },
+            StringNotEquals: allowedPrincipals,
             ArnNotLike: {
               'aws:PrincipalArn': [deploymentRoleArn],
             },

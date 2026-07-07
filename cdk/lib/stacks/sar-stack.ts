@@ -142,6 +142,7 @@ export class SarStack extends Stack {
       kmsKey,
       vpcId: vpc?.vpcId,
       deploymentRoleArn,
+      enableMacie: true,
     });
 
     this.sarBucket = sarBucketConstruct.bucket;

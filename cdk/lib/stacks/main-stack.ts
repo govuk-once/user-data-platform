@@ -14,6 +14,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 
@@ -450,5 +451,22 @@ export class MainStack extends Stack {
         exportName: `${id}-${outputId}`,
       });
     }
+  }
+
+  public addMacieToKMSResourcePolicy(
+    macieSlrArn: string,
+    macieSlr: iam.CfnServiceLinkedRole,
+  ) {
+    this.kmsKey.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'AllowMacieDecrypt',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ArnPrincipal(macieSlrArn)],
+        actions: ['kms:Decrypt', 'kms:DescribeKey'],
+        resources: [this.kmsKey.keyArn],
+      }),
+    );
+
+    this.kmsKey.node.addDependency(macieSlr);
   }
 }
