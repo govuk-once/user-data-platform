@@ -16,7 +16,6 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
-import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { WafConstruct } from '../constructs/waf-construct';
 import { routes } from '@libs/utils';
 
@@ -25,7 +24,7 @@ import {
   ExternalConsumerConfig,
 } from '../constructs/consumer-config-construct';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
-import { IRole } from 'aws-cdk-lib/aws-iam';
+import { IRole, ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import {
   IamConsumerConfig,
   IamConsumerConstruct,
