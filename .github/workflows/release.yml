@@ -105,6 +105,7 @@ jobs:
     needs: [version, e2e-staging, perf-test-staging]
     uses: ./.github/workflows/__deploy-env.yml
     with:
+      environment: production
       stack-prefix: prod
       nx-target: cdk:deploy:prod
       version: ${{ needs.version.outputs.version }}
