@@ -17,7 +17,8 @@
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
-    "serve:openapi": "npx serve docs"
+    "serve:openapi": "npx serve docs",
+    "semantic:release": "semantic-release"
   },
   "devDependencies": {
     "@nx/esbuild": "22.3.3",
@@ -26,6 +27,7 @@
     "@nx/js": "22.3.3",
     "@nx/node": "22.3.3",
     "@nx/vite": "22.3.3",
+    "@semantic-release/exec": "^7.1.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.15.26",
     "@swc/helpers": "~0.5.11",
@@ -38,6 +40,7 @@
     "aws-cdk": "^2.1121.0",
     "aws-sdk-client-mock": "^4.1.0",
     "aws-sdk-client-mock-vitest": "^7.0.1",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "esbuild": "0.28.1",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",
@@ -45,6 +48,7 @@
     "k6": "^0.0.0",
     "nx": "22.3.3",
     "prettier": "3.6.2",
+    "semantic-release": "^25.0.5",
     "ts-node": "10.9.2",
     "tslib": "^2.3.0",
     "typescript": "5.9.3",
