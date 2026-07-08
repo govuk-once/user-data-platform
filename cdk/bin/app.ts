@@ -9,19 +9,25 @@ import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
+import { MacieStack } from 'cdk/lib/stacks/macie-stack';
 import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 
+// App
 const app = new App();
 
+// Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const developerId = process.env.DEVELOPER_ID || undefined;
+const isDev = environment === GovUkOnceEnvironments.Dev;
+const isNotProd = environment !== GovUkOnceEnvironments.Prod;
+const isNotDev = environment !== GovUkOnceEnvironments.Dev;
+const developerId = process.env.DEVELOPER_ID!;
 
-const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
-
+// AWS Env
 const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
+const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
-
+const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
+const stackDescription = developerId ? ` for ${developerId}` : '';
 const awsEnv = account
   ? {
       account,
@@ -40,19 +46,29 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
+// Setup
+let macieStack: MacieStack | undefined;
+let sarStack: SarStack | undefined;
+const monitoringLambdas = [];
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
+// VPC Stack
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
-Aspects.of(app).add(new CheckovSuppressionAspect());
-
-const stackDescription = developerId ? ` for ${developerId}` : '';
-
+// Skip main stack until VPC is deployed
 if (!skipMainStack) {
+  if (isDev) {
+    // Macie stack
+    macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+      description: `DSAR procession stack ${stackDescription}`,
+    });
+  }
+
+  // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
@@ -70,24 +86,45 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
-  const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
-    developerId,
-    environment,
-    stackPrefix,
-    env: awsEnv,
-    description: `DSAR procession stack ${stackDescription}`,
-    table: mainStack.table,
-    identityTable: mainStack.identityTable,
-    kmsKey: mainStack.kmsKey,
-    dbKmsKey: mainStack.dbKmsKey,
-    dsarQueue: mainStack.dsarQueue,
-    sarQueue: mainStack.sarQueue,
-    vpc: vpcStack.vpc,
-    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
-    deploymentRoleArn,
-  });
+  if (isDev && macieStack) {
+    mainStack.addDependency(macieStack);
+    mainStack.addMacieToKMSResourcePolicy(
+      macieStack.macieSlrArn,
+      macieStack.macieSlr,
+    );
+  }
 
-  sarStack.addDependency(mainStack);
+  monitoringLambdas.push(...mainStack.lambdas);
+
+  if (isDev) {
+    // SAR stack
+    sarStack = new SarStack(app, `${stackPrefix}-sar`, {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `DSAR procession stack ${stackDescription}`,
+      table: mainStack.table,
+      identityTable: mainStack.identityTable,
+      kmsKey: mainStack.kmsKey,
+      dbKmsKey: mainStack.dbKmsKey,
+      dsarQueue: mainStack.dsarQueue,
+      sarQueue: mainStack.sarQueue,
+      vpc: vpcStack.vpc,
+      lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+      deploymentRoleArn,
+      enableMacie: true,
+      macieSlrArn: macieStack?.macieSlrArn,
+    });
+
+    sarStack.addDependency(mainStack);
+
+    if (macieStack) {
+      sarStack.addDependency(macieStack);
+    }
+
+    monitoringLambdas.push(...sarStack.lambdas);
+  }
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -103,15 +140,18 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
+      lambdas: monitoringLambdas,
       notificationEmails: [],
       kmsKeyAlias,
     },
   );
 
-  monitoringStack.addDependency(sarStack);
+  if (isDev && sarStack) {
+    monitoringStack.addDependency(sarStack);
+  }
 
-  if (environment !== GovUkOnceEnvironments.Prod) {
+  // Testing
+  if (isNotProd) {
     const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
       developerId,
       environment,
@@ -151,7 +191,8 @@ if (!skipMainStack) {
   }
 }
 
-if (environment !== GovUkOnceEnvironments.Dev) {
+// Backup
+if (isNotDev) {
   new BackupStack(app, `${stackPrefix}-backup`, {
     developerId,
     environment,
@@ -160,5 +201,8 @@ if (environment !== GovUkOnceEnvironments.Dev) {
     description: `Backup infrastructure stack ${stackDescription}`,
   });
 }
+
+// Aspects
+Aspects.of(app).add(new CheckovSuppressionAspect());
 
 app.synth();

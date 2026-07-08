@@ -12,7 +12,14 @@ export interface S3ConstructProps {
   kmsKey: kms.IKey;
   vpcId?: string;
   deploymentRoleArn?: string;
+  enableMacie?: boolean;
+  macieSlrArn?: string;
 }
+
+type AllowedPrincipals = {
+  'aws:SourceVpc': string;
+  'aws:PrincipalArn'?: string;
+};
 
 /**
  * S3 bucket construct for storing SAR files with proper security and encryption
@@ -30,6 +37,8 @@ export class S3Construct extends Construct {
       kmsKey,
       vpcId,
       deploymentRoleArn,
+      enableMacie,
+      macieSlrArn,
     } = props;
 
     const fullBucketName = developerId
@@ -80,6 +89,15 @@ export class S3Construct extends Construct {
     // CDK cleanup Lambda runs outside the VPC. Only apply in production.
     // Deny only plain-actions so cloudforamation can still manage bucket configuration
     if (vpcId && deploymentRoleArn && !enableAutoDelete) {
+      const allowedPrincipals: AllowedPrincipals = {
+        'aws:SourceVpc': vpcId,
+      };
+
+      // Allow Macie to inspect the bucket
+      if (enableMacie && macieSlrArn) {
+        allowedPrincipals['aws:PrincipalArn'] = macieSlrArn;
+      }
+
       this.bucket.addToResourcePolicy(
         new iam.PolicyStatement({
           sid: 'DenyAccessFromOutsideVPC',
@@ -97,9 +115,7 @@ export class S3Construct extends Construct {
           ],
           resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
           conditions: {
-            StringNotEquals: {
-              'aws:SourceVpc': vpcId,
-            },
+            StringNotEquals: allowedPrincipals,
             ArnNotLike: {
               'aws:PrincipalArn': [deploymentRoleArn],
             },
