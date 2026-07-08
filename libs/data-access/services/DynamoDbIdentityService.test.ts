@@ -294,7 +294,7 @@ describe('Identity Service', () => {
       dynamoMock.on(QueryCommand).resolves({ Items: [user] });
 
       try {
-        const result = await service.getByServiceId(serviceName, serviceId);
+        await service.getByServiceId(serviceName, serviceId);
       } catch (error) {
         expect(getCommandCall(QueryCommand, 1)).toMatchObject({
           TableName: identityTableName,
