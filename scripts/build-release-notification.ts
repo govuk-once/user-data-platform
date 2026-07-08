@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const STDIN_FD = 0;
 const MAX_NOTES_LENGTH = 1500;
@@ -13,12 +13,12 @@ const BLANK_LINE_RUN = /\n{3,}/g;
 
 export function githubMarkdownToSlackMarkdown(markdown: string): string {
   return markdown
-    .replace(VERSION_HEADER, "")
-    .replace(HEADING, "*$1*")
-    .replace(INLINE_LINK, "<$2|$1>")
-    .replace(GITHUB_BOLD, "*$1*")
-    .replace(LIST_MARKER, "• ")
-    .replace(BLANK_LINE_RUN, "\n\n")
+    .replace(VERSION_HEADER, '')
+    .replace(HEADING, '*$1*')
+    .replace(INLINE_LINK, '<$2|$1>')
+    .replace(GITHUB_BOLD, '*$1*')
+    .replace(LIST_MARKER, '• ')
+    .replace(BLANK_LINE_RUN, '\n\n')
     .trim();
 }
 
@@ -40,10 +40,10 @@ export function buildReleaseMessage({
   const link = `<${url}|View release>`;
 
   return {
-    version: "1.0",
-    source: "custom",
+    version: '1.0',
+    source: 'custom',
     content: {
-      textType: "client-markdown",
+      textType: 'client-markdown',
       title,
       description: notes ? `${notes}\n\n${link}` : link,
     },
@@ -54,11 +54,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { TITLE: title, URL: url } = process.env;
 
   if (!title || !url) {
-    console.error("TITLE and URL environment variables are required");
+    console.error('TITLE and URL environment variables are required');
     process.exit(1);
   }
 
-  const notesMarkdown = readFileSync(STDIN_FD, "utf8");
+  const notesMarkdown = readFileSync(STDIN_FD, 'utf8');
   process.stdout.write(
     JSON.stringify(buildReleaseMessage({ title, notesMarkdown, url })),
   );
