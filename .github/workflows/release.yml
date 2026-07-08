@@ -116,13 +116,13 @@ jobs:
   send-release-notification:
     name: Send Release Notification
     # needs: [version, deploy-prod]
-    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
+    # if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     uses: ./.github/workflows/slack-release-notification.yml
     with:
       # version: ${{ needs.version.outputs.version }}
       # type: ${{ needs.version.outputs.type }}
-      version: "1.43.0"
-      type: "minor"
+      version: '1.43.0'
+      type: 'minor'
     secrets:
       DEV_DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
