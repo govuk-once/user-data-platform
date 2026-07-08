@@ -318,6 +318,12 @@ paths:
                   type: string
                   description: The Users Identifier for the GOVUK App
                   example: 8538bc99-3596-4eb3-8101-263e70519315
+                expiresAt:
+                  type: integer
+                  minimum: 1776867570
+                  exclusiveMinimum: true
+                  description: The expiry time for the identity in EPOCH Timestamp no milliseconds, must be future dated
+                  example: 1738671000
                 accessToken:
                   type: string
                   description: The access token for the service from one login

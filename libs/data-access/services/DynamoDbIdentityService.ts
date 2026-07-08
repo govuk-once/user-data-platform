@@ -55,7 +55,7 @@ export class DynamoDBIdentityService {
       serviceName: input.serviceName,
       serviceId: input.serviceId,
       udpId: app.udpId,
-      ...(input.ttl ? { ttl: input.ttl } : {}),
+      ...(input.expiresAt ? { ttl: input.expiresAt } : {}),
     });
   }
 
@@ -160,7 +160,12 @@ export class DynamoDBIdentityService {
   ): Promise<string[]> {
     const identity = await this.getByServiceId(serviceName, serviceId);
     const identities = await this.queryBySk(identity.udpId);
-    const linkedServices = identities.map((identity) => identity.serviceName);
+    const linkedServices = identities.map((identity) => {
+      if (identity.ttl && identity.ttl < this.getCurrentTTL()) {
+        return 'expired';
+      }
+      return identity.serviceName;
+  }).filter(service => service !== 'expired');
 
     if (linkedServices.length === 0) {
       this.logger?.debug(`No linked service found for UDPID ${identity.udpId}`);
@@ -182,7 +187,7 @@ export class DynamoDBIdentityService {
     );
 
     const item = response.Items?.[0];
-    if (!item) {
+    if (!item || item.ttl < this.getCurrentTTL()) {
       return null;
     }
 
@@ -260,5 +265,9 @@ export class DynamoDBIdentityService {
       serviceName,
       serviceId,
     );
+  }
+
+  private getCurrentTTL() {
+    return Math.floor(Date.now() / 1000);
   }
 }

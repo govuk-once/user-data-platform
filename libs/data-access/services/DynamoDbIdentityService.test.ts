@@ -168,7 +168,7 @@ describe('Identity Service', () => {
         appId: 'test',
         serviceId: 'test-service-id',
         serviceName: 'test-service',
-        ttl,
+        expiresAt: ttl,
       };
       const pk = `app#${input.appId}`;
 
@@ -277,6 +277,38 @@ describe('Identity Service', () => {
         Limit: 1,
       });
       expect(result).toEqual(user);
+    });
+    
+    it('Should throw a IdentityRecordNotFoundError if the Identity Record if it is expired', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+      const pk = serviceName.concat('#', serviceId);
+      const user = { ...mockAppIdentityRecord, pk, serviceName, serviceId, ttl:  Math.floor(Date.parse('2026-01-01') / 1000)};
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [user] });
+
+      try {
+        const result = await service.getByServiceId(serviceName, serviceId);
+      } catch (error) {
+        expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+          TableName: identityTableName,
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: {
+            ':pk': pk,
+          },
+          Limit: 1,
+        });
+
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          serviceName,
+          serviceId,
+        );
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError)
+      }
+
     });
 
     it('Should throw a IdentityRecordNotFoundError if the Identity Record does not exist', async () => {
@@ -489,7 +521,7 @@ describe('Identity Service', () => {
       udpId,
     };
 
-    it('should return an array of linked service names', async () => {
+    it('should return an array of linked service names, filtering out expired identities', async () => {
       const identities: IdentityRecordEntity[] = [
         {
           pk: 'app#app-id',
@@ -504,6 +536,14 @@ describe('Identity Service', () => {
           serviceName: 'dwp',
           serviceId: 'dwp-id',
           udpId,
+        },
+        {
+          pk: 'dvla#dvla-id',
+          sk: udpId,
+          serviceName: 'dvla',
+          serviceId: 'dvla-id',
+          udpId,
+          ttl: Math.floor(Date.parse('2026-01-01') / 1000),
         },
       ];
 
