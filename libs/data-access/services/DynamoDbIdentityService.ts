@@ -160,12 +160,14 @@ export class DynamoDBIdentityService {
   ): Promise<string[]> {
     const identity = await this.getByServiceId(serviceName, serviceId);
     const identities = await this.queryBySk(identity.udpId);
-    const linkedServices = identities.map((identity) => {
-      if (identity.ttl && identity.ttl < this.getCurrentTTL()) {
-        return 'expired';
-      }
-      return identity.serviceName;
-  }).filter(service => service !== 'expired');
+    const linkedServices = identities
+      .map((identity) => {
+        if (identity.ttl && identity.ttl < this.getCurrentTTL()) {
+          return 'expired';
+        }
+        return identity.serviceName;
+      })
+      .filter((service) => service !== 'expired');
 
     if (linkedServices.length === 0) {
       this.logger?.debug(`No linked service found for UDPID ${identity.udpId}`);

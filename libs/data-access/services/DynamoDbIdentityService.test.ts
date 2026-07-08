@@ -278,12 +278,18 @@ describe('Identity Service', () => {
       });
       expect(result).toEqual(user);
     });
-    
+
     it('Should throw a IdentityRecordNotFoundError if the Identity Record if it is expired', async () => {
       const serviceId = 'test';
       const serviceName = 'test-service';
       const pk = serviceName.concat('#', serviceId);
-      const user = { ...mockAppIdentityRecord, pk, serviceName, serviceId, ttl:  Math.floor(Date.parse('2026-01-01') / 1000)};
+      const user = {
+        ...mockAppIdentityRecord,
+        pk,
+        serviceName,
+        serviceId,
+        ttl: Math.floor(Date.parse('2026-01-01') / 1000),
+      };
 
       dynamoMock.on(QueryCommand).resolves({ Items: [user] });
 
@@ -306,9 +312,8 @@ describe('Identity Service', () => {
           serviceId,
         );
         expect(error).instanceOf(IdentityRecordNotFoundError);
-        expect(error).toEqual(expectedError)
+        expect(error).toEqual(expectedError);
       }
-
     });
 
     it('Should throw a IdentityRecordNotFoundError if the Identity Record does not exist', async () => {
