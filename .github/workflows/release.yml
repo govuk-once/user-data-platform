@@ -17,112 +17,110 @@ permissions:
   pull-requests: write
 
 jobs:
-  # version:
-  #   name: Version
-  #   uses: ./.github/workflows/version.yml
-  #   secrets: inherit
+  version:
+    name: Version
+    uses: ./.github/workflows/version.yml
+    secrets: inherit
 
-  # sonar-scan:
-  #   name: Run SonarQube Scan
-  #   uses: ./.github/workflows/sonar-scan.yml
-  #   secrets: inherit
+  sonar-scan:
+    name: Run SonarQube Scan
+    uses: ./.github/workflows/sonar-scan.yml
+    secrets: inherit
 
-  # deploy-dev:
-  #   name: Deploy to dev
-  #   needs: version
-  #   if: github.ref == 'refs/heads/main'
-  #   uses: ./.github/workflows/__deploy-env.yml
-  #   with:
-  #     environment: dev
-  #     stack-prefix: dev
-  #     nx-target: cdk:deploy:dev
-  #     version: ${{ needs.version.outputs.version }}
-  #     prerelease-tag: rc
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+  deploy-dev:
+    name: Deploy to dev
+    needs: version
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      environment: dev
+      stack-prefix: dev
+      nx-target: cdk:deploy:dev
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
-  # e2e-dev:
-  #   name: E2E tests on dev
-  #   needs: deploy-dev
-  #   uses: ./.github/workflows/__e2e.yml
-  #   with:
-  #     codebuild-project: ${{ needs.deploy-dev.outputs.codebuild-project }}
-  #     source-bucket: ${{ needs.deploy-dev.outputs.source-bucket }}
-  #     source-path: ${{ needs.deploy-dev.outputs.source-path }}
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+  e2e-dev:
+    name: E2E tests on dev
+    needs: deploy-dev
+    uses: ./.github/workflows/__e2e.yml
+    with:
+      codebuild-project: ${{ needs.deploy-dev.outputs.codebuild-project }}
+      source-bucket: ${{ needs.deploy-dev.outputs.source-bucket }}
+      source-path: ${{ needs.deploy-dev.outputs.source-path }}
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
-  # perf-test-dev:
-  #   name: 'Performance Tests'
-  #   needs: deploy-dev
-  #   uses: './.github/workflows/__perf-test.yml'
-  #   with:
-  #     environment: dev
-  #     stack-prefix: dev
-  #     aws-region: 'eu-west-2'
-  #     perf-target: 'smoke'
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+  perf-test-dev:
+    name: 'Performance Tests'
+    needs: deploy-dev
+    uses: './.github/workflows/__perf-test.yml'
+    with:
+      environment: dev
+      stack-prefix: dev
+      aws-region: 'eu-west-2'
+      perf-target: 'smoke'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
-  # deploy-staging:
-  #   name: Deploy to staging
-  #   needs: [e2e-dev, version]
-  #   uses: ./.github/workflows/__deploy-env.yml
-  #   with:
-  #     environment: staging
-  #     stack-prefix: stag
-  #     nx-target: cdk:deploy:stag
-  #     version: ${{ needs.version.outputs.version }}
-  #     prerelease-tag: rc
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+  deploy-staging:
+    name: Deploy to staging
+    needs: [e2e-dev, version]
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      environment: staging
+      stack-prefix: stag
+      nx-target: cdk:deploy:stag
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
-  # e2e-staging:
-  #   name: E2E tests on staging
-  #   needs: deploy-staging
-  #   uses: ./.github/workflows/__e2e.yml
-  #   with:
-  #     codebuild-project: ${{ needs.deploy-staging.outputs.codebuild-project }}
-  #     source-bucket: ${{ needs.deploy-staging.outputs.source-bucket }}
-  #     source-path: ${{ needs.deploy-staging.outputs.source-path }}
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+  e2e-staging:
+    name: E2E tests on staging
+    needs: deploy-staging
+    uses: ./.github/workflows/__e2e.yml
+    with:
+      codebuild-project: ${{ needs.deploy-staging.outputs.codebuild-project }}
+      source-bucket: ${{ needs.deploy-staging.outputs.source-bucket }}
+      source-path: ${{ needs.deploy-staging.outputs.source-path }}
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
-  # perf-test-staging:
-  #   name: 'Performance Tests'
-  #   needs: deploy-staging
-  #   uses: './.github/workflows/__perf-test.yml'
-  #   with:
-  #     environment: stag
-  #     stack-prefix: stag
-  #     aws-region: 'eu-west-2'
-  #     perf-target: 'baseline'
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+  perf-test-staging:
+    name: 'Performance Tests'
+    needs: deploy-staging
+    uses: './.github/workflows/__perf-test.yml'
+    with:
+      environment: stag
+      stack-prefix: stag
+      aws-region: 'eu-west-2'
+      perf-target: 'baseline'
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
-  # deploy-prod:
-  #   name: Deploy to production
-  #   needs: [version, e2e-staging, perf-test-staging]
-  #   uses: ./.github/workflows/__deploy-env.yml
-  #   with:
-  #     environment: production
-  #     stack-prefix: prod
-  #     nx-target: cdk:deploy:prod
-  #     version: ${{ needs.version.outputs.version }}
-  #     expose-outputs: false
-  #   secrets:
-  #     DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+  deploy-prod:
+    name: Deploy to production
+    needs: [version, e2e-staging, perf-test-staging]
+    uses: ./.github/workflows/__deploy-env.yml
+    with:
+      environment: production
+      stack-prefix: prod
+      nx-target: cdk:deploy:prod
+      version: ${{ needs.version.outputs.version }}
+      expose-outputs: false
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
   send-release-notification:
     name: Send Release Notification
-    # needs: [version, deploy-prod]
-    # if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
+    needs: [version, deploy-prod]
+    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     uses: ./.github/workflows/slack-release-notification.yml
     with:
-      # version: ${{ needs.version.outputs.version }}
-      # type: ${{ needs.version.outputs.type }}
-      version: '1.43.0'
-      type: 'minor'
+      version: ${{ needs.version.outputs.version }}
+      type: ${{ needs.version.outputs.type }}
     secrets:
       DEV_DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
