@@ -17,7 +17,7 @@ const app = new App();
 
 // Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const isDev = environment === GovUkOnceEnvironments.Dev;
+// const isDev = environment === GovUkOnceEnvironments.Dev;
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
@@ -99,37 +99,35 @@ if (!skipMainStack) {
 
   monitoringLambdas.push(...mainStack.lambdas);
 
-  if (isDev) {
-    // SAR stack
-    sarStack = new SarStack(app, `${stackPrefix}-sar`, {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `DSAR procession stack ${stackDescription}`,
-      table: mainStack.table,
-      identityTable: mainStack.identityTable,
-      kmsKey: mainStack.kmsKey,
-      dbKmsKey: mainStack.dbKmsKey,
-      dsarQueue: mainStack.dsarQueue,
-      sarQueue: mainStack.sarQueue,
-      vpc: vpcStack.vpc,
-      lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
-      deploymentRoleArn,
-      // Hidden until Macie resource conflict can be resolved
-      // enableMacie: true,
-      // macieSlrArn: macieStack?.macieSlrArn,
-    });
-
-    sarStack.addDependency(mainStack);
-
+  // SAR stack
+  sarStack = new SarStack(app, `${stackPrefix}-sar`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DSAR procession stack ${stackDescription}`,
+    table: mainStack.table,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    dsarQueue: mainStack.dsarQueue,
+    sarQueue: mainStack.sarQueue,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+    deploymentRoleArn,
     // Hidden until Macie resource conflict can be resolved
-    // if (macieStack) {
-    //   sarStack.addDependency(macieStack);
-    // }
+    // enableMacie: true,
+    // macieSlrArn: macieStack?.macieSlrArn,
+  });
 
-    monitoringLambdas.push(...sarStack.lambdas);
-  }
+  sarStack.addDependency(mainStack);
+
+  // Hidden until Macie resource conflict can be resolved
+  // if (macieStack) {
+  //   sarStack.addDependency(macieStack);
+  // }
+
+  monitoringLambdas.push(...sarStack.lambdas);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -151,9 +149,7 @@ if (!skipMainStack) {
     },
   );
 
-  if (isDev && sarStack) {
-    monitoringStack.addDependency(sarStack);
-  }
+  monitoringStack.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {
