@@ -9,7 +9,7 @@ import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-import { MacieStack } from 'cdk/lib/stacks/macie-stack';
+// import { MacieStack } from 'cdk/lib/stacks/macie-stack';
 import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 
 // App
@@ -47,7 +47,8 @@ const crossAccountPrincipals: string[] = (() => {
 })();
 
 // Setup
-let macieStack: MacieStack | undefined;
+// Hidden until Macie resource conflict can be resolved
+// let macieStack: MacieStack | undefined;
 let sarStack: SarStack | undefined;
 const monitoringLambdas = [];
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
@@ -61,12 +62,13 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
-  if (isDev) {
-    // Macie stack
-    macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
-      description: `DSAR procession stack ${stackDescription}`,
-    });
-  }
+  // Hidden until Macie resource conflict can be resolved
+  // if (isDev) {
+  //   // Macie stack
+  //   macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+  //     description: `DSAR procession stack ${stackDescription}`,
+  //   });
+  // }
 
   // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
@@ -86,13 +88,14 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
-  if (isDev && macieStack) {
-    mainStack.addDependency(macieStack);
-    mainStack.addMacieToKMSResourcePolicy(
-      macieStack.macieSlrArn,
-      macieStack.macieSlr,
-    );
-  }
+  // Hidden until Macie resource conflict can be resolved
+  // if (isDev && macieStack) {
+  //   mainStack.addDependency(macieStack);
+  //   mainStack.addMacieToKMSResourcePolicy(
+  //     macieStack.macieSlrArn,
+  //     macieStack.macieSlr,
+  //   );
+  // }
 
   monitoringLambdas.push(...mainStack.lambdas);
 
@@ -113,15 +116,17 @@ if (!skipMainStack) {
       vpc: vpcStack.vpc,
       lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
       deploymentRoleArn,
-      enableMacie: true,
-      macieSlrArn: macieStack?.macieSlrArn,
+      // Hidden until Macie resource conflict can be resolved
+      // enableMacie: true,
+      // macieSlrArn: macieStack?.macieSlrArn,
     });
 
     sarStack.addDependency(mainStack);
 
-    if (macieStack) {
-      sarStack.addDependency(macieStack);
-    }
+    // Hidden until Macie resource conflict can be resolved
+    // if (macieStack) {
+    //   sarStack.addDependency(macieStack);
+    // }
 
     monitoringLambdas.push(...sarStack.lambdas);
   }
