@@ -27,6 +27,8 @@ repos:
             'pnpm-lock.yaml',
             '--exclude-files',
             'migrations.json',
+            '--exclude-files',
+            'docs/index.html',
           ]
 
   - repo: local
