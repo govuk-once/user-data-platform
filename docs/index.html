@@ -12,32 +12,25 @@
         style-src 'self' https://unpkg.com 'unsafe-inline';
         img-src 'self' data: https://unpkg.com;
         font-src 'self' data:;
-        connect-src 'self';
+        connect-src 'self' https://unpkg.com;
         base-uri 'none';
         object-src 'none'"
     />
+    <link rel="icon" href="data:," />
     <link
       rel="stylesheet"
-      href="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui.css"
-      integrity="sha384-pzdBB6iZwPIzBHgXle+9cgvKuMgtWNrBopXkjrWnKCi3m4uJsPPdLQ4IPMqRDirS"
+      href="https://unpkg.com/swagger-ui-dist@5.32.8/swagger-ui.css"
+      integrity="sha384-9Q2fpS+xeS4ffJy6CagnwoUl+4ldAYhOs9pgZuEKxypVModhmZFzeMlvVsAjf7uT"
       crossorigin="anonymous"
     />
   </head>
-
   <body>
     <div id="swagger-ui"></div>
     <script
-      src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"
-      integrity="sha384-xy3YXp34ftsoHshRtcUFjOl/M22B5OEHD5S9AjtVzQokz+BxNff8vNW08msKmH46"
+      src="https://unpkg.com/swagger-ui-dist@5.32.8/swagger-ui-bundle.js"
+      integrity="sha384-IKpAWwsTL0pcw7/Amtnt2eXF4P1BK64WNuY2E/RG15SWLUW5HXzFuyqCSAr/DP8C"
       crossorigin="anonymous"
     ></script>
-    <script>
-      window.onload = () => {
-        window.ui = SwaggerUIBundle({
-          url: 'openapi.yml',
-          dom_id: '#swagger-ui',
-        });
-      };
-    </script>
+    <script src="swagger-init.js"></script>
   </body>
 </html>
