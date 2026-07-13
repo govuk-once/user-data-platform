@@ -29,5 +29,13 @@
   },
   "rules": {
     "prettier/prettier": ["error", { "singleQuote": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["docs/**/*.js"],
+      "parserOptions": { "project": null },
+      "env": { "browser": true },
+      "globals": { "SwaggerUIBundle": "readonly" }
+    }
+  ]
 }
