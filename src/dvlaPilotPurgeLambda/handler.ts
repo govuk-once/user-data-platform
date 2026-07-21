@@ -70,7 +70,6 @@ const fetchDVLAKeys = async (): Promise<IdentityTableKey[]> => {
           ':prefix': {S: 'dvla#' },
         },
         ProjectionExpression: 'pk, sk',
-        ExclusiveStartKey: lastEvaluatedKey,
         ...(lastEvaluatedKey && {
           ExclusiveStartKey: lastEvaluatedKey,
         }),
@@ -78,7 +77,9 @@ const fetchDVLAKeys = async (): Promise<IdentityTableKey[]> => {
     );
 
     for (const item of scanResponse.Items ?? []) {
-      allKeys.push({pk: item.pk?.S, sk: item.sk?.S});
+      if (item.pk?.S && item.sk?.S) {
+        allKeys.push({ pk: item.pk.S, sk: item.sk.S });
+      }
     }
 
     lastEvaluatedKey = scanResponse.LastEvaluatedKey;
@@ -107,7 +108,7 @@ const deleteBatch = async (batch: IdentityTableKey[]): Promise<number> => {
 };
 
 export const lambdaHandler = async (event: { key: string }): Promise<void> => {
-  await validatePurgeKey(event?.key);
+  await validatePurgeKey(event.key);
 
   logger.info('Purge key validated, scanning for DVLA records');
 
