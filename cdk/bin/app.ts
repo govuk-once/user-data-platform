@@ -131,7 +131,7 @@ if (!skipMainStack) {
   });
 
   dvlaPilotStack.addDependency(mainStack);
-  
+
   if (macieStack) {
     sarStack.addDependency(macieStack);
   }
