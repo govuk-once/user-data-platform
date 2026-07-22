@@ -99,6 +99,7 @@ export class MacieStack extends Stack {
     );
 
     const resultsBucket = new s3.Bucket(this, 'ResultsBucket', {
+      bucketName: `macie-results-${this.account}-${this.region}`,
       encryption: s3.BucketEncryption.KMS,
       encryptionKey: resultsKey,
       bucketKeyEnabled: true,
