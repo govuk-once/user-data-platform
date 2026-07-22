@@ -10,7 +10,7 @@ import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-// import { MacieStack } from 'cdk/lib/stacks/macie-stack';
+import { MacieStack } from 'cdk/lib/stacks/macie-stack';
 import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 
 // App
@@ -18,13 +18,13 @@ const app = new App();
 
 // Env
 const environment = app.node.tryGetContext('env') || 'dev';
-// const isDev = environment === GovUkOnceEnvironments.Dev;
+const isDev = environment === GovUkOnceEnvironments.Dev;
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
 
 // AWS Env
-const account = process.env.CDK_DEFAULT_ACCOUNT;
+const account = process.env.CDK_DEFAULT_ACCOUNT!;
 const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
@@ -48,8 +48,7 @@ const crossAccountPrincipals: string[] = (() => {
 })();
 
 // Setup
-// Hidden until Macie resource conflict can be resolved
-// let macieStack: MacieStack | undefined;
+let macieStack: MacieStack | undefined;
 let sarStack: SarStack | undefined;
 const monitoringLambdas = [];
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
@@ -63,13 +62,13 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
-  // Hidden until Macie resource conflict can be resolved
-  // if (isDev) {
-  //   // Macie stack
-  //   macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
-  //     description: `DSAR procession stack ${stackDescription}`,
-  //   });
-  // }
+  if (isDev) {
+    // Macie stack
+    macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+      env: awsEnv,
+      description: `DSAR procession stack ${stackDescription}`,
+    });
+  }
 
   // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
@@ -89,14 +88,10 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
-  // Hidden until Macie resource conflict can be resolved
-  // if (isDev && macieStack) {
-  //   mainStack.addDependency(macieStack);
-  //   mainStack.addMacieToKMSResourcePolicy(
-  //     macieStack.macieSlrArn,
-  //     macieStack.macieSlr,
-  //   );
-  // }
+  if (isDev && macieStack) {
+    mainStack.addDependency(macieStack);
+    mainStack.addMacieToKMSResourcePolicy(macieStack.macieSlrArn);
+  }
 
   monitoringLambdas.push(...mainStack.lambdas);
 
@@ -116,9 +111,8 @@ if (!skipMainStack) {
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
-    // Hidden until Macie resource conflict can be resolved
-    // enableMacie: true,
-    // macieSlrArn: macieStack?.macieSlrArn,
+    enableMacie: true,
+    macieSlrArn: macieStack?.macieSlrArn,
   });
 
   sarStack.addDependency(mainStack);
@@ -137,11 +131,10 @@ if (!skipMainStack) {
   });
 
   dvlaPilotStack.addDependency(mainStack);
-
-  // Hidden until Macie resource conflict can be resolved
-  // if (macieStack) {
-  //   sarStack.addDependency(macieStack);
-  // }
+  
+  if (macieStack) {
+    sarStack.addDependency(macieStack);
+  }
 
   monitoringLambdas.push(...sarStack.lambdas);
 

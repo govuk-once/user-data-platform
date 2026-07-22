@@ -461,10 +461,7 @@ export class MainStack extends Stack {
     }
   }
 
-  public addMacieToKMSResourcePolicy(
-    macieSlrArn: string,
-    macieSlr: iam.CfnServiceLinkedRole,
-  ) {
+  public addMacieToKMSResourcePolicy(macieSlrArn: string) {
     this.kmsKey.addToResourcePolicy(
       new iam.PolicyStatement({
         sid: 'AllowMacieDecrypt',
@@ -474,8 +471,6 @@ export class MainStack extends Stack {
         resources: ['*'],
       }),
     );
-
-    this.kmsKey.node.addDependency(macieSlr);
   }
 
   private createReleaseNotifications(environment: string): void {
