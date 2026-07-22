@@ -17,7 +17,6 @@ const app = new App();
 
 // Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const isDev = environment === GovUkOnceEnvironments.Dev;
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
@@ -47,9 +46,6 @@ const crossAccountPrincipals: string[] = (() => {
 })();
 
 // Setup
-let macieStack: MacieStack | undefined;
-let sarStack: SarStack | undefined;
-const monitoringLambdas = [];
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 // VPC Stack
@@ -61,13 +57,11 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
-  if (isDev) {
-    // Macie stack
-    macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
-      env: awsEnv,
-      description: `DSAR procession stack ${stackDescription}`,
-    });
-  }
+  // Macie stack
+  const macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+    env: awsEnv,
+    description: `DSAR procession stack ${stackDescription}`,
+  });
 
   // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
@@ -86,16 +80,11 @@ if (!skipMainStack) {
   });
 
   mainStack.addDependency(vpcStack);
-
-  if (isDev && macieStack) {
-    mainStack.addDependency(macieStack);
-    mainStack.addMacieToKMSResourcePolicy(macieStack.macieSlrArn);
-  }
-
-  monitoringLambdas.push(...mainStack.lambdas);
+  mainStack.addDependency(macieStack);
+  mainStack.addMacieToKMSResourcePolicy(macieStack.macieSlrArn);
 
   // SAR stack
-  sarStack = new SarStack(app, `${stackPrefix}-sar`, {
+  const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
     developerId,
     environment,
     stackPrefix,
@@ -115,12 +104,7 @@ if (!skipMainStack) {
   });
 
   sarStack.addDependency(mainStack);
-
-  if (macieStack) {
-    sarStack.addDependency(macieStack);
-  }
-
-  monitoringLambdas.push(...sarStack.lambdas);
+  sarStack.addDependency(macieStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -136,7 +120,7 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: monitoringLambdas,
+      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
       notificationEmails: [],
       kmsKeyAlias,
     },
