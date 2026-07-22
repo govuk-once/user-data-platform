@@ -2,6 +2,7 @@ import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 
@@ -98,16 +99,33 @@ export class MacieStack extends Stack {
       }),
     );
 
-    const resultsBucket = new s3.Bucket(this, 'ResultsBucket', {
-      bucketName: `macie-results-${this.account}-${this.region}`,
-      encryption: s3.BucketEncryption.KMS,
-      encryptionKey: resultsKey,
-      bucketKeyEnabled: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      enforceSSL: true,
-      versioned: true,
-      removalPolicy: RemovalPolicy.RETAIN,
-    });
+    const resultsBucketParamName = '/macie/results-bucket-name';
+    const existing = ssm.StringParameter.valueFromLookup(
+      this,
+      resultsBucketParamName,
+    );
+    const bucketExists = !existing.includes('dummy-value-for-');
+
+    const resultsBucket: s3.IBucket = bucketExists
+      ? s3.Bucket.fromBucketName(this, 'ResultsBucket', existing)
+      : new s3.Bucket(this, 'ResultsBucket', {
+          bucketName: `macie-results-${this.account}-${this.region}`,
+          encryption: s3.BucketEncryption.KMS,
+          encryptionKey: resultsKey,
+          bucketKeyEnabled: true,
+          blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+          enforceSSL: true,
+          versioned: true,
+          removalPolicy: RemovalPolicy.RETAIN,
+        });
+
+    if (!bucketExists) {
+      new ssm.StringParameter(this, 'ResultsBucketParam', {
+        parameterName: resultsBucketParamName,
+        stringValue: resultsBucket.bucketName,
+      });
+    }
+
     resultsBucket.addToResourcePolicy(
       new iam.PolicyStatement({
         sid: 'AllowMacieGetBucketLocation',
