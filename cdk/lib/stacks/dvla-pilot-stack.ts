@@ -7,7 +7,7 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
-import { getLogRetentionPeriod } from 'cdk/constants/environment';
+import { environmentLongNames, getLogRetentionPeriod } from 'cdk/constants/environment';
 
 export interface DvlaPilotStackProps extends StackProps {
   developerId?: string;
@@ -69,7 +69,7 @@ export class DvlaPilotStack extends Stack {
     const udpParamsSecretsEncryptionKey = kms.Alias.fromAliasName(
       this,
       'UDPParamsSecretsEncryptionKey',
-      `udp-params-secrets-encryption-key-${environment}`,
+      `udp-params-secrets-encryption-key-${environmentLongNames[environment]}`,
     );
 
     udpParamsSecretsEncryptionKey.grantDecrypt(dvlaPilotPurgeLambda.function);
