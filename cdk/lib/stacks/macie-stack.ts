@@ -6,12 +6,18 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 
+export interface MacieStackProps extends StackProps {
+  isDev: boolean;
+}
+
 export class MacieStack extends Stack {
   public readonly macieSlrArn: string;
   public readonly enablement: cr.AwsCustomResource;
 
-  constructor(scope: Construct, id: string, props: StackProps) {
+  constructor(scope: Construct, id: string, props: MacieStackProps) {
     super(scope, id, props);
+
+    const { isDev } = props;
 
     this.macieSlrArn =
       `arn:${this.partition}:iam::${this.account}:role/aws-service-role/` +
@@ -99,15 +105,12 @@ export class MacieStack extends Stack {
       }),
     );
 
-    const resultsBucketParamName = '/macie/results-bucket-name';
-    const existing = ssm.StringParameter.valueFromLookup(
-      this,
-      resultsBucketParamName,
-    );
-    const bucketExists = !existing.includes('dummy-value-for-');
-
-    const resultsBucket: s3.IBucket = bucketExists
-      ? s3.Bucket.fromBucketName(this, 'ResultsBucket', existing)
+    const resultsBucket: s3.IBucket = isDev
+      ? s3.Bucket.fromBucketName(
+          this,
+          'ResultsBucket',
+          `macie-results-${this.account}-${this.region}`,
+        )
       : new s3.Bucket(this, 'ResultsBucket', {
           bucketName: `macie-results-${this.account}-${this.region}`,
           encryption: s3.BucketEncryption.KMS,
@@ -118,14 +121,6 @@ export class MacieStack extends Stack {
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
         });
-
-    if (!bucketExists) {
-      new ssm.StringParameter(this, 'ResultsBucketParam', {
-        parameterName: resultsBucketParamName,
-        stringValue: resultsBucket.bucketName,
-      });
-    }
-
     resultsBucket.addToResourcePolicy(
       new iam.PolicyStatement({
         sid: 'AllowMacieGetBucketLocation',

@@ -17,6 +17,7 @@ const app = new App();
 
 // Env
 const environment = app.node.tryGetContext('env') || 'dev';
+const isDev = environment === GovUkOnceEnvironments.Dev;
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
@@ -61,6 +62,7 @@ if (!skipMainStack) {
   const macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
     env: awsEnv,
     description: `DSAR procession stack ${stackDescription}`,
+    isDev,
   });
 
   // Main stack
