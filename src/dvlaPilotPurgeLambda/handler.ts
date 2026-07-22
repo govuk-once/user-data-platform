@@ -37,8 +37,8 @@ const dynamoClient = new DynamoDBClient({});
 const BATCH_SIZE = 100;
 
 interface IdentityTableKey {
-    pk: string;
-    sk: string;
+  pk: string;
+  sk: string;
 }
 
 const validatePurgeKey = async (suppliedKey: unknown): Promise<void> => {
@@ -67,7 +67,7 @@ const fetchDVLAKeys = async (): Promise<IdentityTableKey[]> => {
         TableName: IDENTITY_TABLE_NAME,
         FilterExpression: 'begins_with(pk, :prefix)',
         ExpressionAttributeValues: {
-          ':prefix': {S: 'dvla#' },
+          ':prefix': { S: 'dvla#' },
         },
         ProjectionExpression: 'pk, sk',
         ...(lastEvaluatedKey && {
@@ -90,19 +90,22 @@ const fetchDVLAKeys = async (): Promise<IdentityTableKey[]> => {
 
 const deleteBatch = async (batch: IdentityTableKey[]): Promise<number> => {
   const results = await Promise.allSettled(
-    batch.map(({ pk, sk }) => dynamoClient.send(
+    batch.map(({ pk, sk }) =>
+      dynamoClient.send(
         new DeleteItemCommand({
           TableName: IDENTITY_TABLE_NAME,
           Key: {
-            pk: {S: pk},
-            sk: {S: sk},
+            pk: { S: pk },
+            sk: { S: sk },
           },
         }),
       ),
     ),
   );
 
-  const failureCount = results.filter(result=>result.status === 'rejected').length;
+  const failureCount = results.filter(
+    (result) => result.status === 'rejected',
+  ).length;
 
   return failureCount;
 };
@@ -118,7 +121,7 @@ export const lambdaHandler = async (event: { key: string }): Promise<void> => {
 
   if (totalFetched === 0) {
     logger.info('No DVLA records found');
-    
+
     return;
   }
 
@@ -131,7 +134,7 @@ export const lambdaHandler = async (event: { key: string }): Promise<void> => {
   for (let offset = 0; offset < totalFetched; offset += BATCH_SIZE) {
     const batchNumber = Math.floor(offset / BATCH_SIZE) + 1;
     const batch = allKeys.slice(offset, offset + BATCH_SIZE);
-    
+
     const batchFailureCount = await deleteBatch(batch);
     totalFailureCount += batchFailureCount;
 
@@ -151,14 +154,14 @@ export const lambdaHandler = async (event: { key: string }): Promise<void> => {
 
   if (totalFailureCount > 0) {
     logger.warn(
-      `${totalFailureCount} records failed to delete; re-execute the Lambda to retry.`
+      `${totalFailureCount} records failed to delete; re-execute the Lambda to retry.`,
     );
   }
 };
 
 export const handler = middy()
   .use(injectLambdaContext(logger))
-  .use(captureLambdaHandler(tracer, {captureResponse: false }))
+  .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
     before: async () => {
       tracer.putAnnotation('stack', stack);

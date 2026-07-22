@@ -1,6 +1,13 @@
 import { Context } from 'aws-lambda';
-import { DynamoDBClient, ScanCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import {
+  DynamoDBClient,
+  ScanCommand,
+  DeleteItemCommand,
+} from '@aws-sdk/client-dynamodb';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
 import { mockClient } from 'aws-sdk-client-mock';
 import { handler } from './handler';
 
@@ -18,7 +25,8 @@ const mockContext: Context = {
   callbackWaitsForEmptyEventLoop: true,
   functionName: 'dvla-pilot-purge',
   functionVersion: '1',
-  invokedFunctionArn: 'arn:aws:lambda:eu-west-2:123456789012:function:dvla-pilot-purge',
+  invokedFunctionArn:
+    'arn:aws:lambda:eu-west-2:123456789012:function:dvla-pilot-purge',
   memoryLimitInMB: '512',
   awsRequestId: 'test-request-id',
   logGroupName: '/aws/lambda/dvla-pilot-purge',
@@ -35,12 +43,12 @@ const makeDvlaItem = (id: string) => ({
 });
 
 const chunk = <T>(items: T[], size: number): T[][] => {
-    const batches: T[][] = [];
-    for (let index = 0; index < items.length; index += size) {
-        batches.push(items.slice(index, index + size));
-    }
+  const batches: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    batches.push(items.slice(index, index + size));
+  }
 
-    return batches;
+  return batches;
 };
 
 describe('dvlaPilotPurgeLambda handler', () => {
@@ -59,12 +67,12 @@ describe('dvlaPilotPurgeLambda handler', () => {
   describe('Purge key validation', () => {
     it('should throw when the supplied key does not match the secret', async () => {
       secretsMock.on(GetSecretValueCommand).resolves({
-        SecretString: 'correct-key',
+        SecretString: 'correct-key', // pragma: allowlist secret
       });
 
-      await expect(
-        handler({ key: 'wrong-key' }, mockContext),
-      ).rejects.toThrow('Unauthorised: invalid purge key');
+      await expect(handler({ key: 'wrong-key' }, mockContext)).rejects.toThrow(
+        'Unauthorised: invalid purge key',
+      );
     });
 
     it('should throw when the secret has no value', async () => {
@@ -72,9 +80,9 @@ describe('dvlaPilotPurgeLambda handler', () => {
         SecretString: undefined,
       });
 
-      await expect(
-        handler({ key: mockPurgeKey }, mockContext),
-      ).rejects.toThrow('Unauthorised: invalid purge key');
+      await expect(handler({ key: mockPurgeKey }, mockContext)).rejects.toThrow(
+        'Unauthorised: invalid purge key',
+      );
     });
 
     it('should throw when secrets manager call fails', async () => {
@@ -82,9 +90,9 @@ describe('dvlaPilotPurgeLambda handler', () => {
         .on(GetSecretValueCommand)
         .rejects(new Error('Secrets Manager Error'));
 
-      await expect(
-        handler({ key: mockPurgeKey }, mockContext),
-      ).rejects.toThrow('Secrets Manager Error');
+      await expect(handler({ key: mockPurgeKey }, mockContext)).rejects.toThrow(
+        'Secrets Manager Error',
+      );
     });
   });
 
@@ -124,9 +132,16 @@ describe('dvlaPilotPurgeLambda handler', () => {
     it('should paginate the scan when LastEvaluatedKey is returned', async () => {
       mockValidPurgeKey();
 
-      const page1Items = Array.from({ length: 3 }, (_, i) => makeDvlaItem(`page1-${i}`));
-      const page2Items = Array.from({ length: 2 }, (_, i) => makeDvlaItem(`page2-${i}`));
-      const lastEvaluatedKey = { pk: { S: 'dvla#page1-2' }, sk: { S: 'link#page1-2' } };
+      const page1Items = Array.from({ length: 3 }, (_, i) =>
+        makeDvlaItem(`page1-${i}`),
+      );
+      const page2Items = Array.from({ length: 2 }, (_, i) =>
+        makeDvlaItem(`page2-${i}`),
+      );
+      const lastEvaluatedKey = {
+        pk: { S: 'dvla#page1-2' },
+        sk: { S: 'link#page1-2' },
+      };
 
       dynamoMock
         .on(ScanCommand)
@@ -148,7 +163,7 @@ describe('dvlaPilotPurgeLambda handler', () => {
       expect(scanCalls).toHaveLength(2);
       expect(scanCalls[1].args[0].input).toEqual(
         expect.objectContaining({
-            ExclusiveStartKey: lastEvaluatedKey,
+          ExclusiveStartKey: lastEvaluatedKey,
         }),
       );
       expect(deleteCalls).toHaveLength(5);
@@ -170,7 +185,7 @@ describe('dvlaPilotPurgeLambda handler', () => {
       await handler({ key: mockPurgeKey }, mockContext);
 
       const deleteCalls = dynamoMock.commandCalls(DeleteItemCommand);
-      
+
       expect(batches).toHaveLength(3);
       expect(batches[0]).toHaveLength(100);
       expect(batches[1]).toHaveLength(100);
@@ -228,9 +243,9 @@ describe('dvlaPilotPurgeLambda handler', () => {
 
       dynamoMock.on(ScanCommand).rejects(new Error('DynamoDB Scan Error'));
 
-      await expect(
-        handler({ key: mockPurgeKey }, mockContext),
-      ).rejects.toThrow('DynamoDB Scan Error');
+      await expect(handler({ key: mockPurgeKey }, mockContext)).rejects.toThrow(
+        'DynamoDB Scan Error',
+      );
     });
   });
 });
