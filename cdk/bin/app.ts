@@ -23,7 +23,7 @@ const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
 
 // AWS Env
-const account = process.env.CDK_DEFAULT_ACCOUNT;
+const account = process.env.CDK_DEFAULT_ACCOUNT!;
 const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
@@ -64,6 +64,7 @@ if (!skipMainStack) {
   if (isDev) {
     // Macie stack
     macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+      env: awsEnv,
       description: `DSAR procession stack ${stackDescription}`,
     });
   }
@@ -88,10 +89,7 @@ if (!skipMainStack) {
 
   if (isDev && macieStack) {
     mainStack.addDependency(macieStack);
-    mainStack.addMacieToKMSResourcePolicy(
-      macieStack.macieSlrArn,
-      macieStack.macieSlr,
-    );
+    mainStack.addMacieToKMSResourcePolicy(macieStack.macieSlrArn);
   }
 
   monitoringLambdas.push(...mainStack.lambdas);
