@@ -10,15 +10,14 @@ import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
 import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-import { MacieStack } from 'cdk/lib/stacks/macie-stack';
 import { PerfStack } from 'cdk/lib/stacks/perf-stack';
+import { Macie } from 'cdk/lib/macie';
 
 // App
 const app = new App();
 
 // Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const isDev = environment === GovUkOnceEnvironments.Dev;
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const developerId = process.env.DEVELOPER_ID!;
@@ -29,12 +28,10 @@ const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
 const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
 const stackDescription = developerId ? ` for ${developerId}` : '';
-const awsEnv = account
-  ? {
-      account,
-      region,
-    }
-  : undefined;
+const awsEnv = {
+  account,
+  region,
+};
 
 const crossAccountPrincipals: string[] = (() => {
   const ctx = app.node.tryGetContext('crossAccountPrincipals');
@@ -59,11 +56,10 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
 
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
-  // Macie stack
-  const macieStack = new MacieStack(app, `${stackPrefix}-macie`, {
+  // Macie stack and Aspect
+  Macie(app, {
     env: awsEnv,
-    description: `DSAR procession stack ${stackDescription}`,
-    isDev,
+    stackPrefix,
   });
 
   // Main stack
@@ -83,8 +79,6 @@ if (!skipMainStack) {
   });
 
   mainStack.addDependency(vpcStack);
-  mainStack.addDependency(macieStack);
-  mainStack.addMacieToKMSResourcePolicy(macieStack.macieSlrArn);
 
   // SAR stack
   const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
@@ -102,12 +96,9 @@ if (!skipMainStack) {
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
-    enableMacie: true,
-    macieSlrArn: macieStack?.macieSlrArn,
   });
 
   sarStack.addDependency(mainStack);
-  sarStack.addDependency(macieStack);
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
     developerId,

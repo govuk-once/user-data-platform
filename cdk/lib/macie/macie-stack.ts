@@ -1,27 +1,22 @@
-import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
+import { execFileSync } from 'node:child_process';
+import { Construct } from 'constructs';
+import { Stack, StackProps, RemovalPolicy, Token } from 'aws-cdk-lib';
+
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cr from 'aws-cdk-lib/custom-resources';
-import { Construct } from 'constructs';
 
-export interface MacieStackProps extends StackProps {
-  isDev: boolean;
-}
+import { MacieAccess } from './macie-access';
+import { GovUkOnceEnvironments } from './index';
+
+const cache = new Map<string, boolean>();
 
 export class MacieStack extends Stack {
-  public readonly macieSlrArn: string;
   public readonly enablement: cr.AwsCustomResource;
 
-  constructor(scope: Construct, id: string, props: MacieStackProps) {
+  constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
-
-    const { isDev } = props;
-
-    this.macieSlrArn =
-      `arn:${this.partition}:iam::${this.account}:role/aws-service-role/` +
-      `macie.amazonaws.com/AWSServiceRoleForAmazonMacie`;
 
     const macieCrRole = new iam.Role(this, 'MacieCrRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -45,7 +40,7 @@ export class MacieStack extends Stack {
     macieCrRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ['iam:CreateServiceLinkedRole'],
-        resources: [this.macieSlrArn],
+        resources: [MacieAccess.slrArn(this)],
         conditions: {
           StringLike: { 'iam:AWSServiceName': 'macie.amazonaws.com' },
         },
@@ -105,14 +100,16 @@ export class MacieStack extends Stack {
       }),
     );
 
-    const resultsBucket: s3.IBucket = isDev
+    const bucketName = `macie-results-${this.account}-${this.region}`;
+    const bucketExists = this.bucketExists(bucketName);
+    const resultsBucket: s3.IBucket = bucketExists
       ? s3.Bucket.fromBucketName(
           this,
           'ResultsBucket',
           `macie-results-${this.account}-${this.region}`,
         )
       : new s3.Bucket(this, 'ResultsBucket', {
-          bucketName: `macie-results-${this.account}-${this.region}`,
+          bucketName,
           encryption: s3.BucketEncryption.KMS,
           encryptionKey: resultsKey,
           bucketKeyEnabled: true,
@@ -121,6 +118,7 @@ export class MacieStack extends Stack {
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
         });
+
     resultsBucket.addToResourcePolicy(
       new iam.PolicyStatement({
         sid: 'AllowMacieGetBucketLocation',
@@ -167,5 +165,33 @@ export class MacieStack extends Stack {
     exportConfig.node.addDependency(this.enablement);
     exportConfig.node.addDependency(resultsBucket);
     exportConfig.node.addDependency(resultsKey);
+  }
+
+  private bucketExists(name: string): boolean {
+    if (Token.isUnresolved(this.region)) {
+      throw new Error(
+        'MacieStack requires an explicit env (account/region) for bucket lookup',
+      );
+    }
+    const cached = cache.get(name);
+    if (cached !== undefined) return cached;
+
+    let exists: boolean;
+    try {
+      execFileSync(
+        'aws',
+        ['s3api', 'head-bucket', '--bucket', name, '--region', this.region],
+        {
+          stdio: 'pipe',
+        },
+      );
+      exists = true;
+    } catch (e: any) {
+      const err = `${e.stderr ?? ''}${e.stdout ?? ''}`;
+      exists = err.includes('(403)') || err.includes('Forbidden');
+    }
+
+    cache.set(name, exists);
+    return exists;
   }
 }
