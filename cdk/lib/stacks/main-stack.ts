@@ -17,8 +17,8 @@ import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { AppConfigConstruct } from '../constructs/appconfig-construct';
 import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
-
 import { WafConstruct } from '../constructs/waf-construct';
+import { MacieAccess } from '../macie/macie-access';
 
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
@@ -125,6 +125,7 @@ export class MainStack extends Stack {
       namePrefix: 'encryption',
     });
     this.kmsKey = kmsConstruct.key;
+    MacieAccess.markKMSKeyForAccess(this.kmsKey);
 
     const dbKms = new KmsConstruct(this, 'dbKms', {
       developerId,
@@ -459,18 +460,6 @@ export class MainStack extends Stack {
         exportName: `${id}-${outputId}`,
       });
     }
-  }
-
-  public addMacieToKMSResourcePolicy(macieSlrArn: string) {
-    this.kmsKey.addToResourcePolicy(
-      new iam.PolicyStatement({
-        sid: 'AllowMacieDecrypt',
-        effect: iam.Effect.ALLOW,
-        principals: [new iam.ArnPrincipal(macieSlrArn)],
-        actions: ['kms:Decrypt', 'kms:DescribeKey'],
-        resources: ['*'],
-      }),
-    );
   }
 
   private createReleaseNotifications(environment: string): void {
