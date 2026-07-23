@@ -5,12 +5,12 @@ import {
   MonitoringStack,
   SarStack,
   DvlaPilotStack,
+  VpcStack,
+  E2eStack,
+  PerfStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
-import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
-import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-import { PerfStack } from 'cdk/lib/stacks/perf-stack';
 import { Macie } from 'cdk/lib/macie';
 
 // App
