@@ -19,7 +19,8 @@
     "@src/createSarFileLambda",
     "@src/generateSarPresignedUrlLambda",
     "@src/getSarStatusLambda",
-    "@src/patchDataLambda"
+    "@src/patchDataLambda",
+    "@src/dvlaPilotPurgeLambda"
   ],
   "targets": {
     "diff": {

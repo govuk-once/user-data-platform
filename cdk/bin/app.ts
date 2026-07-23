@@ -4,6 +4,7 @@ import {
   MainStack,
   MonitoringStack,
   SarStack,
+  DvlaPilotStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
@@ -98,6 +99,21 @@ if (!skipMainStack) {
   });
 
   sarStack.addDependency(mainStack);
+
+  const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DVLA pilot purge stack ${stackDescription}`,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+  });
+
+  dvlaPilotStack.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
