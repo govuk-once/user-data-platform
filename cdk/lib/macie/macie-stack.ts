@@ -8,7 +8,6 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cr from 'aws-cdk-lib/custom-resources';
 
 import { MacieAccess } from './macie-access';
-import { GovUkOnceEnvironments } from './index';
 
 const cache = new Map<string, boolean>();
 
@@ -101,13 +100,11 @@ export class MacieStack extends Stack {
     );
 
     const bucketName = `macie-results-${this.account}-${this.region}`;
+    const bucketArn = `arn:${this.partition}:s3:::${bucketName}`;
     const bucketExists = this.bucketExists(bucketName);
+
     const resultsBucket: s3.IBucket = bucketExists
-      ? s3.Bucket.fromBucketName(
-          this,
-          'ResultsBucket',
-          `macie-results-${this.account}-${this.region}`,
-        )
+      ? s3.Bucket.fromBucketName(this, 'ResultsBucket', bucketName)
       : new s3.Bucket(this, 'ResultsBucket', {
           bucketName,
           encryption: s3.BucketEncryption.KMS,
@@ -119,25 +116,40 @@ export class MacieStack extends Stack {
           removalPolicy: RemovalPolicy.RETAIN,
         });
 
-    resultsBucket.addToResourcePolicy(
-      new iam.PolicyStatement({
-        sid: 'AllowMacieGetBucketLocation',
-        effect: iam.Effect.ALLOW,
-        principals: [maciePrincipal],
-        actions: ['s3:GetBucketLocation'],
-        resources: [resultsBucket.bucketArn],
-        conditions: confusedDeputy,
-      }),
-    );
-    resultsBucket.addToResourcePolicy(
-      new iam.PolicyStatement({
-        sid: 'AllowMaciePutResults',
-        effect: iam.Effect.ALLOW,
-        principals: [maciePrincipal],
-        actions: ['s3:PutObject'],
-        resources: [resultsBucket.arnForObjects('macie-results/*')],
-        conditions: confusedDeputy,
-      }),
+    const resultsBucketPolicy = new s3.CfnBucketPolicy(
+      this,
+      'ResultsBucketPolicy',
+      {
+        bucket: bucketName,
+        policyDocument: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              sid: 'AllowMacieGetBucketLocation',
+              effect: iam.Effect.ALLOW,
+              principals: [maciePrincipal],
+              actions: ['s3:GetBucketLocation'],
+              resources: [bucketArn],
+              conditions: confusedDeputy,
+            }),
+            new iam.PolicyStatement({
+              sid: 'AllowMaciePutResults',
+              effect: iam.Effect.ALLOW,
+              principals: [maciePrincipal],
+              actions: ['s3:PutObject'],
+              resources: [`${bucketArn}/macie-results/*`],
+              conditions: confusedDeputy,
+            }),
+            new iam.PolicyStatement({
+              sid: 'DenyInsecureTransport',
+              effect: iam.Effect.DENY,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['s3:*'],
+              resources: [bucketArn, `${bucketArn}/*`],
+              conditions: { Bool: { 'aws:SecureTransport': 'false' } },
+            }),
+          ],
+        }),
+      },
     );
 
     const exportCall: cr.AwsSdkCall = {
@@ -146,7 +158,7 @@ export class MacieStack extends Stack {
       parameters: {
         configuration: {
           s3Destination: {
-            bucketName: resultsBucket.bucketName,
+            bucketName,
             keyPrefix: 'macie-results/',
             kmsKeyArn: resultsKey.keyArn,
           },
@@ -163,6 +175,7 @@ export class MacieStack extends Stack {
     });
 
     exportConfig.node.addDependency(this.enablement);
+    exportConfig.node.addDependency(resultsBucketPolicy);
     exportConfig.node.addDependency(resultsBucket);
     exportConfig.node.addDependency(resultsKey);
   }
@@ -181,9 +194,7 @@ export class MacieStack extends Stack {
       execFileSync(
         'aws',
         ['s3api', 'head-bucket', '--bucket', name, '--region', this.region],
-        {
-          stdio: 'pipe',
-        },
+        { stdio: 'pipe' },
       );
       exists = true;
     } catch (e: any) {
