@@ -175,7 +175,7 @@ export class LambdaApiConstruct extends Construct {
   ): lambda.Function {
     const {
       handler = 'index.handler',
-      runtime = lambda.Runtime.NODEJS_20_X,
+      runtime = lambda.Runtime.NODEJS_24_X,
       timeout = Duration.seconds(30),
       memorySize = 512,
       kmsKey,
