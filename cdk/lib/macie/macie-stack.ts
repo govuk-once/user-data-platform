@@ -110,7 +110,6 @@ export class MacieStack extends Stack {
           encryption: s3.BucketEncryption.KMS,
           encryptionKey: resultsKey,
           bucketKeyEnabled: true,
-          blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
           enforceSSL: true,
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
