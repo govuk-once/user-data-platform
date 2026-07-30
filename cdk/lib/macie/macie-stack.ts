@@ -196,6 +196,7 @@ export class MacieStack extends Stack {
         { stdio: 'pipe' },
       );
       exists = true;
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       const err = `${e.stderr ?? ''}${e.stdout ?? ''}`;
       exists = err.includes('(403)') || err.includes('Forbidden');
