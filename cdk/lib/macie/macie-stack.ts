@@ -197,7 +197,7 @@ export class MacieStack extends Stack {
         { stdio: 'pipe' },
       );
       exists = true;
-    } catch (e: unknown) {
+    } catch (e: any) {
       if (
         typeof e === 'object' &&
         e !== null &&
