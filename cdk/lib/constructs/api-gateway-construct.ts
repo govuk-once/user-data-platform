@@ -16,8 +16,6 @@ export interface ApiGatewayConstructProps {
   readonly environment: string;
   readonly apiName?: string;
   readonly ownVpcEndpointId?: string;
-  readonly policyVpcEndpointIds: string[];
-  readonly crossAccountPrincipals?: string[];
   readonly throttlingBurstLimit?: number;
   readonly throttlingRateLimit?: number;
   readonly enableAccessLogs?: boolean;
@@ -41,8 +39,6 @@ export class ApiGatewayConstruct extends Construct {
       environment,
       apiName = 'api',
       ownVpcEndpointId,
-      policyVpcEndpointIds,
-      crossAccountPrincipals,
       throttlingBurstLimit = 200,
       throttlingRateLimit = 100,
       enableAccessLogs = true,
@@ -54,55 +50,6 @@ export class ApiGatewayConstruct extends Construct {
     const fullApiName = developerId
       ? `${developerId}-${apiName}-${environment}`
       : `${apiName}-${environment}`;
-
-    const policyStatements: iam.PolicyStatement[] = [
-      // Deny all access not from VPC endpoints
-      new iam.PolicyStatement({
-        effect: iam.Effect.DENY,
-        principals: [new iam.AnyPrincipal()],
-        actions: ['execute-api:Invoke'],
-        resources: ['execute-api/*'],
-        conditions: {
-          StringNotEquals: {
-            'aws:sourceVpce': policyVpcEndpointIds,
-          },
-        },
-      }),
-      // allow authenticated access from VPC endponts
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        principals: [new iam.AnyPrincipal()],
-        actions: ['execute-api:Invoke'],
-        resources: ['execute-api/*'],
-        conditions: {
-          StringEquals: {
-            'aws:sourceVpce': policyVpcEndpointIds,
-          },
-        },
-      }),
-    ];
-
-    if (crossAccountPrincipals && crossAccountPrincipals?.length > 0) {
-      policyStatements.push(
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          principals: crossAccountPrincipals?.map(
-            (accountId) => new iam.AccountPrincipal(accountId),
-          ),
-          actions: ['execute-api:Invoke'],
-          resources: ['execute-api/*'],
-          conditions: {
-            StringEquals: {
-              'aws:sourceVpce': policyVpcEndpointIds,
-            },
-          },
-        }),
-      );
-    }
-
-    const resourcePolicy = new iam.PolicyDocument({
-      statements: policyStatements,
-    });
 
     const vpcEndpoints = ownVpcEndpointId
       ? [
@@ -116,6 +63,31 @@ export class ApiGatewayConstruct extends Construct {
           ),
         ]
       : [];
+
+    const resourcePolicy = ownVpcEndpointId
+      ? new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.DENY,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['execute-api:Invoke'],
+              resources: ['execute-api/*'],
+              conditions: {
+                StringNotEquals: { 'aws:sourceVpce': ownVpcEndpointId },
+              },
+            }),
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['execute-api:Invoke'],
+              resources: ['execute-api/*'],
+              conditions: {
+                StringEquals: { 'aws:sourceVpce': ownVpcEndpointId },
+              },
+            }),
+          ],
+        })
+      : undefined;
 
     const cloudwatchLogRole = new iam.Role(this, 'CloudwatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),

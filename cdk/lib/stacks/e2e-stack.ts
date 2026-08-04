@@ -2,7 +2,6 @@ import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
-import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
   BlockPublicAccess,
   Bucket,
@@ -23,7 +22,6 @@ export interface E2EStackProps extends StackProps {
   readonly apiEndpoint: string;
   readonly apiId: string;
   readonly e2eTestConsumerRole?: IRole;
-  readonly e2eTestConsumerSecret?: ISecret;
   readonly e2eTestConsumerApiKeyValue?: string;
   readonly identityTableName: string;
   readonly kmsKeyArn?: string;
@@ -45,7 +43,6 @@ export class E2eStack extends Stack {
       apiEndpoint,
       apiId,
       e2eTestConsumerRole,
-      e2eTestConsumerSecret,
       e2eTestConsumerApiKeyValue,
       identityTableName,
       kmsKeyArn,
@@ -80,7 +77,6 @@ export class E2eStack extends Stack {
       apiId,
       awsRegion: this.region,
       sourceBucket: this.sourceBucket.bucketName,
-      consumerConfigSecret: e2eTestConsumerSecret,
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,
       identityTableName,

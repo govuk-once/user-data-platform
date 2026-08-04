@@ -33,18 +33,6 @@ const awsEnv = {
   region,
 };
 
-const crossAccountPrincipals: string[] = (() => {
-  const ctx = app.node.tryGetContext('crossAccountPrincipals');
-  if (!ctx) return [];
-  if (Array.isArray(ctx)) return ctx;
-  try {
-    return JSON.parse(ctx);
-  } catch {
-    return [];
-  }
-})();
-
-// Setup
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 // VPC Stack
@@ -73,7 +61,6 @@ if (!skipMainStack) {
     lambdaSecurityGroup: vpcStack.lambdaSecurityGroup,
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
-    crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
     ...repoMetaData,
   });
