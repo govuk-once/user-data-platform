@@ -27,6 +27,10 @@ repos:
             'pnpm-lock.yaml',
             '--exclude-files',
             'migrations.json',
+            '--exclude-files',
+            'docs/index.html',
+            '--exclude-files',
+            'e2e/src/features/sar.feature',
           ]
 
   - repo: local

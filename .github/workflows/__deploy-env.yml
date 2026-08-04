@@ -99,14 +99,15 @@ jobs:
           PRERELEASE_TAG: ${{ inputs.prerelease-tag }}
           SHA: ${{ github.sha }}
         run: |
+          echo "FINAL_VERSION in else: ${FINAL_VERSION}"
           if [ -n "${PRERELEASE_TAG}" ]; then
             SHORT_SHA="${SHA:0:7}"
             FINAL_VERSION="${VERSION}-${PRERELEASE_TAG}.${SHORT_SHA}"
           else
             FINAL_VERSION="${VERSION}"
           fi
-          npm version "${FINAL_VERSION}" --no-git-tag-version
           echo "Set local package.json version to ${FINAL_VERSION}"
+          npm version "${FINAL_VERSION}" --no-git-tag-version
 
       - name: Deploy CDK stack
         env:

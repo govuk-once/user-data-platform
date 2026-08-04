@@ -4,44 +4,53 @@ import {
   MainStack,
   MonitoringStack,
   SarStack,
+  DvlaPilotStack,
+  VpcStack,
+  E2eStack,
+  PerfStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
-import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
 import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
-import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-import { PerfStack } from 'cdk/lib/stacks/perf-stack';
+import { Macie } from 'cdk/lib/macie';
 
+// App
 const app = new App();
 
+// Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const developerId = process.env.DEVELOPER_ID || undefined;
+const isNotProd = environment !== GovUkOnceEnvironments.Prod;
+const isNotDev = environment !== GovUkOnceEnvironments.Dev;
+const developerId = process.env.DEVELOPER_ID!;
 
-const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
-
-const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
+// AWS Env
+const account = process.env.CDK_DEFAULT_ACCOUNT!;
+const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
-
-const awsEnv = account
-  ? {
-      account,
-      region,
-    }
-  : undefined;
+const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
+const stackDescription = developerId ? ` for ${developerId}` : '';
+const awsEnv = {
+  account,
+  region,
+};
 
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
+// VPC Stack
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
-Aspects.of(app).add(new CheckovSuppressionAspect());
-
-const stackDescription = developerId ? ` for ${developerId}` : '';
-
+// Skip main stack until VPC is deployed
 if (!skipMainStack) {
+  // Macie stack and Aspect
+  Macie(app, {
+    env: awsEnv,
+    stackPrefix,
+  });
+
+  // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
@@ -58,6 +67,7 @@ if (!skipMainStack) {
 
   mainStack.addDependency(vpcStack);
 
+  // SAR stack
   const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
     developerId,
     environment,
@@ -76,6 +86,21 @@ if (!skipMainStack) {
   });
 
   sarStack.addDependency(mainStack);
+
+  const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DVLA pilot purge stack ${stackDescription}`,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+  });
+
+  dvlaPilotStack.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -99,7 +124,8 @@ if (!skipMainStack) {
 
   monitoringStack.addDependency(sarStack);
 
-  if (environment !== GovUkOnceEnvironments.Prod) {
+  // Testing
+  if (isNotProd) {
     const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
       developerId,
       environment,
@@ -139,7 +165,8 @@ if (!skipMainStack) {
   }
 }
 
-if (environment !== GovUkOnceEnvironments.Dev) {
+// Backup
+if (isNotDev) {
   new BackupStack(app, `${stackPrefix}-backup`, {
     developerId,
     environment,
@@ -148,5 +175,8 @@ if (environment !== GovUkOnceEnvironments.Dev) {
     description: `Backup infrastructure stack ${stackDescription}`,
   });
 }
+
+// Aspects
+Aspects.of(app).add(new CheckovSuppressionAspect());
 
 app.synth();

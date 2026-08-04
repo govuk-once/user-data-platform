@@ -1,9 +1,11 @@
 import { Construct } from 'constructs';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { MacieAccess } from '../macie/macie-access';
 
 export interface S3ConstructProps {
   developerId?: string;
@@ -99,6 +101,7 @@ export class S3Construct extends Construct {
           conditions: {
             StringNotEquals: {
               'aws:SourceVpc': vpcId,
+              'aws:PrincipalArn': MacieAccess.slrArn(this),
             },
             ArnNotLike: {
               'aws:PrincipalArn': [deploymentRoleArn],

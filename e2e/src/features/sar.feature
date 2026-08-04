@@ -23,6 +23,12 @@ Feature: SAR Api
         When I send a post to '/v1/sar-test/data2' with the body '{"data": { "key":"value2", "moreData": "additional info" }}'
         Then I should receive a successful response
 
+    Scenario: Setup - Add sensitive data for the user
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
+        When I send a post to '/v1/sar-test/data3' with the body '{"data": { "key": "value3", "moreData": "important info", "fullName": "Alice Marie Thompson", "emailAddress": "alice.thompson@example.co.uk", "nationalInsuranceNumber": "AB123456C", "dateOfBirth": "1985-04-17", "phoneNumber": "+44 20 7946 0958", "homeAddress": "42 Wellington Road, Manchester, M14 5TZ" }}'
+        Then I should receive a successful response
+
     Scenario: Setup - Link a user identity
         When I send a post to '/v1/identity/service2/sar-user-321' with the body '{"appId":"sar-e2e-user-1"}'
         Then I should receive a successful response
@@ -65,6 +71,13 @@ Feature: SAR Api
         When I send a get to '/v1/sar-test/data2'
         Then I should receive a successful response
         And the response body should contain '"key":"value2"'
+
+    Scenario: Verify second data record still exists after SAR
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to 'sar-e2e-user-1'
+        When I send a get to '/v1/sar-test/data3'
+        Then I should receive a successful response
+        And the response body should contain '"key":"value3"'
 
     Scenario: Verify identity still exists after SAR (identity should NOT be deleted)
         Given I send a get to '/v1/identity/app/sar-e2e-user-1'

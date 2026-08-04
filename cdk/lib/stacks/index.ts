@@ -2,3 +2,8 @@ export * from './main-stack';
 export * from './monitoring-stack';
 export * from './sar-stack';
 export * from './backup-stack';
+export * from '../macie/macie-stack';
+export * from './dvla-pilot-stack';
+export * from './vpc-stack';
+export * from './e2e-stack';
+export * from './perf-stack';

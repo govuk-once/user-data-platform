@@ -1,13 +1,6 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-
-import { KmsConstruct } from '../constructs/kms-construct';
-import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
-import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
-import { LambdaApiConstruct } from '../constructs/lambda-construct';
-import { AppConfigConstruct } from '../constructs/appconfig-construct';
-import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -15,13 +8,23 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
-import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { WafConstruct } from '../constructs/waf-construct';
-import { routes } from '@libs/utils';
 
-import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
-import { IRole } from 'aws-cdk-lib/aws-iam';
+import { KmsConstruct } from '../constructs/kms-construct';
+import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
+import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
+import { LambdaApiConstruct } from '../constructs/lambda-construct';
+import { AppConfigConstruct } from '../constructs/appconfig-construct';
+import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
+import { WafConstruct } from '../constructs/waf-construct';
+import { MacieAccess } from '../macie/macie-access';
+
+import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import type { IRole } from 'aws-cdk-lib/aws-iam';
+
+import { routes } from '@libs/utils';
+import { ExternalConsumerConfig } from '../constructs/consumer-config-construct';
 import {
   IamConsumerConfig,
   IamConsumerConstruct,
@@ -101,6 +104,7 @@ export class MainStack extends Stack {
       namePrefix: 'encryption',
     });
     this.kmsKey = kmsConstruct.key;
+    MacieAccess.markKMSKeyForAccess(this.kmsKey);
 
     const dbKms = new KmsConstruct(this, 'dbKms', {
       developerId,
@@ -483,12 +487,12 @@ export class MainStack extends Stack {
         slackChannelId: releaseConfig.channelId,
         notificationTopics: [releaseTopic],
         guardrailPolicies: [
-          ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
         ],
       });
 
       slack.role?.addToPrincipalPolicy(
-        new PolicyStatement({
+        new iam.PolicyStatement({
           actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
           resources: [this.kmsKey.keyArn],
         }),
