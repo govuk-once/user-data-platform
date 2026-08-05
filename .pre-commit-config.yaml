@@ -4,6 +4,7 @@
 # Fail fast to speed up pre-commit and encourage continued
 # resolving issues as they appear
 fail_fast: true
+always_run: true
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
