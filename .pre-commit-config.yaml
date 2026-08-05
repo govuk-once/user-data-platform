@@ -122,5 +122,5 @@ repos:
         pass_filenames: true
         verbose: false
         always_run: true
-        # stages:
-        #   - pre-push
+        stages:
+          - pre-push
