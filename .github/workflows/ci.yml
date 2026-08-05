@@ -119,4 +119,6 @@ jobs:
     needs: validate-pr
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+      SONAR_URL: ${{ secrets.SONAR_URL }}

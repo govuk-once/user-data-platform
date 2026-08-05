@@ -9,3 +9,6 @@ dist
 
 /.nx/cache
 /.nx/workspace-data
+
+cdk/cdk.out/
+cdk/**/cdk.out/

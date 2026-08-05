@@ -1,15 +1,16 @@
 import { Construct } from 'constructs';
+import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-
-import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
+
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
 } from 'cdk/constants/environment';
+import { Checkov } from 'cdk/lib/checkov/checkov';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
@@ -180,6 +181,8 @@ export class ApiGatewayConstruct extends Construct {
 
     this.api.node.addDependency(account);
 
+    this.applyCheckovSuppressions(props);
+
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.url,
       description: 'API Gateway endpoint URL',
@@ -189,6 +192,12 @@ export class ApiGatewayConstruct extends Construct {
       value: this.api.restApiId,
       description: 'RestAPi ID',
     });
+  }
+
+  private applyCheckovSuppressions(props: ApiGatewayConstructProps): void {
+    if (!props.cachingEnabled) {
+      Checkov.suppressAWS120(this.api);
+    }
   }
 
   get stageArn(): string {

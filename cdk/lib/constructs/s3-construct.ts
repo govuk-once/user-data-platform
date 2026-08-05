@@ -6,6 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 
 import { getRemovalPolicy } from 'cdk/constants/environment';
 import { MacieAccess } from '../macie/macie-access';
+import { Checkov } from '../checkov/checkov';
 
 export interface S3ConstructProps {
   developerId?: string;
@@ -55,6 +56,8 @@ export class S3Construct extends Construct {
         },
       ],
     });
+    Checkov.suppressAWS18(accessLogsBucket);
+    Checkov.suppressAWS21(accessLogsBucket);
 
     this.bucket = new s3.Bucket(this, 'Bucket', {
       bucketName: fullBucketName,

@@ -2,6 +2,11 @@ name: SonarQube Scanner
 
 on:
   workflow_call:
+    secrets:
+      SONAR_TOKEN_UDP:
+        required: true
+      SONAR_URL:
+        required: true
 
 jobs:
   sonar:

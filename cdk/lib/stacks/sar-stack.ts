@@ -143,7 +143,6 @@ export class SarStack extends Stack {
       vpcId: vpc?.vpcId,
       deploymentRoleArn,
     });
-
     this.sarBucket = sarBucketConstruct.bucket;
 
     // Create SAR file lambda
