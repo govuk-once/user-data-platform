@@ -4,7 +4,6 @@
 # Fail fast to speed up pre-commit and encourage continued
 # resolving issues as they appear
 fail_fast: true
-always_run: true
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -99,6 +98,7 @@ repos:
         entry: bash scripts/checkov-scan.sh
         language: system
         pass_filenames: false
+        always_run: true
         stages:
           - pre-push
 
@@ -108,6 +108,7 @@ repos:
         entry: pnpm exec vitest run
         language: system
         pass_filenames: false
+        always_run: true
         stages:
           - pre-push
 
