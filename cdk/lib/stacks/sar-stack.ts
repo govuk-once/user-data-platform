@@ -1,15 +1,16 @@
+import { Construct } from 'constructs';
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IKey } from 'aws-cdk-lib/aws-kms';
 import { Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
-import { Construct } from 'constructs';
-import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Function } from 'aws-cdk-lib/aws-lambda';
-import { S3Construct } from '../constructs/s3-construct';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+
+import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
+import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
 
 export interface SarStackProps extends StackProps {
