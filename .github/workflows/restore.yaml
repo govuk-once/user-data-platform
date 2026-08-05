@@ -142,13 +142,20 @@ jobs:
 
       - name: DynamoDB PITR restore
         if: inputs.resource_type == 'dynamodb' && inputs.mode == 'pitr'
+        env:
+          TABLE_NAME: ${{ needs.validate.outputs.full-resource-name }}
+          RESTORE_TIME: ${{ inputs.restore_time }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          SWAP: ${{ inputs.swap }}
         run: |
+          SWAP_FLAG=""
+          [ "$SWAP" = "true" ] && SWAP_FLAG="--swap"
+
           npx tsx scripts/dynamodb-restore.ts \
             --mode pitr \
-            --table "${{ needs.validate.outputs.full-resource-name }}" \
-            --restore-time "${{ inputs.restore_time }}" \
-            --region "${{ env.AWS_REGION }}" \
-            ${{ inputs.swap && '--swap' || '' }}
+            --table "$TABLE_NAME" \
+            --restore-time "$RESTORE_TIME" \
+            --region "$AWS_REGION" $SWAP_FLAG
 
       - name: DynamoDB backup restore
         if: inputs.resource_type == 'dynamodb' && inputs.mode == 'backup'
@@ -156,14 +163,17 @@ jobs:
           TABLE_NAME: ${{ needs.validate.outputs.full-resource-name }}
           RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}]
           VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
+          SWAP: ${{ inputs.swap }}
         run: |
+          SWAP_FLAG=""
+          [ "$SWAP" = "true" ] && SWAP_FLAG="--swap"
+
           npx tsx scripts/dynamodb-restore.ts \
             --mode backup \
             --table "$TABLE_NAME" \
             --recovery-point-arn "$RECOVERY_POINT_ARN" \
             --vault "$VAULT_NAME" \
-            --region "$AWS_REGION" \
-            ${{ inputs.swap && '--swap' || '' }}
+            --region "$AWS_REGION" $SWAP_FLAG
 
       # ── S3 Restores ───────────────────────────────────────────────────
 
