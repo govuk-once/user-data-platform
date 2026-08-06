@@ -83,7 +83,7 @@ export class LambdaApiConstruct extends Construct {
     this.configureApiRoute();
 
     // Apply Checkov supressions
-    this.applyCheckovSuppressions();
+    // this.applyCheckovSuppressions();
   }
 
   private applyPropDefaults(props: LambdaApiConstructProps): void {

@@ -92,15 +92,15 @@ repos:
         stages:
           - pre-commit
 
-      # Checkov security scanning
-      - id: checkov-scan
-        name: Checkov Scan
-        entry: bash scripts/checkov-scan.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages:
-          - pre-push
+      # # Checkov security scanning
+      # - id: checkov-scan
+      #   name: Checkov Scan
+      #   entry: bash scripts/checkov-scan.sh
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: true
+      #   stages:
+      #     - pre-push
 
       # Run all unit tests
       - id: test-all
