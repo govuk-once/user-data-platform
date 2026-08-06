@@ -126,5 +126,5 @@ jobs:
       version: ${{ needs.version.outputs.version }}
       type: ${{ needs.version.outputs.type }}
     secrets:
-      DEV_DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
