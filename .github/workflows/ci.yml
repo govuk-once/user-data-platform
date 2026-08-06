@@ -103,17 +103,20 @@ jobs:
 
       - name: Lint & format checks
         run: |
-          pnpm lint:affected
+          pnpm lint:all
           pnpm format:check
 
       - name: Build
-        run: pnpm build:affected
+        run: pnpm build:all
 
       - name: Unit Tests
-        run: pnpm test:affected
+        run: pnpm test:all
 
       - name: Checkov Security Scan
         run: checkov -d cdk --config-file cdk/.checkov.yaml
+
+      - name: Semgrep Security Scan
+        run: semgrep scan $(cat .semgrep-args.txt) --error .
 
   sonar-scan:
     needs: validate-pr
