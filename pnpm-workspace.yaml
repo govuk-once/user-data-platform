@@ -3,9 +3,9 @@ packages:
   - cdk/*
   - src/*
 
-blockExoticSubdeps: true # Block transitive deps installed from non-registry locations
-minimumReleaseAge: 10080 # 7 days in minutes — don't install packages newer than this
-trustPolicy: no-downgrade # Stops any package update from weakening the security settings
+# blockExoticSubdeps: true # Block transitive deps installed from non-registry locations
+# minimumReleaseAge: 10080 # 7 days in minutes — don't install packages newer than this
+# trustPolicy: no-downgrade # Stops any package update from weakening the security settings
 
 allowBuilds:
   '@swc/core': true

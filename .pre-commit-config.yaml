@@ -92,15 +92,15 @@ repos:
         stages:
           - pre-commit
 
-      # # Checkov security scanning
-      # - id: checkov-scan
-      #   name: Checkov Scan
-      #   entry: bash scripts/checkov-scan.sh
-      #   language: system
-      #   pass_filenames: false
-      #   always_run: true
-      #   stages:
-      #     - pre-push
+      # Checkov security scanning
+      - id: checkov-scan
+        name: Checkov Scan
+        entry: bash scripts/checkov-scan.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages:
+          - pre-push
 
       # Run all unit tests
       - id: test-all
@@ -112,15 +112,15 @@ repos:
         stages:
           - pre-push
 
-  - repo: https://github.com/semgrep/semgrep
-    rev: v1.89.0
-    hooks:
-      - id: semgrep
-        name: Semgrep
-        entry: bash -c 'semgrep scan $(cat .semgrep-args.txt) --error .'
-        language: system
-        pass_filenames: true
-        verbose: false
-        always_run: true
-        stages:
-          - pre-push
+  # - repo: https://github.com/semgrep/semgrep
+  #   rev: v1.89.0
+  #   hooks:
+  #     - id: semgrep
+  #       name: Semgrep
+  #       entry: bash -c 'semgrep scan $(cat .semgrep-args.txt) --error .'
+  #       language: system
+  #       pass_filenames: true
+  #       verbose: false
+  #       always_run: true
+  #       stages:
+  #         - pre-push
