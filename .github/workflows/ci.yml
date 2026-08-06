@@ -115,13 +115,35 @@ jobs:
       - name: Unit Tests
         run: pnpm test:all
 
-      - name: Configure AWS Credentials for Checkov Scan Synth
+      - name: Resolve deployment role
+        id: role
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          ROLE_DEVELOPMENT: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          ROLE_STAGING: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+          ROLE_PRODUCTION: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+        run: |
+          case "$ENVIRONMENT" in
+            development) ROLE="$ROLE_DEVELOPMENT" ;;
+            staging)     ROLE="$ROLE_STAGING" ;;
+            production)  ROLE="$ROLE_PRODUCTION" ;;
+            *) echo "Unknown or missing environment: '$ENVIRONMENT' (expected development|staging|production)"; exit 1 ;;
+          esac
+
+          if [ -z "$ROLE" ]; then
+            echo "No role secret resolved for environment '$ENVIRONMENT' — check the secret is set"
+            exit 1
+          fi
+
+          echo "Resolved environment: $ENVIRONMENT"
+          echo "::add-mask::$ROLE"
+          echo "role=$ROLE" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS Credentials
         id: aws-creds
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        env:
-          AWS_REGION: eu-west-2
         with:
-          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          role-to-assume: ${{ steps.role.outputs.role }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Checkov Security Scan
