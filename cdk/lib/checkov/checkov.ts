@@ -18,7 +18,15 @@ export class Checkov {
   };
 
   /** Suppress one or more Checkov checks on a construct's L1 resource. Merges with existing skips. */
-  static suppress(scope: IConstruct, ids: string | string[]): void {
+  static suppress(
+    scope: IConstruct,
+    ids: string | string[],
+    disabled = false,
+  ): void {
+    if (disabled) {
+      return;
+    }
+
     if (typeof ids === 'string') {
       ids = [ids];
     }
@@ -59,22 +67,41 @@ export class Checkov {
   }
 
   /** CKV_AWS_18 — S3 bucket does not have access logging enabled. */
-  static suppressAWS18(scope: IConstruct): void {
+  static suppressAWS18(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_18');
   }
 
   /** CKV_AWS_21 — S3 bucket does not have versioning enabled. */
-  static suppressAWS21(scope: IConstruct): void {
+  static suppressAWS21(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_21');
   }
 
   /** CKV_AWS_111 — IAM policy allows write access without constraints. */
-  static suppressAWS111(scope: IConstruct): void {
+  static suppressAWS111(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_111');
   }
 
   /** CKV_AWS_111 — Default IAM policy allows write access without constraints. */
-  static suppressAWS111DefaultPolicy(scope: IConstruct): void {
+  static suppressAWS111DefaultPolicy(
+    scope: IConstruct,
+    disabled = false,
+  ): void {
+    if (disabled) {
+      return;
+    }
+
     const defaultPolicy = scope.node.tryFindChild('DefaultPolicy') as
       | Policy
       | undefined;
@@ -85,30 +112,50 @@ export class Checkov {
   }
 
   /** CKV_AWS_115 — Lambda has no reserved concurrency limit. */
-  static suppressAWS115(scope: IConstruct): void {
+  static suppressAWS115(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_115');
   }
 
   /** CKV_AWS_116 — Lambda has no DLQ (only relevant for async invocations). */
-  static suppressAWS116(scope: IConstruct): void {
+  static suppressAWS116(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_116');
   }
 
   /** CKV_AWS_117 — Lambda not deployed in a VPC. */
-  static suppressAWS117(scope: IConstruct): void {
+  static suppressAWS117(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_117');
   }
 
   /** CKV_AWS_120 — API Gateway stage does not have caching enabled.
    *  Accepts the RestApi or the Stage; resolves to the deployment stage,
    *  which is the resource the check actually targets. */
-  static suppressAWS120(scope: IConstruct): void {
+  static suppressAWS120(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     const target = scope instanceof RestApi ? scope.deploymentStage : scope;
     Checkov.suppress(target, 'CKV_AWS_120');
   }
 
   /** CKV_AWS_158 — CloudWatch log group not KMS-encrypted. */
-  static suppressAWS158(scope: IConstruct): void {
+  static suppressAWS158(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
     Checkov.suppress(scope, 'CKV_AWS_158');
   }
 }

@@ -23,7 +23,18 @@ export class CheckovSuppressionAspect implements IAspect {
     'BucketNotificationsHandler', // Custom::S3BucketNotifications provider — not configurable
   ];
 
+  // Disable the Aspect
+  private disabled: boolean;
+
+  constructor(props: { disabled: boolean } = { disabled: false }) {
+    this.disabled = props.disabled;
+  }
+
   visit(node: IConstruct): void {
+    if (this.disabled) {
+      return;
+    }
+
     if (!(node instanceof CfnResource)) return;
     const skips = this.skipsFor(node);
     if (skips.length) {
