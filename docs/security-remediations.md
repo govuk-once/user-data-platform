@@ -1,10 +1,8 @@
 # Security Scan Remediations — Checkov & Semgrep
 
-Tracking record of Checkov (IaC) and Semgrep (SAST / workflow) findings addressed
-on this branch, the remediation applied to each, and the justification where a
-finding was suppressed rather than fixed.
+Tracking record of Checkov (IaC) and Semgrep (SAST / workflow) findings addressed, the remediation applied to each, and the justification where a finding was suppressed rather than fixed.
 
-Two kinds of response are recorded:
+Two kinds of action:
 
 - **Remediated** — the underlying resource or code was changed so the control is
   genuinely in place.
