@@ -20,12 +20,16 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
-    secrets: inherit
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
   sonar-scan:
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+      SONAR_URL: ${{ secrets.SONAR_URL }}
 
   deploy-dev:
     name: Deploy to dev

@@ -1,18 +1,20 @@
 import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
-import { CodeBuildE2eConstruct } from '../constructs/codebuild-e3e-construct';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { IRole } from 'aws-cdk-lib/aws-iam';
 import {
   BlockPublicAccess,
   Bucket,
   BucketEncryption,
 } from 'aws-cdk-lib/aws-s3';
+
 import {
   getRemovalPolicy,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
-import { IRole } from 'aws-cdk-lib/aws-iam';
+import { CodeBuildE2EConstruct } from '../constructs/codebuild-e2e-construct';
+import { Checkov } from 'cdk/lib/checkov/checkov';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;
@@ -29,8 +31,8 @@ export interface E2EStackProps extends StackProps {
   readonly kmsKeyArn?: string;
 }
 
-export class E2eStack extends Stack {
-  public readonly codebuildProject: CodeBuildE2eConstruct;
+export class E2EStack extends Stack {
+  public readonly codebuildProject: CodeBuildE2EConstruct;
   public readonly sourceBucket: Bucket;
 
   constructor(scope: Construct, id: string, props: E2EStackProps) {
@@ -69,8 +71,10 @@ export class E2eStack extends Stack {
         },
       ],
     });
+    Checkov.suppressAWS18(this.sourceBucket);
+    Checkov.suppressAWS21(this.sourceBucket);
 
-    this.codebuildProject = new CodeBuildE2eConstruct(this, 'CodeBuild', {
+    this.codebuildProject = new CodeBuildE2EConstruct(this, 'CodeBuild', {
       developerId,
       environment,
       vpc,
@@ -79,7 +83,7 @@ export class E2eStack extends Stack {
       kmsKeyAlias,
       apiId,
       awsRegion: this.region,
-      sourceBucket: this.sourceBucket.bucketName,
+      sourceBucketName: this.sourceBucket.bucketName,
       consumerConfigSecret: e2eTestConsumerSecret,
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,

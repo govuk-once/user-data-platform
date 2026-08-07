@@ -2,6 +2,7 @@
   "name": "user-data-platform",
   "version": "1.25.1",
   "team": "udp",
+  "packageManager": "pnpm@10.26.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/govuk-once/user-data-platform.git"
@@ -14,7 +15,7 @@
     "build:affected": "npx nx affected --target=build",
     "lint:all": "npx nx run-many --target=lint",
     "lint:affected": "npx nx affected --target=lint --outputStyle static",
-    "format:write": "npx prettier --write .",
+    "format:write": "npx prettier --log-level warn --write .",
     "format:check": "npx prettier --check .",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
     "serve:openapi": "npx serve docs",
