@@ -2,6 +2,11 @@ name: Create Release
 
 on:
   workflow_call:
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID:
+        required: true
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY:
+        required: true
     outputs:
       version:
         description: 'The new semantic version number'
@@ -40,8 +45,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: 9
 
       - name: Setup node
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
