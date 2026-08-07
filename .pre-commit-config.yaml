@@ -92,6 +92,14 @@ repos:
         stages:
           - pre-commit
 
+      # Build all
+      - id: build-all
+        name: Build All
+        entry: pnpm build:all
+        language: system
+        stages:
+          - pre-push
+
       # Checkov security scanning
       - id: checkov-scan
         name: Checkov Scan

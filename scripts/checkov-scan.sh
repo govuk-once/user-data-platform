@@ -32,6 +32,7 @@ if ! aws sts get-caller-identity > /dev/null 2>&1; then
   exit 1
 fi
 
+# Move to cdk folder
 cd cdk
 
 # Stops stale templates being pulled into the scan
