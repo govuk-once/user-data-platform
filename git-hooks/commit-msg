@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Exit if pipeline
-[ -n "$CI" ] && exit 0
+{ [ -n "${CI:-}" ] || [ -n "${CODEBUILD_BUILD_ID:-}" ]; } && exit 0
 
 # Conventional Commits validation hook
 # Validates commit messages follow conventional commit format

@@ -32,14 +32,15 @@ if ! aws sts get-caller-identity > /dev/null 2>&1; then
   exit 1
 fi
 
+# Move to cdk folder
 cd cdk
 
 # Stops stale templates being pulled into the scan
 rm -rf cdk.out
 
 echo -e "${YELLOW}[pre-commit]${NC} Synthesizing…"
-rm -rf cdk.out
-if ! CDK_DEFAULT_REGION=eu-west-2 npx cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
+
+if ! CDK_DEFAULT_REGION=eu-west-2 ../node_modules/.bin/cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
   echo -e "${RED}[pre-commit]${NC} cdk synth failed:"
   cat /tmp/cdk-synth.log
   exit 1
@@ -48,7 +49,6 @@ fi
 echo -e "${YELLOW}[pre-commit]${NC} Scanning…"
 rm -f checkov-results.json
 # shellcheck disable=SC2086
-# --check CKV_AWS_116
 checkov -d cdk.out --config-file .checkov.yaml $CHECK_ARG \
   -o json --quiet 2>/dev/null > checkov-results.json || true
 
