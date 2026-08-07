@@ -39,7 +39,7 @@ rm -rf cdk.out
 
 echo -e "${YELLOW}[pre-commit]${NC} Synthesizing…"
 rm -rf cdk.out
-if ! CDK_DEFAULT_REGION=eu-west-2 npx cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
+if ! CDK_DEFAULT_REGION=eu-west-2 ../node_modules/.bin/cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
   echo -e "${RED}[pre-commit]${NC} cdk synth failed:"
   cat /tmp/cdk-synth.log
   exit 1
