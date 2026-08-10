@@ -97,6 +97,7 @@ repos:
         name: Build All
         entry: pnpm build:all
         language: system
+        always_run: true
         stages:
           - pre-push
 
