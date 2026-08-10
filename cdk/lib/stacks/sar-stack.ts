@@ -12,6 +12,7 @@ import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
 import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
+import { OnceTags } from '../once-tags/once-tags';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -145,6 +146,7 @@ export class SarStack extends Stack {
       deploymentRoleArn,
     });
     this.sarBucket = sarBucketConstruct.bucket;
+    OnceTags.of(sarBucketConstruct).DataClassification.SENSITIVE().PII.TRUE();
 
     // Create SAR file lambda
     const createSarFileLambda = new LambdaApiConstruct(this, 'createSarFile', {
