@@ -46,6 +46,7 @@ export class S3Construct extends Construct {
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
       versioned: false,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: getRemovalPolicy(environment),
       autoDeleteObjects: enableAutoDelete,
       lifecycleRules: [
@@ -65,6 +66,7 @@ export class S3Construct extends Construct {
       bucketKeyEnabled: true,
       enforceSSL: true,
       versioned: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy:
         environment === 'dev' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
       autoDeleteObjects: enableAutoDelete,
