@@ -94,9 +94,9 @@ export class LambdaApiConstruct extends Construct {
         : `${props.functionName}-${props.environment}`,
       cachingEnabled: props.cachingEnabled ?? false,
       checkovSuppressAWS116: props.checkovSuppressAWS116 ?? true,
-      reservedConcurrentExecutions:
-        props.reservedConcurrentExecutions ??
-        (props.environment === 'dev' ? 2 : 50),
+      ...(props.environment !== 'dev'
+        ? { reservedConcurrentExecutions: 50 }
+        : {}),
     };
   }
 
