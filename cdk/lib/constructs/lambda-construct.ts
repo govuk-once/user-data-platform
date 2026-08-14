@@ -42,7 +42,7 @@ export interface LambdaApiConstructProps {
 }
 
 interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
-  reservedConcurrentExecutions: number;
+  reservedConcurrentExecutions?: number;
   checkovSuppressAWS116: boolean;
   cachingEnabled: boolean;
   fullFunctionName: string;
