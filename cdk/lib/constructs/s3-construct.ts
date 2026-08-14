@@ -44,9 +44,9 @@ export class S3Construct extends Construct {
     const accessLogsBucket = new s3.Bucket(this, 'AccessLogsBucket', {
       bucketName: `${fullBucketName}-access-logs`,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       versioned: false,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: getRemovalPolicy(environment),
       autoDeleteObjects: enableAutoDelete,
       lifecycleRules: [
@@ -64,9 +64,9 @@ export class S3Construct extends Construct {
       encryption: s3.BucketEncryption.KMS,
       encryptionKey: kmsKey,
       bucketKeyEnabled: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       versioned: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy:
         environment === 'dev' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
       autoDeleteObjects: enableAutoDelete,

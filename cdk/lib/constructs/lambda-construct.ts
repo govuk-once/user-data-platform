@@ -94,9 +94,7 @@ export class LambdaApiConstruct extends Construct {
         : `${props.functionName}-${props.environment}`,
       cachingEnabled: props.cachingEnabled ?? false,
       checkovSuppressAWS116: props.checkovSuppressAWS116 ?? true,
-      reservedConcurrentExecutions:
-        props.reservedConcurrentExecutions ??
-        (props.environment === 'dev' ? 1 : 50),
+      reservedConcurrentExecutions: props.environment === 'dev' ? 2 : 50,
     };
   }
 
@@ -208,7 +206,7 @@ export class LambdaApiConstruct extends Construct {
   private createLambdaFunction(): void {
     const {
       handler = 'index.handler',
-      runtime = lambda.Runtime.NODEJS_20_X,
+      runtime = lambda.Runtime.NODEJS_24_X,
       timeout = Duration.seconds(30),
       memorySize = 512,
       kmsKey,
