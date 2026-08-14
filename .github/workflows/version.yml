@@ -2,6 +2,11 @@ name: Create Release
 
 on:
   workflow_call:
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID:
+        required: true
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY:
+        required: true
     outputs:
       version:
         description: 'The new semantic version number'
@@ -11,7 +16,7 @@ on:
         value: ${{ jobs.version.outputs.type }}
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
 
 permissions:
   contents: write
@@ -33,18 +38,16 @@ jobs:
 
       - name: Generate GitHub App Token
         id: generate-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 9
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'

@@ -1,3 +1,4 @@
+import { Construct } from 'constructs';
 import { Duration, Stack } from 'aws-cdk-lib';
 import {
   BuildEnvironmentVariableType,
@@ -23,9 +24,8 @@ import {
   getLogRetentionPeriod,
   getRemovalPolicy,
 } from 'cdk/constants/environment';
-import { Construct } from 'constructs';
 
-export interface CodeBuildE2eConstructProps {
+export interface CodeBuildE2EConstructProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly vpc: IVpc;
@@ -33,7 +33,7 @@ export interface CodeBuildE2eConstructProps {
   readonly apiEndpoint: string;
   readonly awsRegion: string;
   readonly buildTimeout?: Duration;
-  readonly sourceBucket: string;
+  readonly sourceBucketName: string;
   readonly cognitoEndpoint?: string;
   readonly kmsKeyAlias?: string;
   readonly consumerConfigSecret?: ISecret;
@@ -44,11 +44,11 @@ export interface CodeBuildE2eConstructProps {
   readonly e2eTestConsumerApiKeyValue?: string;
 }
 
-export class CodeBuildE2eConstruct extends Construct {
+export class CodeBuildE2EConstruct extends Construct {
   public readonly project: Project;
   public readonly logGroup: LogGroup;
 
-  constructor(scope: Construct, id: string, props: CodeBuildE2eConstructProps) {
+  constructor(scope: Construct, id: string, props: CodeBuildE2EConstructProps) {
     super(scope, id);
 
     const {
@@ -59,7 +59,7 @@ export class CodeBuildE2eConstruct extends Construct {
       apiEndpoint,
       awsRegion,
       buildTimeout = Duration.minutes(30),
-      sourceBucket,
+      sourceBucketName,
       consumerConfigSecret,
       apiId,
       e2eTestConsumerRole,
@@ -238,7 +238,7 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'S3SourceAccess',
         actions: ['s3:GetObject', 's3:GetObjectVersion'],
-        resources: [`arn:aws:s3:::${sourceBucket}/*`],
+        resources: [`arn:aws:s3:::${sourceBucketName}/*`],
       }),
     );
 
@@ -246,12 +246,12 @@ export class CodeBuildE2eConstruct extends Construct {
       new PolicyStatement({
         sid: 'S3BucketAccess',
         actions: ['s3:GetBucketLocation', 's3:ListBucket'],
-        resources: [`arn:aws:s3:::${sourceBucket}`],
+        resources: [`arn:aws:s3:::${sourceBucketName}`],
       }),
     );
 
     const source = Source.s3({
-      bucket: Bucket.fromBucketName(this, 'SourceBucket', sourceBucket),
+      bucket: Bucket.fromBucketName(this, 'SourceBucket', sourceBucketName),
       path: `${resourcePrefix}/source.zip`,
     });
 

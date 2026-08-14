@@ -188,7 +188,7 @@ export class MacieStack extends Stack {
     const cached = cache.get(name);
     if (cached !== undefined) return cached;
 
-    let exists: boolean;
+    let exists: boolean = false;
     try {
       execFileSync(
         'aws',
@@ -196,13 +196,28 @@ export class MacieStack extends Stack {
         { stdio: 'pipe' },
       );
       exists = true;
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      const err = `${e.stderr ?? ''}${e.stdout ?? ''}`;
-      exists = err.includes('(403)') || err.includes('Forbidden');
+    } catch (e: unknown) {
+      if (
+        typeof e === 'object' &&
+        e !== null &&
+        ('stdout' in e || 'stderr' in e)
+      ) {
+        const err =
+          e instanceof Error
+            ? String(
+                (
+                  e as NodeJS.ErrnoException & {
+                    stderr?: unknown;
+                    stdout?: unknown;
+                  }
+                ).stderr ?? '',
+              )
+            : String(e);
+        exists = err.includes('(403)') || err.includes('Forbidden');
+      }
     }
-
     cache.set(name, exists);
+
     return exists;
   }
 }

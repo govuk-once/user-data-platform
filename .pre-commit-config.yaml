@@ -1,24 +1,38 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+
+# Fail fast to speed up pre-commit and encourage continued
+# resolving issues as they appear
+fail_fast: true
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        name: Trailing Whitespace
       - id: end-of-file-fixer
+        name: End of File Fixer
       - id: check-yaml
+        name: Check YAML
         args: [--unsafe]
       - id: check-json
+        name: Check JSON
       - id: check-added-large-files
+        name: Check Added Large Files
       - id: check-merge-conflict
+        name: Check Merge Conflict
       - id: check-case-conflict
+        name: Check Case Conflict
       - id: detect-private-key
+        name: Detect Private Key
 
   # Secret detection
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
       - id: detect-secrets
+        name: Detect Secrets
         args:
           [
             '--baseline',
@@ -31,35 +45,17 @@ repos:
             'docs/index.html',
             '--exclude-files',
             'e2e/src/features/sar.feature',
+            'e2e/src/features/sar.feature',
           ]
 
   - repo: local
     hooks:
-      # Generate OpenAPI docs (from git-hooks/pre-commit)
-      - id: generate-openapi
-        name: Generate OpenAPI Docs
-        entry: bash git-hooks/pre-commit
+      # Validate conventional commits (from git-hooks/commit-msg)
+      - id: commit-msg-validation
+        name: Validate Conventional Commit Format
+        entry: bash git-hooks/commit-msg
         language: system
-        pass_filenames: false
-        stages:
-          - 'pre-commit'
-
-      # Prettier formatting
-      - id: format-check
-        name: Format Check
-        entry: pnpm format:write
-        language: system
-        pass_filenames: false
-        stages:
-          - 'pre-commit'
-
-      - id: linting-check
-        name: Linting Check
-        entry: pnpm lint:affected
-        language: system
-        pass_filenames: false
-        stages:
-          - 'pre-commit'
+        stages: [commit-msg]
 
       # TypeScript type checking
       - id: typescript-check
@@ -70,14 +66,50 @@ repos:
         pass_filenames: false
         exclude: ^(node_modules/|dist/|build/|coverage/|\.nx/)
 
+      # Generate OpenAPI docs (from git-hooks/pre-commit)
+      - id: generate-openapi
+        name: Generate OpenAPI Docs
+        entry: bash scripts/generate-openapi.sh
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-commit
+
+      # Prettier formatting
+      - id: format-check
+        name: Format Check
+        entry: pnpm format:write
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-commit
+
+      - id: linting-check
+        name: Linting Check
+        entry: pnpm lint:affected
+        language: system
+        pass_filenames: false
+        stages:
+          - pre-commit
+
+      # Build all
+      - id: build-all
+        name: Build All
+        entry: pnpm build:all
+        language: system
+        always_run: true
+        stages:
+          - pre-push
+
       # Checkov security scanning
       - id: checkov-scan
         name: Checkov Scan
-        entry: checkov -d cdk --config-file cdk/.checkov.yaml
+        entry: bash scripts/checkov-scan.sh
         language: system
         pass_filenames: false
-        args:
-          - --skip-check=CKV_AWS_116
+        always_run: true
+        stages:
+          - pre-push
 
       # Run all unit tests
       - id: test-all
@@ -85,21 +117,19 @@ repos:
         entry: pnpm exec vitest run
         language: system
         pass_filenames: false
-        stages: [pre-push]
-
-      # Validate conventional commits (from git-hooks/commit-msg)
-      - id: commit-msg-validation
-        name: Validate Conventional Commit Format
-        entry: bash git-hooks/commit-msg
-        language: system
-        stages: [commit-msg]
+        always_run: true
+        stages:
+          - pre-push
 
   - repo: https://github.com/semgrep/semgrep
     rev: v1.89.0
     hooks:
       - id: semgrep
-        name: semgrep
-        entry: bash -c 'semgrep scan $(cat .semgrep-args.txt) --error "$@"' --
+        name: Semgrep
+        entry: bash -c 'semgrep scan $(cat .semgrep-args.txt) --error .'
         language: system
         pass_filenames: true
         verbose: false
+        always_run: true
+        stages:
+          - pre-push

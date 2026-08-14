@@ -6,11 +6,11 @@ import {
   SarStack,
   DvlaPilotStack,
   VpcStack,
-  E2eStack,
+  E2EStack,
   PerfStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
-import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
+import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { Macie } from 'cdk/lib/macie';
 
 // App
@@ -139,7 +139,7 @@ if (!skipMainStack) {
 
   // Testing
   if (isNotProd) {
-    const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
+    const e2eStack = new E2EStack(app, `${stackPrefix}-e2e`, {
       developerId,
       environment,
       env: awsEnv,

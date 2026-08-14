@@ -63,7 +63,7 @@ The Lambda runtime is configured in a single location with a default that applie
 
 ```typescript
 
-runtime = lambda.Runtime.NODEJS_20_X,
+runtime = lambda.Runtime.NODEJS_24_X,
 
 ```
 
@@ -81,7 +81,7 @@ aws lambda list-layers --compatible-runtime nodejs22.x --region eu-west-2
 
 ```
 
-Also check [AWS Lambda runtimes documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) for the runtime identifier (e.g. `NODEJS_22_X`).
+Also check [AWS Lambda runtimes documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) for the runtime identifier (e.g. `NODEJS_24_X`).
 
 #### 2. Check CDK support
 
@@ -89,7 +89,7 @@ Ensure your CDK version includes the new runtime enum. Search the CDK changelog 
 
 ```bash
 
-grep -r "NODEJS_22_X" node_modules/aws-cdk-lib/aws-lambda/lib/runtime.d.ts
+grep -r "NODEJS_24_X" node_modules/aws-cdk-lib/aws-lambda/lib/runtime.d.ts
 
 ```
 
@@ -102,10 +102,10 @@ Edit `cdk/lib/constructs/lambda-construct.ts`:
 ```typescript
 
 // Before
-runtime = lambda.Runtime.NODEJS_20_X,
+runtime = lambda.Runtime.NODEJS_22_X,
 
 // After
-runtime = lambda.Runtime.NODEJS_22_X,
+runtime = lambda.Runtime.NODEJS_24_X,
 
 ```
 
@@ -123,7 +123,7 @@ Change to the appropriate LTS codename for Node.js 22 (e.g. `lts/jod` for 22).
 
 Update `NODE_VERSION` in the GitHub Actions workflows:
 
-- **`.github/workflows/release.yml`** (line 16): `NODE_VERSION: '22'`
+- **`.github/workflows/release.yml`** (line 16): `NODE_VERSION: '24'`
 - **`.github/workflows/pr-deploy.yml`**: Update the `NODE_VERSION` env var
 - **`.github/workflows/ci.yml`**: Update the `node-version` in setup steps
 

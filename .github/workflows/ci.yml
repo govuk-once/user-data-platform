@@ -5,6 +5,9 @@ on:
     branches: [main]
     types: [opened, edited, synchronize, reopened]
 
+env:
+  AWS_REGION: eu-west-2
+
 jobs:
   validate-pr:
     name: Validate PR
@@ -13,6 +16,9 @@ jobs:
     needs: validate-pr
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repo
@@ -24,7 +30,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6 # v6.1.0
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
         run: |
@@ -103,20 +109,35 @@ jobs:
 
       - name: Lint & format checks
         run: |
-          pnpm lint:affected
+          pnpm lint:all
           pnpm format:check
 
       - name: Build
-        run: pnpm build:affected
+        run: pnpm build:all
 
       - name: Unit Tests
-        run: pnpm test:affected
+        run: pnpm test:all
+
+      - name: Configure AWS Credentials
+        id: aws-creds
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Checkov Security Scan
-        run: checkov -d cdk --config-file cdk/.checkov.yaml
+        run: |
+          rm -rf cdk/cdk.out
+          (cd cdk && npx cdk synth --quiet > /dev/null)
+          checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml
+
+      - name: Semgrep Security Scan
+        run: semgrep scan $(cat .semgrep-args.txt) --error .
 
   sonar-scan:
     needs: validate-pr
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+      SONAR_URL: ${{ secrets.SONAR_URL }}

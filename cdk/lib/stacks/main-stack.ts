@@ -187,7 +187,6 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
       cachingEnabled,
     });
-
     this.api = apiGateway.api;
 
     this.waf = new WafConstruct(this, 'waf', {

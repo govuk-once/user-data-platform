@@ -17,7 +17,6 @@
         "cwd": "cdk"
       }
     },
-
     "set-developer": {
       "executor": "nx:run-commands",
       "options": {
@@ -26,7 +25,6 @@
       },
       "cache": true
     },
-
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
@@ -34,6 +32,17 @@
         "eslintConfig": "./.eslintrc.json"
       },
       "cache": true
+    },
+    "security-scan": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "pnpm build:all",
+          "npx cdk synth --quiet -o cdk/cdk.out",
+          "checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml -o json --output-file-path cdk/checkov-results.json"
+        ],
+        "parallel": false
+      }
     }
   }
 }

@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: eu-west-2
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
 
 permissions:
   id-token: write
@@ -20,12 +20,16 @@ jobs:
   version:
     name: Version
     uses: ./.github/workflows/version.yml
-    secrets: inherit
+    secrets:
+      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
+      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
   sonar-scan:
     name: Run SonarQube Scan
     uses: ./.github/workflows/sonar-scan.yml
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+      SONAR_URL: ${{ secrets.SONAR_URL }}
 
   deploy-dev:
     name: Deploy to dev
@@ -122,5 +126,5 @@ jobs:
       version: ${{ needs.version.outputs.version }}
       type: ${{ needs.version.outputs.type }}
     secrets:
-      DEV_DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}

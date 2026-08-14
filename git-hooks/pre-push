@@ -3,4 +3,4 @@
 # Exit if pipeline
 { [ -n "${CI:-}" ] || [ -n "${CODEBUILD_BUILD_ID:-}" ]; } && exit 0
 
-pre-commit run --hook-stage pre-commit
+pre-commit run --hook-stage pre-push

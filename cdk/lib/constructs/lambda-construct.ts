@@ -9,6 +9,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration } from 'aws-cdk-lib';
 import * as path from 'node:path';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { Checkov } from 'cdk/lib/checkov/checkov';
 
 export interface LambdaApiConstructProps {
   readonly developerId?: string;
@@ -33,59 +34,105 @@ export interface LambdaApiConstructProps {
   readonly vpc?: ec2.IVpc;
   readonly vpcSubnets?: ec2.SubnetSelection;
   readonly securityGroups?: ec2.ISecurityGroup[];
-  readonly reservedConcurrentExecutions?: number;
-  readonly cachingEnabled?: boolean;
   readonly sqsQueueUrl?: string;
   readonly sqsQueueArn?: string;
+  readonly reservedConcurrentExecutions?: number;
+  readonly checkovSuppressAWS116?: boolean;
+  readonly cachingEnabled?: boolean;
+}
+
+interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
+  reservedConcurrentExecutions: number;
+  checkovSuppressAWS116: boolean;
+  cachingEnabled: boolean;
+  fullFunctionName: string;
 }
 
 export class LambdaApiConstruct extends Construct {
-  public readonly function: lambda.Function;
-  public readonly logGroup: logs.LogGroup;
+  public function!: lambda.Function;
+  private logGroup!: logs.LogGroup;
+  private props!: LambdaApiConstructPropsWithDefaults;
 
   constructor(scope: Construct, id: string, props: LambdaApiConstructProps) {
     super(scope, id);
 
-    const {
-      dbKmsKey,
-      kmsKey,
-      api,
-      routePath,
-      httpMethod,
-      cachingEnabled = false,
-    } = props;
-    const fullFunctionName = this.getFullFunctionName(props);
+    // Build class instance props
+    this.applyPropDefaults(props);
 
-    this.logGroup = this.createLogGroup(fullFunctionName, props);
-    this.function = this.createLambdaFunction(fullFunctionName, props);
-    this.addDynamoDbPolicyToLambda(props);
-    this.addIdentityDbPolicyToLambda(props);
-    this.addSqsPolicyToLambda(props);
+    // Build Lambda
+    this.createLogGroup();
+    this.createLambdaFunction();
+
+    // Ensure all core entitities have been initialised
+    if (!this.props || !this.logGroup || !this.function) {
+      throw new Error('Failed to create props, logGroup or lambda');
+    }
+
+    // Apply DynamoDB / Identity Policy / SQS
+    this.applyDynamoDbPolicyToLambda();
+    this.applyIdentityDbPolicyToLambda();
+    this.applySqsPolicyToLambda();
+
+    // DB KMS Encrypt / Decrypt
+    this.applyDBKMSEncryptDecrypt();
+
+    // KMS Encrypt / Decrypt
+    this.applyKMSEncryptDecrypt();
+
+    // Configure API route
+    this.configureApiRoute();
+
+    // Apply Checkov supressions
+    this.applyCheckovSuppressions();
+  }
+
+  private applyPropDefaults(props: LambdaApiConstructProps): void {
+    this.props = {
+      ...props,
+      fullFunctionName: props.developerId
+        ? `${props.developerId}-${props.functionName}-${props.environment}`
+        : `${props.functionName}-${props.environment}`,
+      cachingEnabled: props.cachingEnabled ?? false,
+      checkovSuppressAWS116: props.checkovSuppressAWS116 ?? true,
+      reservedConcurrentExecutions:
+        props.reservedConcurrentExecutions ??
+        (props.environment === 'dev' ? 1 : 50),
+    };
+  }
+
+  private applyDBKMSEncryptDecrypt(): void {
+    const { dbKmsKey } = this.props;
 
     if (dbKmsKey) {
       dbKmsKey.grantDecrypt(this.function);
       dbKmsKey.grantEncrypt(this.function);
     }
+  }
+
+  private applyKMSEncryptDecrypt(): void {
+    const { kmsKey } = this.props;
 
     if (kmsKey) {
       kmsKey.grantDecrypt(this.function);
       kmsKey.grantEncrypt(this.function);
     }
+  }
 
-    if (api && routePath && httpMethod) {
-      this.configureApiRoute(api, routePath, httpMethod, cachingEnabled);
+  private applyCheckovSuppressions(): void {
+    if (this.props.checkovSuppressAWS116) {
+      Checkov.suppressAWS116(this.function);
     }
   }
 
-  private configureApiRoute(
-    api: apigateway.RestApi,
-    routePath: string,
-    httpMethod: string,
-    cachingEnabled: boolean,
-  ): void {
+  private configureApiRoute(): void {
+    const { api, routePath, httpMethod, cachingEnabled } = this.props;
+
+    if (!api || !routePath || !httpMethod) {
+      return;
+    }
+
     const useCacheing = httpMethod === 'GET' && cachingEnabled;
     const pathParts = routePath.split('/').filter((p) => p.length > 0);
-
     const pathParms = pathParts
       .filter((p) => p.startsWith('{') && p.endsWith('}'))
       .map((p) => p.replace(/[{}+]/g, ''));
@@ -143,36 +190,22 @@ export class LambdaApiConstruct extends Construct {
     return { cacheKeyParameters, requestParameters };
   }
 
-  private getFullFunctionName(props: LambdaApiConstructProps): string {
-    const { developerId, functionName, environment } = props;
-
-    return developerId
-      ? `${developerId}-${functionName}-${environment}`
-      : `${functionName}-${environment}`;
-  }
-
-  private createLogGroup(
-    fullFunctionName: string,
-    props: LambdaApiConstructProps,
-  ): logs.LogGroup {
+  private createLogGroup(): void {
     const {
       environment,
       kmsKey,
       logRetentionDays = logs.RetentionDays.ONE_YEAR,
-    } = props;
+    } = this.props;
 
-    return new logs.LogGroup(this, 'LogGroup', {
-      logGroupName: `/aws/lambda/${fullFunctionName}`,
+    this.logGroup = new logs.LogGroup(this, 'LogGroup', {
+      logGroupName: `/aws/lambda/${this.props.fullFunctionName}`,
       retention: logRetentionDays,
       removalPolicy: getRemovalPolicy(environment),
       encryptionKey: kmsKey,
     });
   }
 
-  private createLambdaFunction(
-    fullFunctionName: string,
-    props: LambdaApiConstructProps,
-  ): lambda.Function {
+  private createLambdaFunction(): void {
     const {
       handler = 'index.handler',
       runtime = lambda.Runtime.NODEJS_24_X,
@@ -182,10 +215,11 @@ export class LambdaApiConstruct extends Construct {
       vpc,
       vpcSubnets,
       securityGroups,
-    } = props;
+      reservedConcurrentExecutions,
+    } = this.props;
 
     // Sanitize sourcePath to prevent path traversal by using only the basename
-    const sanitizedSourcePath = path.basename(props.sourcePath);
+    const sanitizedSourcePath = path.basename(this.props.sourcePath);
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const codePath = path.resolve(
       process.cwd(),
@@ -193,11 +227,12 @@ export class LambdaApiConstruct extends Construct {
       'build',
       sanitizedSourcePath,
     );
-    const envVars: Record<string, string> =
-      this.buildEnvironmentVariables(props);
+    const envVars: Record<string, string> = this.buildEnvironmentVariables(
+      this.props,
+    );
 
-    return new lambda.Function(this, 'Function', {
-      functionName: fullFunctionName,
+    this.function = new lambda.Function(this, 'Function', {
+      functionName: this.props.fullFunctionName,
       runtime,
       handler,
       code: lambda.Code.fromAsset(codePath),
@@ -213,9 +248,7 @@ export class LambdaApiConstruct extends Construct {
         ? (vpcSubnets ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
-      ...(props.environment === 'dev'
-        ? {}
-        : { reservedConcurrentExecutions: 50 }),
+      reservedConcurrentExecutions,
     });
   }
 
@@ -247,11 +280,11 @@ export class LambdaApiConstruct extends Construct {
     return envVars;
   }
 
-  private addDynamoDbPolicyToLambda(props: LambdaApiConstructProps): void {
+  private applyDynamoDbPolicyToLambda(): void {
     const {
       dynamoDBtable,
       dynamoDbActions = ['dynamodb:GetItem', 'dynamodb:PuItem'],
-    } = props;
+    } = this.props;
 
     if (dynamoDBtable && dynamoDbActions.length > 0) {
       this.function.addToRolePolicy(
@@ -266,8 +299,9 @@ export class LambdaApiConstruct extends Construct {
     }
   }
 
-  private addIdentityDbPolicyToLambda(props: LambdaApiConstructProps): void {
-    const { identityDbTable, identityDbActions = ['dynamodb:GetItem'] } = props;
+  private applyIdentityDbPolicyToLambda(): void {
+    const { identityDbTable, identityDbActions = ['dynamodb:GetItem'] } =
+      this.props;
 
     if (identityDbTable && identityDbActions.length > 0) {
       this.function.addToRolePolicy(
@@ -282,14 +316,14 @@ export class LambdaApiConstruct extends Construct {
     }
   }
 
-  private addSqsPolicyToLambda(props: LambdaApiConstructProps): void {
-    if (!props.sqsQueueArn) {
+  private applySqsPolicyToLambda(): void {
+    if (!this.props.sqsQueueArn) {
       return;
     }
     this.function.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['sqs:SendMessage'],
-        resources: [props.sqsQueueArn],
+        resources: [this.props.sqsQueueArn],
       }),
     );
   }
