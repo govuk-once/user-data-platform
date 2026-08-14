@@ -42,7 +42,7 @@ export interface LambdaApiConstructProps {
 }
 
 interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
-  reservedConcurrentExecutions?: number;
+  reservedConcurrentExecutions: number;
   checkovSuppressAWS116: boolean;
   cachingEnabled: boolean;
   fullFunctionName: string;
@@ -94,9 +94,7 @@ export class LambdaApiConstruct extends Construct {
         : `${props.functionName}-${props.environment}`,
       cachingEnabled: props.cachingEnabled ?? false,
       checkovSuppressAWS116: props.checkovSuppressAWS116 ?? true,
-      ...(props.environment !== 'dev'
-        ? { reservedConcurrentExecutions: 50 }
-        : {}),
+      reservedConcurrentExecutions: props.environment === 'dev' ? 2 : 50,
     };
   }
 
