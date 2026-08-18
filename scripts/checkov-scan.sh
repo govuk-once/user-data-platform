@@ -9,43 +9,18 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Optional single-check filter: `./checkov-scan.sh CKV_AWS_158` scans one rule.
 CHECK_ARG=""
 if [ "${1:-}" != "" ]; then
   CHECK_ARG="--check $1"
 fi
 
-echo -e "${YELLOW}[pre-commit]${NC} Assuming role…"
+# Run synth script
+bash "${SCRIPT_DIR}/synth.sh"
 
-if ! CREDS=$(gds-cli aws once-udp-development-admin -e 2>/tmp/gds-err.log); then
-  echo -e "${RED}[pre-commit]${NC} Failed to assume role:"
-  cat /tmp/gds-err.log
-  echo -e "${YELLOW}[pre-commit]${NC} Are you on the VPN or an office IP range?"
-  exit 1
-fi
-
-eval "$CREDS"
-
-if ! aws sts get-caller-identity > /dev/null 2>&1; then
-  echo -e "${RED}[pre-commit]${NC} Role assumed but credentials not usable — check VPN"
-  cat /tmp/gds-err.log
-  exit 1
-fi
-
-# Move to cdk folder
-cd cdk
-
-# Stops stale templates being pulled into the scan
-rm -rf cdk.out
-
-echo -e "${YELLOW}[pre-commit]${NC} Synthesizing…"
-
-if ! CDK_DEFAULT_REGION=eu-west-2 ../node_modules/.bin/cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
-  echo -e "${RED}[pre-commit]${NC} cdk synth failed:"
-  cat /tmp/cdk-synth.log
-  exit 1
-fi
-
+# Run Checkov Scan
 echo -e "${YELLOW}[pre-commit]${NC} Scanning…"
 rm -f checkov-results.json
 # shellcheck disable=SC2086
