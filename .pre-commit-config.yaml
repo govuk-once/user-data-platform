@@ -47,6 +47,8 @@ repos:
             'e2e/src/features/sar.feature',
             '--exclude-files',
             'cdk/lib/once-tags/once-tags-const.ts',
+            '--exclude-files',
+            'cdk/lib/gov-uk-tag/tag/data-classification.tag.ts',
           ]
 
   - repo: local
