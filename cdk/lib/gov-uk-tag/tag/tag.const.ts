@@ -37,13 +37,32 @@ export const Tag = {
 };
 
 /**
- * Once mandatory and pptional tag defaults
+ * Pre-configured tag defaults for each Once platform app.
+ *
+ * These provide sensible starting values for `mandatoryAppTags` and
+ * `optionalAppTags`. You'll almost always want to override `Environment`
+ * (which defaults to `production` here) and possibly `Component` if your
+ * repo deploys a specific sub-service rather than the whole product.
+ *
+ * @example
+ * ```ts
+ * GovUKTag.applyAspect(app, {
+ *   mandatoryAppTags: {
+ *     ...GovUKTag.Once.Suggested.UDP,
+ *     Component: 'token-service',
+ *     Environment: GovUKTag.Once.mapEnvironment(env),
+ *   },
+ * });
+ * ```
  */
 export const OnceSuggestedAppTags: Record<
   'Flex' | 'UDP' | 'UNS',
   GovUKMandatoryAppTags & GovUKOptionalAppTags
 > = {
-  /** Flex */
+  /**
+   * Flex — Identity orchestration service.
+   * Manages flexible identity journeys and credential flows.
+   */
   Flex: {
     Product: 'flex',
     Service: 'flex',
@@ -54,7 +73,11 @@ export const OnceSuggestedAppTags: Record<
     RepositoryUrl: 'https://github.com/govuk-once/flex',
     BillingProject: 'flex',
   },
-  /** User Data Platform */
+  /**
+   * UDP — User Data Platform.
+   * Shared data layer storing and managing user identity data
+   * across all One Login services.
+   */
   UDP: {
     Product: 'udp',
     Service: 'udp',
@@ -65,7 +88,11 @@ export const OnceSuggestedAppTags: Record<
     RepositoryUrl: 'https://github.com/govuk-once/user-data-platform',
     BillingProject: 'udp',
   },
-  /** United Notification Service */
+  /**
+   * UNS — United Notification Service.
+   * Handles outbound notifications (email, SMS, push) for
+   * all One Login products.
+   */
   UNS: {
     Product: 'uns',
     Service: 'uns',

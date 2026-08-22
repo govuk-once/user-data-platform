@@ -50,7 +50,7 @@ interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
 
 export class LambdaApiConstruct extends Construct {
   public function!: lambda.Function;
-  private logGroup!: logs.LogGroup;
+  public logGroup!: logs.LogGroup;
   private props!: LambdaApiConstructPropsWithDefaults;
 
   constructor(scope: Construct, id: string, props: LambdaApiConstructProps) {

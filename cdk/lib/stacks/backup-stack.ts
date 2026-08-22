@@ -23,6 +23,7 @@ import { Topic } from 'aws-cdk-lib/aws-sns';
 import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface BackupStackProps extends StackProps {
   readonly developerId?: string;
@@ -59,6 +60,7 @@ export class BackupStack extends Stack {
         ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
       ],
     });
+    GovUKTag.of(backupRole).DataClassification.OFFICIAL_SENSITIVE();
 
     // --- KMS Key -------
 
@@ -70,6 +72,7 @@ export class BackupStack extends Stack {
       removalPolicy: getRemovalPolicy(environment),
       alias: `${resourcePrefix}-backup`,
     });
+    GovUKTag.of(backupKmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     backupKmsKey.addToResourcePolicy(
       new PolicyStatement({
@@ -114,6 +117,10 @@ export class BackupStack extends Stack {
       topicName: `${resourcePrefix}-backup-notifications`,
       masterKey: backupKmsKey,
     });
+    GovUKTag.of(notificationTopic)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     notificationTopic.addToResourcePolicy(
       new PolicyStatement({

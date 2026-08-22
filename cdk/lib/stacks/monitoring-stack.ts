@@ -12,6 +12,7 @@ import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 import { NFR } from 'cdk/constants/nfr';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
@@ -62,12 +63,20 @@ export class MonitoringStack extends Stack {
       displayName: `${resourcePrefix} Critical Alerts`,
       masterKey: kmsKey,
     });
+    GovUKTag.of(this.criticalTopic)
+      .PII.TRUE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNET_FACING();
 
     this.warningTopic = new sns.Topic(this, 'WarningTopic', {
       topicName: `${resourcePrefix}-warning-alarms`,
       displayName: `${resourcePrefix} Warning Alerts`,
       masterKey: kmsKey,
     });
+    GovUKTag.of(this.warningTopic)
+      .PII.TRUE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNET_FACING();
 
     this.xrayTraceGroup = new xray.CfnGroup(this, developerId || environment, {
       groupName: stackPrefix,
@@ -121,6 +130,7 @@ export class MonitoringStack extends Stack {
             ],
           },
         );
+        GovUKTag.of(slackChannel).DataClassification.OFFICIAL();
 
         slackChannel.role?.addToPrincipalPolicy(
           new PolicyStatement({
