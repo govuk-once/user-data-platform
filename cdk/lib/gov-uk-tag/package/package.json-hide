@@ -1,0 +1,44 @@
+{
+  "name": "gov-uk-tag",
+  "version": "0.0.1",
+  "team": "platform",
+  "license": "MIT",
+  "packageManager": "pnpm@10.26.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/govuk-once/gov-uk-tag.git"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && pnpm build:markers",
+    "clean": "rm -rf dist",
+    "build:markers": "node scripts/write-type-markers.cjs",
+    "build:types": "tsc --noEmit",
+    "test": "vitest run --config test/vitest.config.mts",
+    "test:watch": "vitest --config test/vitest.config.mts",
+    "prepublishOnly": "pnpm build"
+  },
+  "devDependencies": {
+    "gov-uk-cdk": "link:../gov-uk-cdk",
+    "constructs": "10.6.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

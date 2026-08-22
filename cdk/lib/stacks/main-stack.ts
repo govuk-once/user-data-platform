@@ -1,6 +1,6 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import { Construct, type IConstruct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -41,6 +41,7 @@ import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -200,6 +201,9 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
       logRetentionDays: getLogRetentionPeriod(environment),
     });
+    GovUKTag.of(this.waf)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNET_FACING();
 
     const eventQueues = this.createEventQueues(
       developerId,
@@ -221,9 +225,19 @@ export class MainStack extends Stack {
       lambdaSecurityGroup,
       cachingEnabled,
     });
+    this.lambdaGovUKTagging();
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
+    GovUKTag.of(this.dsarQueue as IConstruct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
     this.sarQueue = eventQueues.get('sarQueue')!;
+    GovUKTag.of(this.sarQueue as IConstruct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const { IamConsumerConfigs, consumerthrottleConfigs } =
       this.buildConsumerConfigs(externalConsumers);
@@ -499,5 +513,9 @@ export class MainStack extends Stack {
         }),
       );
     }
+  }
+
+  private lambdaGovUKTagging() {
+    // console.log(this.lambdas);
   }
 }

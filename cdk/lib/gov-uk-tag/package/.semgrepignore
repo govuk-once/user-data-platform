@@ -1,0 +1,11 @@
+# Dependencies
+
+node_modules/
+
+# Test
+
+**/test/** \*_/_.test.ts
+
+# Build
+
+dist/

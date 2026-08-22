@@ -1,4 +1,4 @@
-import { GovUKTag, GovUKEnvironments } from '../';
+import { GovUKTag, GovUKEnvironments } from '..';
 import {
   SHORT_TO_FULL,
   FULL_ENVIRONMENTS,
@@ -7,13 +7,62 @@ import {
 } from './tag.const';
 
 /**
- * Tag helpers for GOV.UK Tagging / Once-level tags.
+ * Helpers for GOV.UK One Login ("Once") platform-level tagging.
+ *
+ * Once is the shared platform that hosts multiple product teams (Flex, UDP,
+ * UNS). This class provides:
+ *
+ * - **{@link Suggested}** — Pre-built tag sets for each known platform app,
+ *   so you don't have to look up the correct Product/Service/Owner values.
+ * - **{@link mapEnvironment}** — Resolves short environment names (`dev`,
+ *   `stag`, `prod`) to the full canonical form expected by the tagging standard.
+ *
+ * @example
+ * ```ts
+ * // Use suggested tags for the UDP app
+ * const { Product, Service, Component, Environment, Owner, Source } =
+ *   GovUKTag.Once.Suggested.UDP;
+ *
+ * // Resolve an environment from CI context
+ * const env = GovUKTag.Once.mapEnvironment(process.env.ENVIRONMENT!);
+ * ```
  */
 export class OnceTag {
   constructor(private readonly parent: typeof GovUKTag) {}
 
   /**
-   * Suggested tag sets for each known platform app, keyed by app name.
+   * Pre-configured mandatory + optional tag sets for each Once platform app.
+   *
+   * These are the "correct answers" for each app's Product, Service, Component,
+   * Owner, Source, RepositoryUrl, and BillingProject tags. Use them as defaults
+   * when calling `GovUKTag.applyAspect()` so you don't have to guess or
+   * copy-paste values between repos.
+   *
+   * **Available presets:**
+   *
+   * - **`Flex`** — The Flex identity orchestration service. Owns the flexible
+   *   identity journeys and credential management flows.
+   *
+   * - **`UDP`** — User Data Platform. The shared data layer that stores and
+   *   manages user identity data across One Login services.
+   *
+   * - **`UNS`** — United Notification Service. Handles all outbound
+   *   notifications (email, SMS, push) for One Login products.
+   *
+   * Each preset includes a valid `RepositoryUrl` and `BillingProject` so you
+   * get optional tags for free. Override individual fields by spreading:
+   *
+   * @example
+   * ```ts
+   * // Use UDP defaults but override the component name
+   * GovUKTag.applyAspect(app, {
+   *   mandatoryAppTags: {
+   *     ...GovUKTag.Once.Suggested.UDP,
+   *     Component: 'my-specific-service',
+   *     Environment: GovUKTag.Once.mapEnvironment(env),
+   *   },
+   * });
+   * ```
    */
   public get Suggested(): typeof OnceSuggestedAppTags {
     return OnceSuggestedAppTags;
@@ -21,8 +70,6 @@ export class OnceTag {
 
   /**
    * Type guard for a full GOV.UK environment name, e.g. `development`.
-   *
-   * @param value - Lower-cased candidate environment name.
    */
   private isFullEnvironment(value: string): value is GovUKEnvironments {
     return FULL_ENVIRONMENTS.has(value);
@@ -30,29 +77,38 @@ export class OnceTag {
 
   /**
    * Type guard for a short environment name, e.g. `dev`.
-   *
-   * @param value - Lower-cased candidate environment name.
    */
   private isShortEnvironment(value: string): value is OnceEnvironments {
     return value in SHORT_TO_FULL;
   }
 
   /**
-   * Resolve an environment name to its full GOV.UK form.
+   * Resolve an environment name to its full canonical form.
    *
-   * Accepts either a short name (`dev`, `stag`, `prod`) or a full name
-   * (`sandbox`, `build`, `development`, `integration`, `staging`,
-   * `production`). Input is trimmed and lower-cased before matching, so
-   * values taken straight from CDK context or environment variables are fine.
+   * Accepts either short names (`dev`, `stag`, `prod`) or full names
+   * (`sandbox`, `build`, `development`, `integration`, `staging`, `production`).
+   * Input is trimmed and lowercased, so values straight from CI environment
+   * variables or CDK context work without preprocessing.
+   *
+   * **Mapping:**
+   * | Short | Full               |
+   * |-------|--------------------|
+   * | `dev` | `development`      |
+   * | `stag`| `staging`          |
+   * | `prod`| `production`       |
+   *
+   * Full names (`sandbox`, `build`, `development`, `integration`, `staging`,
+   * `production`) pass through unchanged.
    *
    * @param environment - Short or full environment name.
-   * @returns The corresponding full environment name.
-   * @throws Error if `environment` is empty or unrecognised.
+   * @returns The canonical full environment string.
+   * @throws If `environment` is empty or doesn't match any known value.
    *
    * @example
    * ```ts
-   * tags.mapEnvironment('dev');        // GovUkOnceFullEnvironments.DEVELOPMENT
-   * tags.mapEnvironment('SANDBOX');    // GovUkOnceFullEnvironments.SANDBOX
+   * GovUKTag.Once.mapEnvironment('dev');        // 'development'
+   * GovUKTag.Once.mapEnvironment('PRODUCTION'); // 'production'
+   * GovUKTag.Once.mapEnvironment('sandbox');    // 'sandbox'
    * ```
    */
   public mapEnvironment(environment: string): GovUKEnvironments {
