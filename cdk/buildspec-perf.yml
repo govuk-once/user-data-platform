@@ -5,7 +5,8 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-      - curl -sL https://github.com/grafana/k6/releases/download/v0.55.0/K6-v0.55.0-linux-amd64.tar.gz | tar xz
+      - curl -fsSL --retry 3 --retry-connrefused --connect-timeout 15 --max-time 300 -o k6.tar.gz https://github.com/grafana/k6/releases/download/v0.55.0/k6-v0.55.0-linux-amd64.tar.gz
+      - tar xzf k6.tar.gz
       - mv k6-v0.55.0-linux-amd64/k6 /usr/local/bin
       - k6 version
 
