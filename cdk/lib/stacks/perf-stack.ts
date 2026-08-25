@@ -67,7 +67,7 @@ export class PerfStack extends Stack {
       description: `Alert on performance test failures for ${resourcePrefix}`,
       eventPattern: {
         source: ['aws.codebuild'],
-        detailType: ['Codebuild Build State Change'],
+        detailType: ['CodeBuild Build State Change'],
         detail: {
           'build-status': ['FAILED', 'STOPED', 'TIMED_OUT'],
           'project-name': [this.codebuildProject.project.projectName],

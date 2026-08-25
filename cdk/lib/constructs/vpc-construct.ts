@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
+  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 
 export interface VpcConstructProps {
@@ -445,6 +446,33 @@ export class VpcConstruct extends Construct {
         traffic: ec2.AclTraffic.tcpPort(config.port),
         direction: ec2.TrafficDirection.INGRESS,
         ruleAction: ec2.Action.DENY,
+      });
+    }
+
+    // A Custom NACL to allow performance tests to run on dev and stage
+    if (this.environment !== GovUkOnceEnvironments.Prod) {
+      this.publicNacl.addEntry('AllowInboundFromVpc', {
+        ruleNumber: 100,
+        cidr: ec2.AclCidr.ipv4(this.vpcCidr),
+        traffic: ec2.AclTraffic.allTraffic(),
+        direction: ec2.TrafficDirection.INGRESS,
+        ruleAction: ec2.Action.ALLOW,
+      });
+
+      this.publicNacl.addEntry('AllowInboundEphemeral', {
+        ruleNumber: 110,
+        cidr: ec2.AclCidr.anyIpv4(),
+        traffic: ec2.AclTraffic.tcpPortRange(1024, 65535),
+        direction: ec2.TrafficDirection.INGRESS,
+        ruleAction: ec2.Action.ALLOW,
+      });
+
+      this.publicNacl.addEntry('AllowAllOutbound', {
+        ruleNumber: 100,
+        cidr: ec2.AclCidr.anyIpv4(),
+        traffic: ec2.AclTraffic.allTraffic(),
+        direction: ec2.TrafficDirection.EGRESS,
+        ruleAction: ec2.Action.ALLOW,
       });
     }
 
