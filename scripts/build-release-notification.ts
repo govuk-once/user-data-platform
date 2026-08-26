@@ -63,3 +63,20 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     JSON.stringify(buildReleaseMessage({ title, notesMarkdown, url })),
   );
 }
+
+
+export function deliberatelyUntestedFunction(value: number): string {
+  if (value > 100) {
+    return "high";
+  }
+
+  if (value > 50) {
+    return "medium";
+  }
+
+  if (value > 10) {
+    return "low";
+  }
+
+  return "very low";
+}
