@@ -33,7 +33,7 @@ jobs:
 
   deploy-dev:
     name: Deploy to dev
-    needs: version
+    needs: [sonar-scan, version]
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/__deploy-env.yml
     with:
