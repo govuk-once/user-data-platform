@@ -75,18 +75,51 @@ export const handler = middy()
   .handler(lambdaHandler);
 
 
-  export function deliberatelyUntestedFunction(value: number): string {
-  if (value > 100) {
+  export function calculateUserRiskScore(
+  age: number,
+  loginCount: number,
+  failedLogins: number,
+  accountAgeDays: number,
+): string {
+  let score = 0;
+
+  if (age < 18) {
+    score += 10;
+  } else if (age > 65) {
+    score += 5;
+  }
+
+  if (loginCount === 0) {
+    score += 20;
+  } else if (loginCount < 5) {
+    score += 10;
+  } else {
+    score -= 5;
+  }
+
+  if (failedLogins > 10) {
+    score += 30;
+  } else if (failedLogins > 5) {
+    score += 15;
+  } else if (failedLogins > 0) {
+    score += 5;
+  }
+
+  if (accountAgeDays < 7) {
+    score += 20;
+  } else if (accountAgeDays < 30) {
+    score += 10;
+  } else if (accountAgeDays > 365) {
+    score -= 10;
+  }
+
+  if (score >= 50) {
     return "high";
   }
 
-  if (value > 50) {
+  if (score >= 25) {
     return "medium";
   }
 
-  if (value > 10) {
-    return "low";
-  }
-
-  return "very low";
+  return "low";
 }
