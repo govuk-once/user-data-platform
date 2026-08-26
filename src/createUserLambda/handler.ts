@@ -73,4 +73,3 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(zodValidator('createUser', logger))
   .handler(lambdaHandler);
-  
