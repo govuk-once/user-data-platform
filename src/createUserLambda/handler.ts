@@ -73,3 +73,20 @@ export const handler = middy()
   .use(jsonBodyParser())
   .use(zodValidator('createUser', logger))
   .handler(lambdaHandler);
+
+
+  export function deliberatelyUntestedFunction(value: number): string {
+  if (value > 100) {
+    return "high";
+  }
+
+  if (value > 50) {
+    return "medium";
+  }
+
+  if (value > 10) {
+    return "low";
+  }
+
+  return "very low";
+}
