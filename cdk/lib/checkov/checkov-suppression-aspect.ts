@@ -2,6 +2,7 @@ import { CfnResource, IAspect } from 'aws-cdk-lib';
 import { IConstruct } from 'constructs';
 
 type Skip = { id: string; comment: string };
+type CheckovSuppressionAspectParams = { disabled: boolean };
 
 /**
  * Applies Checkov suppression metadata to synthesized resources.
@@ -24,9 +25,9 @@ export class CheckovSuppressionAspect implements IAspect {
   ];
 
   // Disable the Aspect
-  private disabled: boolean;
+  private readonly disabled: boolean;
 
-  constructor(props: { disabled: boolean } = { disabled: false }) {
+  constructor(props: CheckovSuppressionAspectParams = { disabled: false }) {
     this.disabled = props.disabled;
   }
 
