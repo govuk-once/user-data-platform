@@ -47,10 +47,10 @@ export class VpcConstruct extends Construct {
   public publicNacl!: ec2.NetworkAcl;
   public flowLogGroup!: logs.LogGroup;
   private readonly stack: Stack;
-  private environment: string;
-  private maxAzs: number | undefined;
-  private kmsKey: kms.IKey | undefined;
-  private vpcCidr: string;
+  private readonly environment: string;
+  private readonly maxAzs: number | undefined;
+  private readonly kmsKey: kms.IKey | undefined;
+  private readonly vpcCidr: string;
 
   constructor(scope: Construct, id: string, props: VpcConstructProps) {
     super(scope, id);
