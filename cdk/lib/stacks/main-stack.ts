@@ -64,6 +64,7 @@ export class MainStack extends Stack {
   public readonly identityTable: dynamodb.Table;
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
+  public readonly lambdaApiConstructs: LambdaApiConstruct[];
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
   public readonly dsarQueue: sqs.Queue;
@@ -127,6 +128,7 @@ export class MainStack extends Stack {
     });
     this.kmsKey = kmsConstruct.key;
     MacieAccess.markKMSKeyForAccess(this.kmsKey);
+    GovUKTag.of(this.kmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const dbKms = new KmsConstruct(this, 'dbKms', {
       developerId,
@@ -134,6 +136,7 @@ export class MainStack extends Stack {
       namePrefix: 'db-kms-encryption',
     });
     this.dbKmsKey = dbKms.key;
+    GovUKTag.of(this.dbKmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
@@ -144,6 +147,10 @@ export class MainStack extends Stack {
     });
 
     this.table = db.table;
+    GovUKTag.of(this.table)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const identityDb = new DynamoDBConstruct(this, 'IdentityDynamoDb', {
       developerId,
@@ -161,6 +168,10 @@ export class MainStack extends Stack {
     });
 
     this.identityTable = identityDb.table;
+    GovUKTag.of(this.identityTable)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const featureFlags =
       featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
@@ -171,6 +182,10 @@ export class MainStack extends Stack {
       applicationName: `${serviceName}-appconfig`,
       featureFlags,
     });
+    GovUKTag.of(appConfig)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
 
     this.appConfigApplicationId = appConfig.application.ref;
     this.appConfigEnvironmentId = appConfig.environment.ref;
@@ -201,9 +216,6 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
       logRetentionDays: getLogRetentionPeriod(environment),
     });
-    GovUKTag.of(this.waf)
-      .DataClassification.OFFICIAL_SENSITIVE()
-      .Exposure.INTERNET_FACING();
 
     const eventQueues = this.createEventQueues(
       developerId,
@@ -211,7 +223,7 @@ export class MainStack extends Stack {
       kmsConstruct.key,
     );
 
-    this.lambdas = this.createLambdaFunctions({
+    this.lambdaApiConstructs = this.createLambdaFunctions({
       developerId,
       environment,
       stackPrefix,
@@ -225,6 +237,9 @@ export class MainStack extends Stack {
       lambdaSecurityGroup,
       cachingEnabled,
     });
+    this.lambdas = this.lambdaApiConstructs.map(
+      (lambdaApiConstruct) => lambdaApiConstruct.function,
+    );
     this.lambdaGovUKTagging();
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
@@ -365,7 +380,7 @@ export class MainStack extends Stack {
     vpc: ec2.IVpc | undefined;
     lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
     cachingEnabled: boolean;
-  }): lambda.Function[] {
+  }): LambdaApiConstruct[] {
     const {
       developerId,
       environment,
@@ -381,7 +396,7 @@ export class MainStack extends Stack {
       cachingEnabled,
     } = params;
 
-    const lambdasList = [];
+    const lambdaApiConstructsList = [];
     for (const route of Object.values(routes)) {
       const routeQueue = route.queueName
         ? eventQueues.get(route.queueName)
@@ -418,9 +433,10 @@ export class MainStack extends Stack {
         logRetentionDays: getLogRetentionPeriod(environment),
       });
 
-      lambdasList.push(lambdaConstruct.function);
+      lambdaApiConstructsList.push(lambdaConstruct);
     }
-    return lambdasList;
+
+    return lambdaApiConstructsList;
   }
 
   private buildConsumerConfigs(
@@ -481,6 +497,10 @@ export class MainStack extends Stack {
       displayName: `${environment}-release-notifications`,
       masterKey: this.kmsKey,
     });
+    GovUKTag.of(releaseTopic)
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNET_FACING()
+      .PII.FALSE();
 
     const param = `/${environmentLongNames[environment]}/udp-param/udp/release`;
     const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
@@ -505,6 +525,14 @@ export class MainStack extends Stack {
           iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
         ],
       });
+      GovUKTag.of(slack)
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
+      GovUKTag.buriedOf(slack, 'ReleaseSlackChannel/ConfigurationRole/Resource')
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
 
       slack.role?.addToPrincipalPolicy(
         new iam.PolicyStatement({
@@ -513,9 +541,19 @@ export class MainStack extends Stack {
         }),
       );
     }
+
+    GovUKTag.buriedOf(this, 'AWS679f53fac')
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
   }
 
   private lambdaGovUKTagging() {
-    // console.log(this.lambdas);
+    for (const lambdaApiConstruct of this.lambdaApiConstructs) {
+      GovUKTag.of(lambdaApiConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.ISOLATED();
+    }
   }
 }

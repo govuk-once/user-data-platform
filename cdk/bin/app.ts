@@ -12,7 +12,7 @@ import {
 
 import { GovUkOnceEnvironments, repoMetaData } from 'cdk/constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
-// import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
+import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
 import { Macie } from 'cdk/lib/macie';
 
 // App
@@ -193,19 +193,19 @@ if (isNotDev) {
 Aspects.of(app).add(new CheckovSuppressionAspect());
 
 // GovUKTag Aspect
-// GovUKTag.applyAspect(app, {
-//   mandatoryAppTags: {
-//     Product: GovUKTag.Once.Suggested.UDP.Product,
-//     Service: GovUKTag.Once.Suggested.UDP.Service,
-//     Component: GovUKTag.Once.Suggested.UDP.Component,
-//     Environment: GovUKTag.Once.mapEnvironment(environment),
-//     Owner: GovUKTag.Once.Suggested.UDP.Owner,
-//     Source: GovUKTag.Once.Suggested.UDP.Source,
-//   },
-//   optionalAppTags: {
-//     RepositoryUrl: GovUKTag.Once.Suggested.UDP.RepositoryUrl,
-//     BillingProject: GovUKTag.Once.Suggested.UDP.BillingProject,
-//   },
-// });
+GovUKTag.applyAspect(app, {
+  mandatoryAppTags: {
+    Product: GovUKTag.Once.Suggested.UDP.Product,
+    Service: GovUKTag.Once.Suggested.UDP.Service,
+    Component: GovUKTag.Once.Suggested.UDP.Component,
+    Environment: GovUKTag.Once.mapEnvironment(environment),
+    Owner: GovUKTag.Once.Suggested.UDP.Owner,
+    Source: GovUKTag.Once.Suggested.UDP.Source,
+  },
+  optionalAppTags: {
+    RepositoryUrl: GovUKTag.Once.Suggested.UDP.RepositoryUrl,
+    BillingProject: GovUKTag.Once.Suggested.UDP.BillingProject,
+  },
+});
 
 app.synth();
