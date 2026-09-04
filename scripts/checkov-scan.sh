@@ -21,14 +21,14 @@ fi
 bash "${SCRIPT_DIR}/synth.sh"
 
 # Run Checkov Scan
-echo -e "${YELLOW}[pre-commit]${NC} Scanning…"
+echo -e "${YELLOW}[checkov-scan]${NC} Scanning…"
 rm -f checkov-results.json
 # shellcheck disable=SC2086
-checkov -d cdk.out --config-file .checkov.yaml $CHECK_ARG \
-  -o json --quiet 2>/dev/null > checkov-results.json || true
+checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml $CHECK_ARG \
+  -o json > checkov-results.json || true
 
 if [ ! -f checkov-results.json ]; then
-  echo -e "${RED}[pre-commit]${NC} checkov produced no results file — scan errored"
+  echo -e "${RED}[checkov-scan]${NC} checkov produced no results file — scan errored"
   exit 1
 fi
 
@@ -38,11 +38,11 @@ echo ""
 jq -r '.summary | "Checkov: \(.passed) passed, \(.failed) failed, \(.skipped) skipped"' \
   checkov-results.json || true
 
-FAILED=$(jq -r '.summary.failed // 0' checkov-results.json)
+FAILED=$(jq -r '.summary.failed // 0' checkov-results.json 2>/dev/null)
 
-if [ "$FAILED" -gt 0 ]; then
+if [ "${FAILED:-0}" -gt 0 ]; then
   echo ""
-  echo -e "${RED}[pre-commit]${NC} Failures by check:"
+  echo -e "${RED}[checkov-scan]${NC} Failures by check:"
   jq -r '
     .results.failed_checks
     | group_by(.check_id)
@@ -52,9 +52,9 @@ if [ "$FAILED" -gt 0 ]; then
       (.[] | "      \(.file_path)  →  \(.resource | sub("^[^.]+\\.";""))")
   ' checkov-results.json || true
   echo ""
-  echo -e "${RED}[pre-commit]${NC} Checkov failed with ${FAILED} issue(s)"
+  echo -e "${RED}[checkov-scan]${NC} Checkov failed with ${FAILED} issue(s)"
   exit 1
 fi
 
-echo -e "${GREEN}[pre-commit]${NC} Checkov passed"
+echo -e "${GREEN}[checkov-scan]${NC} Checkov passed"
 exit 0
