@@ -24,6 +24,7 @@ import {
   getLogRetentionPeriod,
   getRemovalPolicy,
 } from 'cdk/constants/environment';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface CodeBuildE2EConstructProps {
   readonly developerId?: string;
@@ -78,11 +79,13 @@ export class CodeBuildE2EConstruct extends Construct {
       retention: getLogRetentionPeriod(environment),
       removalPolicy: getRemovalPolicy(environment),
     });
+    GovUKTag.of(this.logGroup).PII.FALSE().DataClassification.OFFICIAL();
 
     const codebuildRole = new Role(this, 'CodeBuildRole', {
       assumedBy: new ServicePrincipal('codebuild.amazonaws.com'),
       description: `IAM role for E2E Codebuild Project - ${resourcePrefix}`,
     });
+    GovUKTag.of(codebuildRole).DataClassification.OFFICIAL();
 
     codebuildRole.addToPolicy(
       new PolicyStatement({

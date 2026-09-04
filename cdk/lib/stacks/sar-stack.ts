@@ -12,6 +12,7 @@ import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
 import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -59,6 +60,10 @@ export class SarStack extends Stack {
       encryption: QueueEncryption.KMS,
       encryptionMasterKey: kmsKey,
     });
+    GovUKTag.of(dsarDeleteDLQueue)
+      .PII.FALSE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNAL();
 
     const dsarDeleteQueue = new Queue(this, 'dsarDeleteQueue', {
       queueName: `${sarName}-delete-queue`,
@@ -69,6 +74,10 @@ export class SarStack extends Stack {
         maxReceiveCount: 3,
       },
     });
+    GovUKTag.of(dsarDeleteQueue)
+      .PII.FALSE()
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNAL();
 
     const dsarRequestLambda = new LambdaApiConstruct(this, 'dsarRequest', {
       developerId,
@@ -91,6 +100,13 @@ export class SarStack extends Stack {
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
     });
+    GovUKTag.of(dsarRequestLambda)
+      // dsarRequestLambda/Function
+      // dsarRequestLambda/Function/ServiceRole
+      // dsarRequestLambda/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     dsarRequestLambda.function.addEventSource(
       new SqsEventSource(dsarQueue, { batchSize: 1 }),
@@ -121,6 +137,13 @@ export class SarStack extends Stack {
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
     });
+    GovUKTag.of(dsarDeleteLambda)
+      // dsarDeleteLambda/Function
+      // dsarDeleteLambda/Function/ServiceRole
+      // dsarDeleteLambda/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     dsarDeleteLambda.function.addEventSource(
       new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
@@ -134,6 +157,10 @@ export class SarStack extends Stack {
       encryption: QueueEncryption.KMS,
       encryptionMasterKey: kmsKey,
     });
+    GovUKTag.of(sarDLQueue)
+      .PII.TRUE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNAL();
 
     // Create S3 bucket for SAR files
     const sarBucketConstruct = new S3Construct(this, 'sarBucket', {
@@ -145,6 +172,13 @@ export class SarStack extends Stack {
       deploymentRoleArn,
     });
     this.sarBucket = sarBucketConstruct.bucket;
+    GovUKTag.of(sarBucketConstruct)
+      // sarDLQueue
+      // sarBucket/AccessLogsBucket
+      // sarBucket/Bucket
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNET_FACING();
 
     // Create SAR file lambda
     const createSarFileLambda = new LambdaApiConstruct(this, 'createSarFile', {
@@ -170,6 +204,13 @@ export class SarStack extends Stack {
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
     });
+    GovUKTag.of(createSarFileLambda)
+      // createSarFile/Function
+      // createSarFile/Function/ServiceRole
+      // createSarFile/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     // Add sarQueue as event source for createSarFile lambda
     createSarFileLambda.function.addEventSource(
@@ -206,6 +247,13 @@ export class SarStack extends Stack {
         logRetentionDays: getLogRetentionPeriod(environment),
       },
     );
+    GovUKTag.of(generateSarPresignedUrlLambda)
+      // generateSarPresignedUrl/Function
+      // generateSarPresignedUrl/Function/ServiceRole
+      // generateSarPresignedUrl/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE()
+      .Exposure.INTERNET_FACING();
 
     // Grant S3 read permissions to the lambda
     this.sarBucket.grantRead(generateSarPresignedUrlLambda.function);
@@ -217,5 +265,10 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(generateSarPresignedUrlLambda.function);
+
+    GovUKTag.buriedOf(this, `${environment}-sar/BucketNotificationsHandler`)
+      .DataClassification.OFFICIAL()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
   }
 }

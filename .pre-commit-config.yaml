@@ -45,7 +45,8 @@ repos:
             'docs/index.html',
             '--exclude-files',
             'e2e/src/features/sar.feature',
-            'e2e/src/features/sar.feature',
+            '--exclude-files',
+            'cdk/lib/gov-uk-tag/tag/data-classification.tag.ts',
           ]
 
   - repo: local

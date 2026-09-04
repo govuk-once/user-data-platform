@@ -11,6 +11,7 @@ import {
   getRemovalPolicy,
 } from 'cdk/constants/environment';
 import { Checkov } from 'cdk/lib/checkov/checkov';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
@@ -122,6 +123,7 @@ export class ApiGatewayConstruct extends Construct {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName(role)],
     });
+    GovUKTag.of(cloudwatchLogRole).DataClassification.OFFICIAL_SENSITIVE();
 
     const account = new apigateway.CfnAccount(this, 'ApiGatewayAccount', {
       cloudWatchRoleArn: cloudwatchLogRole.roleArn,
@@ -175,11 +177,13 @@ export class ApiGatewayConstruct extends Construct {
             }
           : undefined,
       },
-
       disableExecuteApiEndpoint: false,
     });
-
     this.api.node.addDependency(account);
+    GovUKTag.of(this.api)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     this.applyCheckovSuppressions(props);
 
@@ -192,6 +196,10 @@ export class ApiGatewayConstruct extends Construct {
       value: this.api.restApiId,
       description: 'RestAPi ID',
     });
+
+    GovUKTag.buriedOf(this.api, 'Api/AccessLogs/Resource')
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE();
   }
 
   private applyCheckovSuppressions(props: ApiGatewayConstructProps): void {

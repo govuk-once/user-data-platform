@@ -10,6 +10,7 @@ import {
   environmentLongNames,
   getLogRetentionPeriod,
 } from 'cdk/constants/environment';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface DvlaPilotStackProps extends StackProps {
   developerId?: string;
@@ -65,6 +66,10 @@ export class DvlaPilotStack extends Stack {
         logRetentionDays: getLogRetentionPeriod(environment),
       },
     );
+    GovUKTag.of(dvlaPilotPurgeLambda)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     purgeKeySecret.grantRead(dvlaPilotPurgeLambda.function);
 

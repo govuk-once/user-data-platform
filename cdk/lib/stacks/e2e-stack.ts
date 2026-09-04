@@ -15,6 +15,7 @@ import {
 } from 'cdk/constants/environment';
 import { CodeBuildE2EConstruct } from '../constructs/codebuild-e2e-construct';
 import { Checkov } from 'cdk/lib/checkov/checkov';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;
@@ -73,6 +74,10 @@ export class E2EStack extends Stack {
     });
     Checkov.suppressAWS18(this.sourceBucket);
     Checkov.suppressAWS21(this.sourceBucket);
+    GovUKTag.of(this.sourceBucket)
+      .PII.TRUE()
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNAL();
 
     this.codebuildProject = new CodeBuildE2EConstruct(this, 'CodeBuild', {
       developerId,

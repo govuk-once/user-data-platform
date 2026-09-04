@@ -9,8 +9,10 @@ import {
   E2EStack,
   PerfStack,
 } from 'cdk/lib/stacks';
-import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
+
+import { GovUkOnceEnvironments, repoMetaData } from 'cdk/constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
+import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
 import { Macie } from 'cdk/lib/macie';
 
 // App
@@ -97,7 +99,6 @@ if (!skipMainStack) {
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
   });
-
   sarStack.addDependency(mainStack);
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
@@ -112,7 +113,6 @@ if (!skipMainStack) {
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
   });
-
   dvlaPilotStack.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
@@ -189,7 +189,23 @@ if (isNotDev) {
   });
 }
 
-// Aspects
+// Checkov Aspect
 Aspects.of(app).add(new CheckovSuppressionAspect());
+
+// GovUKTag Aspect
+GovUKTag.applyAspect(app, {
+  mandatoryAppTags: {
+    Product: GovUKTag.Once.Suggested.UDP.Product,
+    Service: GovUKTag.Once.Suggested.UDP.Service,
+    Component: GovUKTag.Once.Suggested.UDP.Component,
+    Environment: GovUKTag.Once.mapEnvironment(environment),
+    Owner: GovUKTag.Once.Suggested.UDP.Owner,
+    Source: GovUKTag.Once.Suggested.UDP.Source,
+  },
+  optionalAppTags: {
+    RepositoryUrl: GovUKTag.Once.Suggested.UDP.RepositoryUrl,
+    BillingProject: GovUKTag.Once.Suggested.UDP.BillingProject,
+  },
+});
 
 app.synth();

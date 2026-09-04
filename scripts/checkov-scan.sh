@@ -9,51 +9,26 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Optional single-check filter: `./checkov-scan.sh CKV_AWS_158` scans one rule.
 CHECK_ARG=""
 if [ "${1:-}" != "" ]; then
   CHECK_ARG="--check $1"
 fi
 
-echo -e "${YELLOW}[pre-commit]${NC} Assuming role…"
+# Run synth script
+bash "${SCRIPT_DIR}/synth.sh"
 
-if ! CREDS=$(gds-cli aws once-udp-development-admin -e 2>/tmp/gds-err.log); then
-  echo -e "${RED}[pre-commit]${NC} Failed to assume role:"
-  cat /tmp/gds-err.log
-  echo -e "${YELLOW}[pre-commit]${NC} Are you on the VPN or an office IP range?"
-  exit 1
-fi
-
-eval "$CREDS"
-
-if ! aws sts get-caller-identity > /dev/null 2>&1; then
-  echo -e "${RED}[pre-commit]${NC} Role assumed but credentials not usable — check VPN"
-  cat /tmp/gds-err.log
-  exit 1
-fi
-
-# Move to cdk folder
-cd cdk
-
-# Stops stale templates being pulled into the scan
-rm -rf cdk.out
-
-echo -e "${YELLOW}[pre-commit]${NC} Synthesizing…"
-
-if ! CDK_DEFAULT_REGION=eu-west-2 ../node_modules/.bin/cdk synth --quiet > /tmp/cdk-synth.log 2>&1; then
-  echo -e "${RED}[pre-commit]${NC} cdk synth failed:"
-  cat /tmp/cdk-synth.log
-  exit 1
-fi
-
-echo -e "${YELLOW}[pre-commit]${NC} Scanning…"
+# Run Checkov Scan
+echo -e "${YELLOW}[checkov-scan]${NC} Scanning…"
 rm -f checkov-results.json
 # shellcheck disable=SC2086
-checkov -d cdk.out --config-file .checkov.yaml $CHECK_ARG \
-  -o json --quiet 2>/dev/null > checkov-results.json || true
+checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml $CHECK_ARG \
+  -o json > checkov-results.json || true
 
 if [ ! -f checkov-results.json ]; then
-  echo -e "${RED}[pre-commit]${NC} checkov produced no results file — scan errored"
+  echo -e "${RED}[checkov-scan]${NC} checkov produced no results file — scan errored"
   exit 1
 fi
 
@@ -63,11 +38,11 @@ echo ""
 jq -r '.summary | "Checkov: \(.passed) passed, \(.failed) failed, \(.skipped) skipped"' \
   checkov-results.json || true
 
-FAILED=$(jq -r '.summary.failed // 0' checkov-results.json)
+FAILED=$(jq -r '.summary.failed // 0' checkov-results.json 2>/dev/null)
 
-if [ "$FAILED" -gt 0 ]; then
+if [ "${FAILED:-0}" -gt 0 ]; then
   echo ""
-  echo -e "${RED}[pre-commit]${NC} Failures by check:"
+  echo -e "${RED}[checkov-scan]${NC} Failures by check:"
   jq -r '
     .results.failed_checks
     | group_by(.check_id)
@@ -77,9 +52,9 @@ if [ "$FAILED" -gt 0 ]; then
       (.[] | "      \(.file_path)  →  \(.resource | sub("^[^.]+\\.";""))")
   ' checkov-results.json || true
   echo ""
-  echo -e "${RED}[pre-commit]${NC} Checkov failed with ${FAILED} issue(s)"
+  echo -e "${RED}[checkov-scan]${NC} Checkov failed with ${FAILED} issue(s)"
   exit 1
 fi
 
-echo -e "${GREEN}[pre-commit]${NC} Checkov passed"
+echo -e "${GREEN}[checkov-scan]${NC} Checkov passed"
 exit 0
