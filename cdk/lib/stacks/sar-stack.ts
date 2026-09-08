@@ -26,6 +26,7 @@ export interface SarStackProps extends StackProps {
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
+  dynamoDbEndpointUrl?: string;
 }
 
 export class SarStack extends Stack {

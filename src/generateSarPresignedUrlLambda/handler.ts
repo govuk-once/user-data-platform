@@ -32,6 +32,7 @@ const factory = new ServiceFactory({
   tableName: TABLE_NAME,
   identityTableName: process.env.IDENTITY_TABLE_NAME || 'not-required',
   kmsKeyId: process.env.KMS_KEY_ID,
+  dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
   tracer,
   logger,
 });

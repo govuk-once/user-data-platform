@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { CfnOutput, Stack } from 'aws-cdk-lib';
+import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -32,8 +32,8 @@ export class VpcConstruct extends Construct {
   public vpc!: ec2.Vpc;
   public vpcEndpointSecurityGroup!: ec2.SecurityGroup;
   public lambdaSecurityGroup!: ec2.SecurityGroup;
-  public dynamoDbEndpoint!: ec2.GatewayVpcEndpoint;
-  public s3Endpoint!: ec2.GatewayVpcEndpoint;
+  public dynamoDbEndpoint!: ec2.InterfaceVpcEndpoint;
+  public s3Endpoint!: ec2.InterfaceVpcEndpoint;
   public kmsEndpoint!: ec2.InterfaceVpcEndpoint;
   public cognitoEndpoint!: ec2.InterfaceVpcEndpoint;
   public cloudwatchEndpoint!: ec2.InterfaceVpcEndpoint;
@@ -51,6 +51,7 @@ export class VpcConstruct extends Construct {
   private readonly maxAzs: number | undefined;
   private readonly kmsKey: kms.IKey | undefined;
   private readonly vpcCidr: string;
+  public readonly dynamoDbEndpointUrl: string;
 
   constructor(scope: Construct, id: string, props: VpcConstructProps) {
     super(scope, id);
@@ -67,12 +68,6 @@ export class VpcConstruct extends Construct {
      * TODO: detailed comments on VPC setup
      */
     this.setupVPC();
-
-    /**
-     * Gateway Endpoints (S3, DynamoDB)
-     * TODO: detailed comments on Gateway Endpoints
-     */
-    this.setupGatewayEndpoints();
 
     /**
      * Lambda Security Group and Rules
@@ -114,6 +109,13 @@ export class VpcConstruct extends Construct {
      * Outputs
      */
     this.emitOutputs();
+
+    const regionalDnsEntry = Fn.select(
+      0,
+      this.dynamoDbEndpoint.vpcEndpointDnsEntries,
+    );
+    const regionalDnsName = Fn.select(1, Fn.split(':', regionalDnsEntry));
+    this.dynamoDbEndpointUrl = `https://${regionalDnsName}`;
   }
 
   private setupVPC() {
@@ -163,68 +165,6 @@ export class VpcConstruct extends Construct {
     );
   }
 
-  private setupGatewayEndpoints() {
-    this.dynamoDbEndpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
-      subnets: [
-        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      ],
-    });
-
-    this.dynamoDbEndpoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: [
-          'dynamodb:BatchGetItem',
-          'dynamodb:BatchWriteItem',
-          'dynamodb:DeleteItem',
-          'dynamodb:DescribeTable',
-          'dynamodb:GetItem',
-          'dynamodb:PutItem',
-          'dynamodb:Query',
-          'dynamodb:Scan',
-          'dynamodb:UpdateItem',
-        ],
-        resources: ['*'],
-        conditions: {
-          StringEquals: {
-            'aws:PrincipalAccount': this.stack.account,
-          },
-        },
-      }),
-    );
-
-    this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.S3,
-      subnets: [
-        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      ],
-    });
-
-    this.s3Endpoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: [
-          's3:GetObject',
-          's3:GetObjectVersion',
-          's3:PutObject',
-          's3:DeleteObject',
-          's3:ListBucket',
-          's3:GetBucketLocation',
-          's3:GetBucketAcl',
-        ],
-        resources: ['*'],
-        conditions: {
-          StringEquals: {
-            'aws:PrincipalAccount': this.stack.account,
-          },
-        },
-      }),
-    );
-  }
-
   private setupLambdaSecurityGroup() {
     this.lambdaSecurityGroup = new ec2.SecurityGroup(this, 'lambdaSg', {
       vpc: this.vpc,
@@ -268,12 +208,6 @@ export class VpcConstruct extends Construct {
       ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
       ec2.Port.tcp(53),
       'Allow DNS (TCP) to VPC resolver',
-    );
-
-    this.lambdaSecurityGroup.addEgressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      'Allow Http outbound to gateway endpoints',
     );
 
     this.vpcEndpointSecurityGroup.addIngressRule(
@@ -376,6 +310,70 @@ export class VpcConstruct extends Construct {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
     });
+
+    this.dynamoDbEndpoint = this.vpc.addInterfaceEndpoint('dynamoDbEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.DYNAMODB,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: false, // DynamoDB PrivateLink does not support private/hybrid DNS
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.dynamoDbEndpoint.addToPolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.AnyPrincipal()],
+        actions: [
+          'dynamodb:BatchGetItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:DeleteItem',
+          'dynamodb:DescribeTable',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+          'dynamodb:Scan',
+          'dynamodb:UpdateItem',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': this.stack.account,
+          },
+        },
+      }),
+    );
+
+    this.s3Endpoint = this.vpc.addInterfaceEndpoint('s3Endpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.S3,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      privateDnsOnlyForInboundResolverEndpoint:
+        ec2.VpcEndpointPrivateDnsOnlyForInboundResolverEndpoint.ALL_RESOLVERS,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.s3Endpoint.addToPolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.AnyPrincipal()],
+        actions: [
+          's3:GetObject',
+          's3:GetObjectVersion',
+          's3:PutObject',
+          's3:DeleteObject',
+          's3:ListBucket',
+          's3:GetBucketLocation',
+          's3:GetBucketAcl',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': this.stack.account,
+          },
+        },
+      }),
+    );
   }
 
   private setupPrivateIsolatedNacl() {
