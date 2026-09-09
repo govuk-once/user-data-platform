@@ -151,6 +151,8 @@ export class MacieStack extends Stack {
       },
     );
 
+    resultsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
+
     const exportCall: cr.AwsSdkCall = {
       service: 'macie2',
       action: 'putClassificationExportConfiguration',

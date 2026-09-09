@@ -13,13 +13,16 @@ export interface MacieInstallProps {
   env: { account: string; region: string };
   stackPrefix: string;
   description?: string;
+  initalStack: boolean;
 }
 
 export function Macie(app: App, props: MacieInstallProps): void {
-  new MacieStack(app, `${props.stackPrefix}-macie`, {
-    env: props.env,
-    description: props.description ?? 'Macie sensitive data discovery',
-  });
+  if (props.initalStack) {
+    new MacieStack(app, `${props.stackPrefix}-macie`, {
+      env: props.env,
+      description: props.description ?? 'Macie sensitive data discovery',
+    });
+  }
 
   Aspects.of(app).add(new MacieAccessAspect());
 }

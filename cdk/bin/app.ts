@@ -60,6 +60,7 @@ if (!skipMainStack) {
   Macie(app, {
     env: awsEnv,
     stackPrefix,
+    initalStack: !developerId
   });
 
   // Main stack
