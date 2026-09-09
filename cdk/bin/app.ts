@@ -48,11 +48,11 @@ const crossAccountPrincipals: string[] = (() => {
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
 
 // VPC Stack
-const vpcStack = new VpcStack(app, `${environment}-vpc`, {
-  environment,
-  env: awsEnv,
-  description: `Shared VPC Stack for ${environment} environment`,
-});
+// const vpcStack = new VpcStack(app, `${environment}-vpc`, {
+//   environment,
+//   env: awsEnv,
+//   description: `Shared VPC Stack for ${environment} environment`,
+// });
 
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
