@@ -179,7 +179,7 @@ export class WafConstruct extends Construct {
         ],
       });
 
-      GovUKTag.of(this.logGroup).DataClassification.OFFICIAL().PII.FALSE();
+      GovUKTag.of(this.logGroup).DataClassification.OFFICIAL().PII.TRUE();
     }
   }
 }
