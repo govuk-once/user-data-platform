@@ -36,7 +36,6 @@ jobs:
         run: pnpm test:all
 
       - name: Run SonarQube Scan and Quality Gate
-        # nosemgrep - Ignore false positive
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
         with:
           args: >
