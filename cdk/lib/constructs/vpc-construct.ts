@@ -110,12 +110,7 @@ export class VpcConstruct extends Construct {
      */
     this.emitOutputs();
 
-    const regionalDnsEntry = Fn.select(
-      0,
-      this.dynamoDbEndpoint.vpcEndpointDnsEntries,
-    );
-    const regionalDnsName = Fn.select(1, Fn.split(':', regionalDnsEntry));
-    this.dynamoDbEndpointUrl = `https://${regionalDnsName}`;
+    this.dynamoDbEndpointUrl = this.extractEndpointUrl(this.dynamoDbEndpoint);
   }
 
   private setupVPC() {
@@ -515,5 +510,11 @@ export class VpcConstruct extends Construct {
       value: this.executeApiEndpoint.vpcEndpointId,
       description: 'VPC Endpoint Id for Api Gateway execute-api',
     });
+  }
+
+  private extractEndpointUrl(endpoint: ec2.InterfaceVpcEndpoint): string {
+    const dnsEntry = Fn.select(0, endpoint.vpcEndpointDnsEntries);
+    const dnsName = Fn.select(1, Fn.split(':', dnsEntry));
+    return `https://${dnsName}`;
   }
 }
