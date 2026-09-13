@@ -117,6 +117,11 @@ export class VpcConstruct extends Construct {
       natGateways: 0,
       subnetConfiguration: [
         {
+          name: 'private-egres',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 24,
+        },
+        {
           name: 'private',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
           cidrMask: 24,
@@ -431,6 +436,17 @@ export class VpcConstruct extends Construct {
       traffic: ec2.AclTraffic.allTraffic(),
       direction: ec2.TrafficDirection.EGRESS,
       ruleAction: ec2.Action.ALLOW,
+    });
+
+    this.vpc.privateSubnets.forEach((subnet, index) => {
+      new ec2.SubnetNetworkAclAssociation(
+        this,
+        `PrivateSubnetNaclAssoc${index}`,
+        {
+          subnet,
+          networkAcl: this.nacl,
+        },
+      );
     });
 
     this.vpc.isolatedSubnets.forEach((subnet, index) => {
