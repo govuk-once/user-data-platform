@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
+import { Stack, StackProps, CfnOutput, Lazy } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
@@ -83,17 +83,21 @@ export class VpcStack extends Stack {
       });
     });
 
-    // Preserve the CDK auto-generated cross-stack exports for private-egres subnets.
-    // 39+ stacks were deployed when CodeBuild used PRIVATE_WITH_EGRESS and still import
-    // these export names. CDK no longer auto-generates them since stacks now use
-    // PRIVATE_ISOLATED, so we emit them explicitly until all consuming stacks are
-    // redeployed. Safe to remove once no stack imports these values.
-    vpcConstuct.vpc.privateSubnets.forEach((subnet) => {
+    // Keep the legacy PRIVATE_WITH_EGRESS subnet exports while existing stacks
+    // still import them. These can be removed once all consumers are redeployed.
+    const privateEgressSubnets = vpcConstuct.vpc.selectSubnets({
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+    }).subnets;
+
+    privateEgressSubnets.forEach((subnet, index) => {
       const cfnSubnet = subnet.node.defaultChild as ec2.CfnSubnet;
-      const logicalId = cfnSubnet.logicalId;
-      new CfnOutput(this, `ExportsOutputRef${logicalId}`, {
+
+      // getLogicalId resolves the CloudFormation logical ID to a concrete string.
+      const subnetLogicalId = this.getLogicalId(cfnSubnet);
+
+      new CfnOutput(this, `LegacyPrivateEgressSubnet${index + 1}Export`, {
         value: subnet.subnetId,
-        exportName: `${this.stackName}:ExportsOutputRef${logicalId}`,
+        exportName: `${this.stackName}:ExportsOutputRef${subnetLogicalId}`,
       });
     });
   }
