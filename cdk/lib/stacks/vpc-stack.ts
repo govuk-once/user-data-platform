@@ -82,5 +82,19 @@ export class VpcStack extends Stack {
         description: `Private subnet ${idx} ID`,
       });
     });
+
+    // Preserve the CDK auto-generated cross-stack exports for private-egres subnets.
+    // 39+ stacks were deployed when CodeBuild used PRIVATE_WITH_EGRESS and still import
+    // these export names. CDK no longer auto-generates them since stacks now use
+    // PRIVATE_ISOLATED, so we emit them explicitly until all consuming stacks are
+    // redeployed. Safe to remove once no stack imports these values.
+    vpcConstuct.vpc.privateSubnets.forEach((subnet) => {
+      const cfnSubnet = subnet.node.defaultChild as ec2.CfnSubnet;
+      const logicalId = cfnSubnet.logicalId;
+      new CfnOutput(this, `ExportsOutputRef${logicalId}`, {
+        value: subnet.subnetId,
+        exportName: `${this.stackName}:ExportsOutputRef${logicalId}`,
+      });
+    });
   }
 }
