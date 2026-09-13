@@ -255,7 +255,7 @@ export class CodeBuildPerfConstruct extends Construct {
         environmentVariables,
       },
       vpc,
-      subnetSelection: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
+      subnetSelection: { subnetType: SubnetType.PRIVATE_ISOLATED },
       securityGroups,
       buildSpec: BuildSpec.fromSourceFilename('cdk/buildspec-perf.yml'),
       logging: {
