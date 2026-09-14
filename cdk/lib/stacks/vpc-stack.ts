@@ -82,28 +82,5 @@ export class VpcStack extends Stack {
         description: `Private subnet ${idx} ID`,
       });
     });
-
-    // Keep the legacy PRIVATE_WITH_EGRESS subnet exports while existing stacks
-    // still import them. These can be removed once all consumers are redeployed.
-    const privateEgressSubnets = vpcConstuct.vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-    }).subnets;
-
-    const legacySubnetExports = [
-      'ExportsOutputRefvpcprivateegresSubnet1Subnet319674287A1BCE93',
-      'ExportsOutputRefvpcprivateegresSubnet2Subnet9B57F6B4D663C64E',
-    ];
-
-    legacySubnetExports.forEach((legacyOutputId, index) => {
-      const output = new CfnOutput(
-        this,
-        `LegacyPrivateEgressSubnet${index + 1}`,
-        {
-          value: privateEgressSubnets[index].subnetId,
-          exportName: `${this.stackName}:${legacyOutputId}`,
-        },
-      );
-      output.overrideLogicalId(legacyOutputId);
-    });
   }
 }
