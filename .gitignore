@@ -21,6 +21,7 @@ coverage
 .github/instructions/nx.instructions.md
 
 # CDK
+checkov-results.json
 cdk/checkov-results.json
 cdk/checkov-results.xml
 cdk.out/

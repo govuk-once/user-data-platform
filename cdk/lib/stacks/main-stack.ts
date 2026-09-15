@@ -101,7 +101,7 @@ export class MainStack extends Stack {
     let routes: RoutesConfig = _routes;
     if (isProd) {
       routes = Object.fromEntries(
-        Object.entries(_routes).filter(([, route]) => !route.isSARorDSARRoute),
+        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
       );
     }
 
