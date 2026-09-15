@@ -3,6 +3,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Duration, Stack } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface KmsConstructProps {
   readonly developerId?: string;
@@ -44,6 +45,7 @@ export class KmsConstruct extends Construct {
       removalPolicy: getRemovalPolicy(environment),
       alias: `${resourcePrefix}-${environment}`,
     });
+    GovUKTag.of(this.key).DataClassification.OFFICIAL_SENSITIVE();
 
     this.key.addToResourcePolicy(
       new iam.PolicyStatement({
