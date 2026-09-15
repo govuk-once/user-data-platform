@@ -95,9 +95,10 @@ repos:
       # Build all
       - id: build-all
         name: Build All
-        entry: pnpm build:all
+        entry: bash -c "CI=true NX_DAEMON=false pnpm build:all --skip-nx-cache"
         language: system
         always_run: true
+        pass_filenames: false
         stages:
           - pre-push
 
