@@ -56,6 +56,7 @@ export interface MainStackProps extends StackProps {
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
   availabilityZones?: string[];
+  dynamoDbEndpointUrl?: string;
 }
 
 export class MainStack extends Stack {
@@ -89,6 +90,7 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
+      dynamoDbEndpointUrl,
     } = props;
 
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
@@ -220,6 +222,7 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
+      dynamoDbEndpointUrl,
     });
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
@@ -351,6 +354,7 @@ export class MainStack extends Stack {
     vpc: ec2.IVpc | undefined;
     lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
     cachingEnabled: boolean;
+    dynamoDbEndpointUrl?: string;
   }): lambda.Function[] {
     const {
       developerId,
@@ -365,6 +369,7 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
+      dynamoDbEndpointUrl,
     } = params;
 
     const lambdasList = [];
@@ -391,6 +396,9 @@ export class MainStack extends Stack {
           STACK: stackPrefix,
           SERVICE_NAME: route.name,
           POWERTOOLS_SERVICE_NAME: route.name,
+          ...(dynamoDbEndpointUrl
+            ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+            : {}),
         },
         ...(routeQueue
           ? {

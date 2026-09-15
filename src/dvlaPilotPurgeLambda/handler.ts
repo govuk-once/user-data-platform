@@ -32,7 +32,9 @@ const logger = getLogger({
 });
 
 const secretsClient = new SecretsManagerClient({});
-const dynamoClient = new DynamoDBClient({});
+const dynamoClient = new DynamoDBClient({
+  endpoint: process.env.DYNAMODB_ENDPOINT,
+});
 
 const BATCH_SIZE = 100;
 

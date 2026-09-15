@@ -26,6 +26,7 @@ export interface SarStackProps extends StackProps {
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
+  dynamoDbEndpointUrl?: string;
 }
 
 export class SarStack extends Stack {
@@ -48,6 +49,7 @@ export class SarStack extends Stack {
       vpc,
       lambdaSecurityGroups,
       deploymentRoleArn,
+      dynamoDbEndpointUrl,
     } = props;
 
     const sarName = developerId
@@ -86,6 +88,9 @@ export class SarStack extends Stack {
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
@@ -116,6 +121,9 @@ export class SarStack extends Stack {
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
@@ -165,6 +173,9 @@ export class SarStack extends Stack {
         SERVICE_NAME: 'createSarFile',
         BUCKET_NAME: this.sarBucket.bucketName,
         DLQ_URL: sarDLQueue.queueUrl,
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
@@ -200,6 +211,9 @@ export class SarStack extends Stack {
         environmentVariables: {
           STACK: stackPrefix,
           SERVICE_NAME: 'generateSarPresignedUrl',
+          ...(dynamoDbEndpointUrl
+            ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+            : {}),
         },
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],

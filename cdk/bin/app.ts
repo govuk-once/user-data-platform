@@ -75,6 +75,7 @@ if (!skipMainStack) {
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
     ...repoMetaData,
   });
 
@@ -96,6 +97,7 @@ if (!skipMainStack) {
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
   sarStack.addDependency(mainStack);
@@ -111,6 +113,7 @@ if (!skipMainStack) {
     dbKmsKey: mainStack.dbKmsKey,
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
   dvlaPilotStack.addDependency(mainStack);

@@ -12,6 +12,7 @@ export interface ServiceFactoryConfig {
   tableName: string;
   identityTableName: string;
   kmsKeyId?: string;
+  dynamoDbEndpointUrl?: string;
   tracer?: Tracer;
   logger?: Logger;
 }
@@ -25,9 +26,13 @@ export class ServiceFactory {
   private readonly services = new Map<string, unknown>();
 
   constructor(private readonly config: ServiceFactoryConfig) {
+    const dynamoDbClient = new DynamoDBClient({
+      endpoint: config.dynamoDbEndpointUrl,
+    });
+
     const client = config.tracer
-      ? config.tracer.captureAWSv3Client(new DynamoDBClient({}))
-      : new DynamoDBClient({});
+      ? config.tracer.captureAWSv3Client(dynamoDbClient)
+      : dynamoDbClient;
 
     this.docClient = DynamoDBDocumentClient.from(client, {
       marshallOptions: { removeUndefinedValues: true },

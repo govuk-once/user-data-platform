@@ -20,6 +20,7 @@ export interface DvlaPilotStackProps extends StackProps {
   dbKmsKey: IKey;
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
+  dynamoDbEndpointUrl?: string;
 }
 
 export class DvlaPilotStack extends Stack {
@@ -35,6 +36,7 @@ export class DvlaPilotStack extends Stack {
       dbKmsKey,
       vpc,
       lambdaSecurityGroups,
+      dynamoDbEndpointUrl,
     } = props;
 
     const purgeKeySecret = Secret.fromSecretNameV2(
@@ -59,6 +61,9 @@ export class DvlaPilotStack extends Stack {
           STACK: stackPrefix,
           SERVICE_NAME: 'dvlaPilotPurge',
           PURGE_KEY_SECRET_NAME: purgeKeySecret.secretName,
+          ...(dynamoDbEndpointUrl
+            ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+            : {}),
         },
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],

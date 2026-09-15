@@ -294,7 +294,7 @@ export class CodeBuildE2EConstruct extends Construct {
         environmentVariables,
       },
       vpc,
-      subnetSelection: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
+      subnetSelection: { subnetType: SubnetType.PRIVATE_ISOLATED },
       securityGroups,
       buildSpec: BuildSpec.fromSourceFilename('cdk/buildspec.yml'),
       logging: {

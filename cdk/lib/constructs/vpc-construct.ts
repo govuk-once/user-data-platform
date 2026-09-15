@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { CfnOutput, Stack } from 'aws-cdk-lib';
+import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -8,7 +8,6 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
-  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 
 export interface VpcConstructProps {
@@ -32,8 +31,8 @@ export class VpcConstruct extends Construct {
   public vpc!: ec2.Vpc;
   public vpcEndpointSecurityGroup!: ec2.SecurityGroup;
   public lambdaSecurityGroup!: ec2.SecurityGroup;
-  public dynamoDbEndpoint!: ec2.GatewayVpcEndpoint;
-  public s3Endpoint!: ec2.GatewayVpcEndpoint;
+  public dynamoDbEndpoint!: ec2.InterfaceVpcEndpoint;
+  public s3Endpoint!: ec2.InterfaceVpcEndpoint;
   public kmsEndpoint!: ec2.InterfaceVpcEndpoint;
   public cognitoEndpoint!: ec2.InterfaceVpcEndpoint;
   public cloudwatchEndpoint!: ec2.InterfaceVpcEndpoint;
@@ -43,14 +42,16 @@ export class VpcConstruct extends Construct {
   public ecrApiEndpoint!: ec2.InterfaceVpcEndpoint;
   public secretsManagerEndpoint!: ec2.InterfaceVpcEndpoint;
   public sqsEndpoint!: ec2.InterfaceVpcEndpoint;
+  public ecrDockerEndpoint!: ec2.InterfaceVpcEndpoint;
+  public stsEndpoint!: ec2.InterfaceVpcEndpoint;
   public nacl!: ec2.NetworkAcl;
-  public publicNacl!: ec2.NetworkAcl;
   public flowLogGroup!: logs.LogGroup;
   private readonly stack: Stack;
   private readonly environment: string;
   private readonly maxAzs: number | undefined;
   private readonly kmsKey: kms.IKey | undefined;
   private readonly vpcCidr: string;
+  public readonly dynamoDbEndpointUrl: string;
 
   constructor(scope: Construct, id: string, props: VpcConstructProps) {
     super(scope, id);
@@ -67,12 +68,6 @@ export class VpcConstruct extends Construct {
      * TODO: detailed comments on VPC setup
      */
     this.setupVPC();
-
-    /**
-     * Gateway Endpoints (S3, DynamoDB)
-     * TODO: detailed comments on Gateway Endpoints
-     */
-    this.setupGatewayEndpoints();
 
     /**
      * Lambda Security Group and Rules
@@ -99,12 +94,6 @@ export class VpcConstruct extends Construct {
     this.setupPrivateIsolatedNacl();
 
     /**
-     * Public NACL
-     * TODO: detailed comments on Public NACL
-     */
-    this.setupPublicNacl();
-
-    /**
      * Flow Log Group
      * TODO: detailed comments on Flow Log Group
      */
@@ -114,6 +103,8 @@ export class VpcConstruct extends Construct {
      * Outputs
      */
     this.emitOutputs();
+
+    this.dynamoDbEndpointUrl = this.extractEndpointUrl(this.dynamoDbEndpoint);
   }
 
   private setupVPC() {
@@ -123,18 +114,8 @@ export class VpcConstruct extends Construct {
       maxAzs: this.maxAzs,
       enableDnsHostnames: true,
       enableDnsSupport: true,
-      natGateways: 1, // single nat gateway for e2e tests
+      natGateways: 0,
       subnetConfiguration: [
-        {
-          name: 'public',
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-        },
-        {
-          name: 'private-egres',
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 24,
-        },
         {
           name: 'private',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
@@ -160,68 +141,6 @@ export class VpcConstruct extends Construct {
       ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
       ec2.Port.tcp(443),
       'Allow Https From VPC CIDR',
-    );
-  }
-
-  private setupGatewayEndpoints() {
-    this.dynamoDbEndpoint = this.vpc.addGatewayEndpoint('dynamoDbEndpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
-      subnets: [
-        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      ],
-    });
-
-    this.dynamoDbEndpoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: [
-          'dynamodb:BatchGetItem',
-          'dynamodb:BatchWriteItem',
-          'dynamodb:DeleteItem',
-          'dynamodb:DescribeTable',
-          'dynamodb:GetItem',
-          'dynamodb:PutItem',
-          'dynamodb:Query',
-          'dynamodb:Scan',
-          'dynamodb:UpdateItem',
-        ],
-        resources: ['*'],
-        conditions: {
-          StringEquals: {
-            'aws:PrincipalAccount': this.stack.account,
-          },
-        },
-      }),
-    );
-
-    this.s3Endpoint = this.vpc.addGatewayEndpoint('s3Endpoint', {
-      service: ec2.GatewayVpcEndpointAwsService.S3,
-      subnets: [
-        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-        { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      ],
-    });
-
-    this.s3Endpoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: [
-          's3:GetObject',
-          's3:GetObjectVersion',
-          's3:PutObject',
-          's3:DeleteObject',
-          's3:ListBucket',
-          's3:GetBucketLocation',
-          's3:GetBucketAcl',
-        ],
-        resources: ['*'],
-        conditions: {
-          StringEquals: {
-            'aws:PrincipalAccount': this.stack.account,
-          },
-        },
-      }),
     );
   }
 
@@ -270,12 +189,6 @@ export class VpcConstruct extends Construct {
       'Allow DNS (TCP) to VPC resolver',
     );
 
-    this.lambdaSecurityGroup.addEgressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      'Allow Http outbound to gateway endpoints',
-    );
-
     this.vpcEndpointSecurityGroup.addIngressRule(
       this.lambdaSecurityGroup,
       ec2.Port.tcp(443),
@@ -287,9 +200,34 @@ export class VpcConstruct extends Construct {
     this.codebuildSecurityGroup = new ec2.SecurityGroup(this, 'CodeBuildSG', {
       vpc: this.vpc,
       securityGroupName: `codebuild-sg-${this.environment}`,
-      description: 'Security group for CodeBuild with NAT gateway access',
-      allowAllOutbound: true,
+      description:
+        'Security group for CodeBuild e2e, outbound to VPC endpoints only',
+      allowAllOutbound: false,
     });
+
+    this.codebuildSecurityGroup.addEgressRule(
+      this.vpcEndpointSecurityGroup,
+      ec2.Port.tcp(443),
+      'Allow HTTPS to VPC interface endpoints',
+    );
+
+    this.codebuildSecurityGroup.addEgressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(53),
+      'Allow DNS (UDP) to VPC resolver',
+    );
+
+    this.codebuildSecurityGroup.addEgressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(53),
+      'Allow DNS (TCP) to VPC resolver',
+    );
+
+    this.vpcEndpointSecurityGroup.addIngressRule(
+      this.codebuildSecurityGroup,
+      ec2.Port.tcp(443),
+      'Allow HTTPS from CodeBuild security group',
+    );
   }
 
   private setupVpcEndpoints() {
@@ -376,6 +314,91 @@ export class VpcConstruct extends Construct {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
     });
+
+    this.dynamoDbEndpoint = this.vpc.addInterfaceEndpoint('dynamoDbEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.DYNAMODB,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: false, // DynamoDB PrivateLink does not support private/hybrid DNS
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.dynamoDbEndpoint.addToPolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.AnyPrincipal()],
+        actions: [
+          'dynamodb:BatchGetItem',
+          'dynamodb:BatchWriteItem',
+          'dynamodb:DeleteItem',
+          'dynamodb:DescribeTable',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+          'dynamodb:Scan',
+          'dynamodb:UpdateItem',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': this.stack.account,
+          },
+        },
+      }),
+    );
+
+    this.s3Endpoint = this.vpc.addInterfaceEndpoint('s3Endpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.S3,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      privateDnsOnlyForInboundResolverEndpoint:
+        ec2.VpcEndpointPrivateDnsOnlyForInboundResolverEndpoint.ALL_RESOLVERS,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
+
+    this.s3Endpoint.addToPolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.AnyPrincipal()],
+        actions: [
+          's3:GetObject',
+          's3:GetObjectVersion',
+          's3:PutObject',
+          's3:DeleteObject',
+          's3:ListBucket',
+          's3:GetBucketLocation',
+          's3:GetBucketAcl',
+        ],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'aws:PrincipalAccount': this.stack.account,
+          },
+        },
+      }),
+    );
+
+    this.ecrDockerEndpoint = this.vpc.addInterfaceEndpoint(
+      'EcrDockerEndpoint',
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+        securityGroups: [this.vpcEndpointSecurityGroup],
+        privateDnsEnabled: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      },
+    );
+
+    this.stsEndpoint = this.vpc.addInterfaceEndpoint('StsEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.STS,
+      securityGroups: [this.vpcEndpointSecurityGroup],
+      privateDnsEnabled: true,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
+    });
   }
 
   private setupPrivateIsolatedNacl() {
@@ -396,7 +419,7 @@ export class VpcConstruct extends Construct {
 
     this.nacl.addEntry('AllowAllInbound', {
       ruleNumber: 100,
-      cidr: ec2.AclCidr.anyIpv4(),
+      cidr: ec2.AclCidr.ipv4(this.vpcCidr),
       traffic: ec2.AclTraffic.allTraffic(),
       direction: ec2.TrafficDirection.INGRESS,
       ruleAction: ec2.Action.ALLOW,
@@ -404,21 +427,10 @@ export class VpcConstruct extends Construct {
 
     this.nacl.addEntry('AllowAllOutbound', {
       ruleNumber: 100,
-      cidr: ec2.AclCidr.anyIpv4(),
+      cidr: ec2.AclCidr.ipv4(this.vpcCidr),
       traffic: ec2.AclTraffic.allTraffic(),
       direction: ec2.TrafficDirection.EGRESS,
       ruleAction: ec2.Action.ALLOW,
-    });
-
-    this.vpc.privateSubnets.forEach((subnet, index) => {
-      new ec2.SubnetNetworkAclAssociation(
-        this,
-        `PrivateSubnetNaclAssoc${index}`,
-        {
-          subnet,
-          networkAcl: this.nacl,
-        },
-      );
     });
 
     this.vpc.isolatedSubnets.forEach((subnet, index) => {
@@ -428,61 +440,6 @@ export class VpcConstruct extends Construct {
         {
           subnet,
           networkAcl: this.nacl,
-        },
-      );
-    });
-  }
-
-  private setupPublicNacl() {
-    this.publicNacl = new ec2.NetworkAcl(this, 'RestrictedPublicNacl', {
-      vpc: this.vpc,
-      networkAclName: `udp-restricted-public-nacl-${this.environment}`,
-    });
-
-    for (const [service, config] of Object.entries(ADMIN_PORTS)) {
-      this.publicNacl.addEntry(`DenyInbound${service}`, {
-        ruleNumber: config.ruleNumber,
-        cidr: ec2.AclCidr.anyIpv4(),
-        traffic: ec2.AclTraffic.tcpPort(config.port),
-        direction: ec2.TrafficDirection.INGRESS,
-        ruleAction: ec2.Action.DENY,
-      });
-    }
-
-    // A Custom NACL to allow performance tests to run on dev and stage
-    if (this.environment !== GovUkOnceEnvironments.Prod) {
-      this.publicNacl.addEntry('AllowInboundFromVpc', {
-        ruleNumber: 100,
-        cidr: ec2.AclCidr.ipv4(this.vpcCidr),
-        traffic: ec2.AclTraffic.allTraffic(),
-        direction: ec2.TrafficDirection.INGRESS,
-        ruleAction: ec2.Action.ALLOW,
-      });
-
-      this.publicNacl.addEntry('AllowInboundEphemeral', {
-        ruleNumber: 110,
-        cidr: ec2.AclCidr.anyIpv4(),
-        traffic: ec2.AclTraffic.tcpPortRange(1024, 65535),
-        direction: ec2.TrafficDirection.INGRESS,
-        ruleAction: ec2.Action.ALLOW,
-      });
-
-      this.publicNacl.addEntry('AllowAllOutbound', {
-        ruleNumber: 100,
-        cidr: ec2.AclCidr.anyIpv4(),
-        traffic: ec2.AclTraffic.allTraffic(),
-        direction: ec2.TrafficDirection.EGRESS,
-        ruleAction: ec2.Action.ALLOW,
-      });
-    }
-
-    this.vpc.publicSubnets.forEach((subnet, index) => {
-      new ec2.SubnetNetworkAclAssociation(
-        this,
-        `PublicSubnetNaclAssoc${index}`,
-        {
-          subnet,
-          networkAcl: this.publicNacl,
         },
       );
     });
@@ -517,5 +474,11 @@ export class VpcConstruct extends Construct {
       value: this.executeApiEndpoint.vpcEndpointId,
       description: 'VPC Endpoint Id for Api Gateway execute-api',
     });
+  }
+
+  private extractEndpointUrl(endpoint: ec2.InterfaceVpcEndpoint): string {
+    const dnsEntry = Fn.select(0, endpoint.vpcEndpointDnsEntries);
+    const dnsName = Fn.select(1, Fn.split(':', dnsEntry));
+    return `https://${dnsName}`;
   }
 }
