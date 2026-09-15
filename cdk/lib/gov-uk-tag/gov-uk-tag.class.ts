@@ -174,42 +174,6 @@ export class GovUKTag {
     return GovUKTag.of(matches[0]);
   }
 
-  /**
-   * Register a deferred tagging aspect for a buried construct by path suffix.
-   *
-   * Executes during the `MUTATING` aspect pass so that lazy-loaded CDK internal
-   * constructs — such as framework `Provider` Lambdas (`AWS679f53fac...`), log
-   * retention singletons, and custom resource roles — are fully materialized
-   * before tags are applied.
-   *
-   * Use this instead of direct scope-time tagging for internal constructs to
-   * prevent compliance validation failures during the `READONLY` aspect pass.
-   *
-   * @param scope - App or stack to register the aspect on, usually `this`.
-   * @param path - Trailing portion of the construct path, e.g.
-   * `'AWS679f53fac'` or `'BucketNotificationsHandler'`.
-   * @param configure - Callback receiving the `GovUKTag` wrapper for the matched
-   * construct to apply compliance tags (e.g., `DataClassification`, `PII`, `Exposure`).
-   */
-  static applyBuriedAspect(
-    scope: IConstruct,
-    path: string,
-    configure: (tagger: GovUKTag) => void,
-  ): void {
-    Aspects.of(scope).add(
-      {
-        visit: (node: IConstruct) => {
-          if (node.node.path.includes(path)) {
-            configure(GovUKTag.of(node));
-          }
-        },
-      },
-      {
-        priority: AspectPriority.MUTATING,
-      },
-    );
-  }
-
   /** Internal — applies the tag and returns this for chaining. */
   add(key: string, value: string): GovUKTag {
     Tags.of(this.scope).add(key, value);
