@@ -59,13 +59,13 @@ if [ "$DEBUG_SYNTH" = true ]; then
   # Output goes to the terminal, not a log file: the process blocks until a
   # debugger attaches, and the "Debugger listening" line has to be visible.
   CDK_DEBUG=true CDK_DEFAULT_REGION=eu-west-2 \
-    ../node_modules/.bin/cdk synth "$@" \
+    ../node_modules/.bin/cdk synth --validation --no-lookups "$@" \
     --app "npx tsx --inspect-brk bin/app.ts"
   exit $?
 fi
 
 if ! CDK_DEBUG=true CDK_DEFAULT_REGION=eu-west-2 \
-  ../node_modules/.bin/cdk synth --quiet "$@" > /tmp/cdk-synth.log 2>&1; then
+  ../node_modules/.bin/cdk synth --quiet --validation --no-lookups "$@" > /tmp/cdk-synth.log 2>&1; then
   echo -e "${RED}[synth]${NC} cdk synth failed:"
   cat /tmp/cdk-synth.log
   exit 1

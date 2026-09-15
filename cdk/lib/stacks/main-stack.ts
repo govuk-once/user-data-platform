@@ -550,10 +550,9 @@ export class MainStack extends Stack {
       );
     }
 
-    GovUKTag.buriedOf(this, 'AWS679f53fac')
-      .DataClassification.OFFICIAL()
-      .PII.FALSE()
-      .Exposure.ISOLATED();
+    GovUKTag.applyBuriedAspect(this, 'AWS679f53fac', (tag) => {
+      tag.DataClassification.OFFICIAL().PII.FALSE().Exposure.ISOLATED();
+    });
   }
 
   private lambdaGovUKTagging() {
