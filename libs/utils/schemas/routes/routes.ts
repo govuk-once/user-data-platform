@@ -399,6 +399,7 @@ export const routes: Record<string, RouteConfig> = {
     ],
   },
   startDsar: {
+    isSARorDSARRoute: true,
     name: 'startDsar',
     dynamoDbActions: [],
     identityTableActions: [],
@@ -431,6 +432,7 @@ export const routes: Record<string, RouteConfig> = {
     ],
   },
   startSar: {
+    isSARorDSARRoute: true,
     name: 'startSar',
     dynamoDbActions: [],
     identityTableActions: [],
@@ -463,6 +465,7 @@ export const routes: Record<string, RouteConfig> = {
     ],
   },
   getSarStatus: {
+    isSARorDSARRoute: true,
     name: 'getSarStatus',
     dynamoDbActions: ['dynamodb:GetItem'],
     identityTableActions: ['dynamodb:GetItem', 'dynamodb:Query'],
