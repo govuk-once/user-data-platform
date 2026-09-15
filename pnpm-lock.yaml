@@ -78,7 +78,7 @@ importers:
         specifier: ^4.14.1
         version: 4.14.1
       aws-cdk-lib:
-        specifier: ^2.256.1
+        specifier: ^2.254.0
         version: 2.268.0(constructs@10.6.0)
       aws-lambda:
         specifier: ^1.0.7
