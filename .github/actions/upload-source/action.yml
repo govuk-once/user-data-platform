@@ -1,0 +1,30 @@
+name: Upload source to S3
+description: Bundles the checked-out repo (plus the pnpm store) into source.zip and uploads it for CodeBuild. Requires dependencies installed and AWS credentials.
+
+inputs:
+  bucket:
+    description: 'Destination S3 bucket'
+    required: true
+  path:
+    description: 'Destination S3 key'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upload source to S3
+      shell: bash
+      env:
+        SOURCE_BUCKET: ${{ inputs.bucket }}
+        SOURCE_PATH: ${{ inputs.path }}
+      run: |
+        echo "Copying pnpm store into workspace"
+        STORE_PATH=$(pnpm store path)
+        pnpm store prune
+
+        mkdir -p .pnpm-store
+        cp -r "${STORE_PATH}"/* .pnpm-store/
+
+        echo "Uploading source to s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
+        zip -rqy source.zip . -x '.git/*' -x '.nx/*' -x 'cdk/cdk.out/*'
+        aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"

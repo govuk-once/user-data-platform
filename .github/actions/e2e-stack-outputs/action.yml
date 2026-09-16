@@ -1,0 +1,44 @@
+name: Get E2E stack outputs
+description: Reads the CodeBuild project, source bucket and source path outputs from an `<prefix>-e2e` CloudFormation stack. Requires AWS credentials.
+
+inputs:
+  stack-name:
+    description: 'E2E CloudFormation stack name (e.g. dev-e2e, pr-123-dev-e2e)'
+    required: true
+
+outputs:
+  codebuild-project:
+    value: ${{ steps.get.outputs.codebuild-project }}
+  source-bucket:
+    value: ${{ steps.get.outputs.source-bucket }}
+  source-path:
+    value: ${{ steps.get.outputs.source-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get stack outputs
+      id: get
+      shell: bash
+      env:
+        STACK_NAME: ${{ inputs.stack-name }}
+      run: |
+        echo "Fetching outputs from stack ${STACK_NAME}"
+        get_output() {
+          aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
+            --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text
+        }
+
+        CODEBUILD_PROJECT=$(get_output CodeBuildProjectName)
+        SOURCE_BUCKET=$(get_output SourceBucketName)
+        SOURCE_PATH=$(get_output SourcePath)
+
+        echo "CodeBuild project: ${CODEBUILD_PROJECT}"
+        echo "Source bucket: ${SOURCE_BUCKET}"
+        echo "Source path: ${SOURCE_PATH}"
+
+        {
+          echo "codebuild-project=${CODEBUILD_PROJECT}"
+          echo "source-bucket=${SOURCE_BUCKET}"
+          echo "source-path=${SOURCE_PATH}"
+        } >> "$GITHUB_OUTPUT"

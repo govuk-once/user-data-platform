@@ -15,9 +15,6 @@ on:
         description: 'The type of release (major, minor, patch)'
         value: ${{ jobs.version.outputs.type }}
 
-env:
-  NODE_VERSION: '24'
-
 permissions:
   contents: write
   issues: write
@@ -31,7 +28,7 @@ jobs:
       type: ${{ steps.release.outputs.type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -43,16 +40,8 @@ jobs:
           app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: pnpm i --frozen-lockfile
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Run semantic release
         id: release
@@ -61,7 +50,9 @@ jobs:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Release Outputs
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          TYPE: ${{ steps.release.outputs.type }}
         run: |
-          echo "The next version is ${{ steps.release.outputs.version }}"
-          echo "The release type is ${{ steps.release.outputs.type }}"
-          echo "The release notes are generated"
+          echo "The next version is ${VERSION}"
+          echo "The release type is ${TYPE}"
