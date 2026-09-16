@@ -81,7 +81,7 @@ if (!skipMainStack) {
     ...repoMetaData,
   });
 
-  mainStack.addDependency(vpcStack);
+  mainStack.node.addDependency(vpcStack);
 
   if (isNotProd) {
     // SAR stack
@@ -103,7 +103,7 @@ if (!skipMainStack) {
       dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
     });
 
-    sarStack.addDependency(mainStack);
+    sarStack.node.addDependency(mainStack);
   }
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
@@ -120,7 +120,7 @@ if (!skipMainStack) {
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
-  dvlaPilotStack.addDependency(mainStack);
+  dvlaPilotStack.node.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -143,7 +143,7 @@ if (!skipMainStack) {
   );
 
   if (sarStack) {
-    monitoringStack.addDependency(sarStack);
+    monitoringStack.node.addDependency(sarStack);
   }
 
   // Testing
@@ -164,7 +164,7 @@ if (!skipMainStack) {
       e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
     });
 
-    e2eStack.addDependency(mainStack);
+    e2eStack.node.addDependency(mainStack);
 
     const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
       developerId,
@@ -183,7 +183,7 @@ if (!skipMainStack) {
       dataTableName: mainStack.table.tableName,
     });
 
-    perStack.addDependency(mainStack);
+    perStack.node.addDependency(mainStack);
   }
 }
 
