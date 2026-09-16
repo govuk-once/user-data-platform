@@ -190,8 +190,11 @@ export class MacieStack extends Stack {
 
     let exists: boolean = false;
     try {
+      const awsPath = execFileSync('/usr/bin/which', ['aws'], {
+        encoding: 'utf8',
+      }).trim();
       execFileSync(
-        'aws',
+        awsPath,
         ['s3api', 'head-bucket', '--bucket', name, '--region', this.region],
         { stdio: 'pipe' },
       );
@@ -202,22 +205,15 @@ export class MacieStack extends Stack {
         e !== null &&
         ('stdout' in e || 'stderr' in e)
       ) {
-        const err =
-          e instanceof Error
-            ? String(
-                (
-                  e as NodeJS.ErrnoException & {
-                    stderr?: unknown;
-                    stdout?: unknown;
-                  }
-                ).stderr ?? '',
-              )
-            : String(e);
-        exists = err.includes('(403)') || err.includes('Forbidden');
+        const stderrRaw = (e as { stderr?: unknown }).stderr;
+        const stderrStr = typeof stderrRaw === 'string' ? stderrRaw : '';
+        const errStr = Buffer.isBuffer(stderrRaw)
+          ? stderrRaw.toString('utf8')
+          : stderrStr;
+        exists = errStr.includes('(403)') || errStr.includes('Forbidden');
       }
     }
     cache.set(name, exists);
-
     return exists;
   }
 }
