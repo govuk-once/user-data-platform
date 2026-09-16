@@ -190,7 +190,7 @@ export class MacieStack extends Stack {
 
     let exists: boolean = false;
     try {
-      const awsPath = execFileSync('which', ['aws'], {
+      const awsPath = execFileSync('/usr/bin/which', ['aws'], {
         encoding: 'utf8',
       }).trim();
       execFileSync(
@@ -206,11 +206,10 @@ export class MacieStack extends Stack {
         ('stdout' in e || 'stderr' in e)
       ) {
         const stderrRaw = (e as { stderr?: unknown }).stderr;
+        const stderrStr = typeof stderrRaw === 'string' ? stderrRaw : '';
         const errStr = Buffer.isBuffer(stderrRaw)
           ? stderrRaw.toString('utf8')
-          : typeof stderrRaw === 'string'
-            ? stderrRaw
-            : '';
+          : stderrStr;
         exists = errStr.includes('(403)') || errStr.includes('Forbidden');
       }
     }

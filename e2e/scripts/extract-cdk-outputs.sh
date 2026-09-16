@@ -46,12 +46,12 @@ if [[ "$USE_PERSONAL" = true ]] && [[ -z "$DEVELOPER_ID" ]]; then
         DEVELOPER_ID=$("$CDK_DIR/scripts/set-developer.sh")
         echo "Auto detected developer ID: $DEVELOPER_ID"
     else
-        echo "Error: cannot find set-developer script in $CDK_DIR"
+        echo "Error: cannot find set-developer script in $CDK_DIR" >&2
         exit 1
     fi
 fi
 
-if [ -n "$DEVELOPER_ID" ]; then
+if [[ -n "$DEVELOPER_ID" ]]; then
     STACK_NAME="${DEVELOPER_ID}-${ENV}-main"
 else
     STACK_NAME="${ENV}-main"
@@ -62,13 +62,13 @@ get_cfn_output() {
     local stack_name="$1"
     local output_key="$2"
 
-    aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+    aws cloudformation describe-stacks --stack-name "$stack_name" \
        --query "Stacks[0].Outputs[?OutputKey=='$output_key'].OutputValue" \
        --output text 2>/dev/null || echo ""
 }
 
 if ! aws cloudformation describe-stacks --stack-name "$STACK_NAME" &>/dev/null; then
-    echo "Error: Stack '$STACK_NAME' not found"
+    echo "Error: Stack '$STACK_NAME' not found" >&2
     echo ""
     echo "Available stacks;"
     aws cloudformation list-stacks \
