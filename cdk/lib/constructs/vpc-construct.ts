@@ -117,6 +117,16 @@ export class VpcConstruct extends Construct {
       natGateways: 0,
       subnetConfiguration: [
         {
+          name: 'public',
+          subnetType: ec2.SubnetType.PUBLIC,
+          cidrMask: 24,
+        },
+        {
+          name: 'private-egres',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 24,
+        },
+        {
           name: 'private',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
           cidrMask: 24,
