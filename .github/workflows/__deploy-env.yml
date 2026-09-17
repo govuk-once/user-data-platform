@@ -9,7 +9,7 @@ on:
         type: string
         default: ''
       stack-prefix:
-        description: 'CFN stack prefix (e.g. dev, stag)'
+        description: 'CFN stack prefix (e.g. dev, stag, pr-123-dev)'
         required: true
         type: string
       nx-target:
@@ -17,11 +17,22 @@ on:
         required: true
         type: string
       version:
-        description: 'Base semver to write into package.json (e.g. 1.2.4)'
-        required: true
+        description: 'Base semver to write into package.json (e.g. 1.2.4). Leave empty to keep the committed version.'
+        required: false
         type: string
+        default: ''
       prerelease-tag:
         description: 'If set, package.json version becomes <version>-<prerelease-tag>.<shortSha>'
+        required: false
+        type: string
+        default: ''
+      developer-id:
+        description: 'DEVELOPER_ID for isolated stacks (e.g. pr-123). Leave empty for shared environments.'
+        required: false
+        type: string
+        default: ''
+      ref:
+        description: 'Git ref to deploy. Defaults to github.ref_name.'
         required: false
         type: string
         default: ''
@@ -55,7 +66,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy to ${{ inputs.environment }}
+    name: Deploy to ${{ inputs.environment || inputs.stack-prefix }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     outputs:
@@ -65,24 +76,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.ref || github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm
-          pnpm install
-
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ inputs.node-version }}
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
         id: aws-creds
@@ -93,15 +96,14 @@ jobs:
           output-credentials: true
 
       - name: Set package version
+        if: inputs.version != ''
         env:
           VERSION: ${{ inputs.version }}
           PRERELEASE_TAG: ${{ inputs.prerelease-tag }}
           SHA: ${{ github.sha }}
         run: |
-          echo "FINAL_VERSION in else: ${FINAL_VERSION}"
           if [ -n "${PRERELEASE_TAG}" ]; then
-            SHORT_SHA="${SHA:0:7}"
-            FINAL_VERSION="${VERSION}-${PRERELEASE_TAG}.${SHORT_SHA}"
+            FINAL_VERSION="${VERSION}-${PRERELEASE_TAG}.${SHA:0:7}"
           else
             FINAL_VERSION="${VERSION}"
           fi
@@ -111,22 +113,13 @@ jobs:
       - name: Deploy CDK stack
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
+          DEVELOPER_ID: ${{ inputs.developer-id }}
           NX_TARGET: ${{ inputs.nx-target }}
         run: npx nx run "${NX_TARGET}"
 
       - name: Get Stack outputs
         id: get-outputs
-        if: ${{ inputs.expose-outputs }}
-        working-directory: cdk
-        env:
-          STACK_NAME: ${{ inputs.stack-prefix }}-e2e
-        run: |
-          CODEBUILD_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='CodeBuildProjectName'].OutputValue" --output text)
-          echo "codebuild-project=${CODEBUILD_PROJECT}" >> $GITHUB_OUTPUT
-          echo "Codebuild Project: ${CODEBUILD_PROJECT}"
-          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
-          echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
-          echo "Source Bucket: ${SOURCE_BUCKET}"
-          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
-          echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
-          echo "Source Path: ${SOURCE_PATH}"
+        if: inputs.expose-outputs
+        uses: ./.github/actions/e2e-stack-outputs
+        with:
+          stack-name: ${{ inputs.stack-prefix }}-e2e
