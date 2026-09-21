@@ -3,6 +3,7 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
+import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 
 export interface VpcStackProps extends StackProps {
   readonly environment: string;
@@ -49,6 +50,10 @@ export class VpcStack extends Stack {
     this.executeApiEndpointId = vpcConstuct.executeApiEndpoint.vpcEndpointId;
     this.codeBuildSecurityGroup = vpcConstuct.codebuildSecurityGroup;
     this.dynamoDbEndpointUrl = vpcConstuct.dynamoDbEndpointUrl;
+
+    if (environment === GovUkOnceEnvironments.Prod) {
+      this.exportValue(this.vpc.vpcId);
+    }
 
     new CfnOutput(this, 'VpcIdOutput', {
       value: this.vpc.vpcId,
