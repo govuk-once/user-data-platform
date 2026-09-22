@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
+  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 
 export interface VpcConstructProps {
@@ -210,7 +211,10 @@ export class VpcConstruct extends Construct {
     this.codebuildSecurityGroup = new ec2.SecurityGroup(this, 'CodeBuildSG', {
       vpc: this.vpc,
       securityGroupName: `codebuild-sg-${this.environment}`,
-      description: 'Security group for CodeBuild with NAT gateway access', // Keep the existing description to avoid replacing the named security group during prod deployment.
+      description:
+        this.environment === GovUkOnceEnvironments.Prod
+          ? 'Security group for CodeBuild with NAT gateway access' // Keep the existing description to avoid replacing the named security group during prod deployment.
+          : 'Security group for CodeBuild e2e, outbound to VPC endpoints only',
       allowAllOutbound: false,
     });
 
