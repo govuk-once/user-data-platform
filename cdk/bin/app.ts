@@ -132,7 +132,7 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: mainStack.lambdas,
+      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
       notificationEmails: [],
       kmsKeyAlias,
     },

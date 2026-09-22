@@ -98,12 +98,12 @@ export class MainStack extends Stack {
 
     // Filter out SAR / DSAR routes based on env !== prod
     let routes: RoutesConfig = _routes;
-    const isProd = environment === GovUkOnceEnvironments.Prod;
-    if (isProd) {
-      routes = Object.fromEntries(
-        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
-      );
-    }
+    // const isProd = environment === GovUkOnceEnvironments.Prod;
+    // if (isProd) {
+    //   routes = Object.fromEntries(
+    //     Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
+    //   );
+    // }
 
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
