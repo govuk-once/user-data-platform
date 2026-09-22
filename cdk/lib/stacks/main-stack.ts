@@ -23,7 +23,7 @@ import { MacieAccess } from '../macie/macie-access';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
-import { routes as _routes, type RouteConfig } from '@libs/utils';
+import { routes } from '@libs/utils';
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
@@ -41,9 +41,6 @@ import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
-import { GovUkOnceEnvironments } from '../../constants/environment';
-
-type RoutesConfig = Record<string, RouteConfig>;
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -97,13 +94,13 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    const isProd = environment === GovUkOnceEnvironments.Prod;
-    let routes: RoutesConfig = _routes;
-    if (isProd) {
-      routes = Object.fromEntries(
-        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
-      );
-    }
+    // let routes: RoutesConfig = _routes;
+    // const isProd = environment === GovUkOnceEnvironments.Prod;
+    // if (isProd) {
+    //   routes = Object.fromEntries(
+    //     Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
+    //   );
+    // }
 
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
@@ -219,7 +216,6 @@ export class MainStack extends Stack {
       developerId,
       environment,
       kmsConstruct.key,
-      routes,
     );
 
     this.lambdas = this.createLambdaFunctions({
@@ -235,7 +231,6 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
-      routes,
       dynamoDbEndpointUrl,
     });
 
@@ -329,7 +324,6 @@ export class MainStack extends Stack {
     developerId: string | undefined,
     environment: string,
     kmsKey: kms.IKey,
-    routes: RoutesConfig,
   ): Map<string, sqs.Queue> {
     const eventQueueNames = [
       ...new Set(
@@ -369,7 +363,6 @@ export class MainStack extends Stack {
     vpc: ec2.IVpc | undefined;
     lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
     cachingEnabled: boolean;
-    routes: RoutesConfig;
     dynamoDbEndpointUrl?: string;
   }): lambda.Function[] {
     const {
@@ -385,7 +378,6 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
-      routes,
       dynamoDbEndpointUrl,
     } = params;
 
