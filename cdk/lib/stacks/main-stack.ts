@@ -23,7 +23,7 @@ import { MacieAccess } from '../macie/macie-access';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
-import { routes as _routes, type RouteConfig } from '@libs/utils';
+import { routes, type RouteConfig } from '@libs/utils';
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
@@ -96,7 +96,7 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    let routes: RoutesConfig = _routes;
+    // let routes: RoutesConfig = _routes;
     // const isProd = environment === GovUkOnceEnvironments.Prod;
     // if (isProd) {
     //   routes = Object.fromEntries(
@@ -218,7 +218,6 @@ export class MainStack extends Stack {
       developerId,
       environment,
       kmsConstruct.key,
-      routes,
     );
 
     this.lambdas = this.createLambdaFunctions({
@@ -234,7 +233,6 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
-      routes,
       dynamoDbEndpointUrl,
     });
 
@@ -328,7 +326,6 @@ export class MainStack extends Stack {
     developerId: string | undefined,
     environment: string,
     kmsKey: kms.IKey,
-    routes: RoutesConfig,
   ): Map<string, sqs.Queue> {
     const eventQueueNames = [
       ...new Set(
@@ -368,7 +365,6 @@ export class MainStack extends Stack {
     vpc: ec2.IVpc | undefined;
     lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
     cachingEnabled: boolean;
-    routes: RoutesConfig;
     dynamoDbEndpointUrl?: string;
   }): lambda.Function[] {
     const {
@@ -384,7 +380,6 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       cachingEnabled,
-      routes,
       dynamoDbEndpointUrl,
     } = params;
 
