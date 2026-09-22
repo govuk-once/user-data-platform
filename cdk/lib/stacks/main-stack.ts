@@ -97,8 +97,8 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    const isProd = environment === GovUkOnceEnvironments.Prod;
     let routes: RoutesConfig = _routes;
+    const isProd = environment === GovUkOnceEnvironments.Prod;
     if (isProd) {
       routes = Object.fromEntries(
         Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
