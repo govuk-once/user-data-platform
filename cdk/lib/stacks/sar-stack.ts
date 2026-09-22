@@ -11,7 +11,10 @@ import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
 import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
 import { S3Construct } from 'cdk/lib/constructs/s3-construct';
-import { getLogRetentionPeriod } from 'cdk/constants/environment';
+import {
+  getLogRetentionPeriod,
+  GovUkOnceEnvironments,
+} from 'cdk/constants/environment';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -51,6 +54,9 @@ export class SarStack extends Stack {
       deploymentRoleArn,
       dynamoDbEndpointUrl,
     } = props;
+
+    // Needed to stop SQS bind errors in prod until SAR stack is fully removed.
+    const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 
     const sarName = developerId
       ? `${developerId}-sar-${environment}`
@@ -97,9 +103,11 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    dsarRequestLambda.function.addEventSource(
-      new SqsEventSource(dsarQueue, { batchSize: 1 }),
-    );
+    if (isNotProd) {
+      dsarRequestLambda.function.addEventSource(
+        new SqsEventSource(dsarQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarRequestLambda.function);
 
@@ -130,9 +138,11 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    dsarDeleteLambda.function.addEventSource(
-      new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
-    );
+    if (isNotProd) {
+      dsarDeleteLambda.function.addEventSource(
+        new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarDeleteLambda.function);
 
@@ -182,10 +192,12 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    // Add sarQueue as event source for createSarFile lambda
-    createSarFileLambda.function.addEventSource(
-      new SqsEventSource(sarQueue, { batchSize: 1 }),
-    );
+    if (isNotProd) {
+      // Add sarQueue as event source for createSarFile lambda
+      createSarFileLambda.function.addEventSource(
+        new SqsEventSource(sarQueue, { batchSize: 1 }),
+      );
+    }
 
     // Grant S3 write permissions to the lambda
     this.sarBucket.grantWrite(createSarFileLambda.function);
