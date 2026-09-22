@@ -51,6 +51,9 @@ export class VpcStack extends Stack {
     this.codeBuildSecurityGroup = vpcConstuct.codebuildSecurityGroup;
     this.dynamoDbEndpointUrl = vpcConstuct.dynamoDbEndpointUrl;
 
+    // Temporary migration safeguard: the currently deployed prod-sar stack
+    // still imports this CDK-generated VPC ID export.
+    // Remove once prod-sar has been updated and no longer imports it.
     if (environment === GovUkOnceEnvironments.Prod) {
       this.exportValue(this.vpc.vpcId);
     }

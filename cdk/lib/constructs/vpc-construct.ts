@@ -210,8 +210,7 @@ export class VpcConstruct extends Construct {
     this.codebuildSecurityGroup = new ec2.SecurityGroup(this, 'CodeBuildSG', {
       vpc: this.vpc,
       securityGroupName: `codebuild-sg-${this.environment}`,
-      description:
-        'Security group for CodeBuild e2e, outbound to VPC endpoints only',
+      description: 'Security group for CodeBuild with NAT gateway access', // Keep the existing description to avoid replacing the named security group during prod deployment.
       allowAllOutbound: false,
     });
 
