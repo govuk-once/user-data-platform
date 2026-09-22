@@ -41,7 +41,6 @@ import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
-import { GovUkOnceEnvironments } from '../../constants/environment';
 
 type RoutesConfig = Record<string, RouteConfig>;
 
