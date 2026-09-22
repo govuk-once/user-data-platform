@@ -69,8 +69,8 @@ export class MainStack extends Stack {
   public readonly lambdas: lambda.Function[];
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
-  public readonly dsarQueue: sqs.Queue;
-  public readonly sarQueue: sqs.Queue;
+  public readonly dsarQueue?: sqs.Queue;
+  public readonly sarQueue?: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
