@@ -23,7 +23,7 @@ import { MacieAccess } from '../macie/macie-access';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
-import { routes, type RouteConfig } from '@libs/utils';
+import { routes } from '@libs/utils';
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
