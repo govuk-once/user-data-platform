@@ -42,8 +42,6 @@ import {
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
 
-type RoutesConfig = Record<string, RouteConfig>;
-
 export interface MainStackProps extends StackProps {
   developerId?: string;
   environment: string;
