@@ -180,6 +180,22 @@ export class MonitoringStack extends Stack {
     });
     this.addLambdaWidgets(lambdas);
 
+    if (consumerReconciler) {
+      new cloudwatch.Alarm(this, 'ConsumerReconcilerErrors', {
+        alarmName: `${resourcePrefix}-consumer-reconcailer-errors`,
+        alarmDescription:
+          'Consumer reconciler failed: an external consumer changed in params repo has not been applied',
+        metric: consumerReconciler.metricErrors({
+          period: Duration.minutes(5),
+        }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }).addAlarmAction({
+        bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
+      });
+    }
+
     this.performanceDashboard = this.createPerformanceDashboard(
       resourcePrefix,
       tables,
