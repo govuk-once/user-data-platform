@@ -54,8 +54,6 @@ const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
-let sarStack = undefined;
-
 // Skip main stack until VPC is deployed
 if (!skipMainStack) {
   // Macie stack and Aspect
@@ -83,25 +81,24 @@ if (!skipMainStack) {
 
   mainStack.node.addDependency(vpcStack);
 
-  if (isNotProd) {
-    // SAR stack
-    sarStack = new SarStack(app, `${stackPrefix}-sar`, {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `DSAR procession stack ${stackDescription}`,
-      table: mainStack.table,
-      identityTable: mainStack.identityTable,
-      kmsKey: mainStack.kmsKey,
-      dbKmsKey: mainStack.dbKmsKey,
-      dsarQueue: mainStack.dsarQueue,
-      sarQueue: mainStack.sarQueue,
-      vpc: vpcStack.vpc,
-      lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
-      deploymentRoleArn,
-      dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
-    });
+  // SAR stack
+  const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DSAR procession stack ${stackDescription}`,
+    table: mainStack.table,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    ...(mainStack.dsarQueue && { dsarQueue: mainStack.dsarQueue }),
+    ...(mainStack.sarQueue && { sarQueue: mainStack.sarQueue }),
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+    deploymentRoleArn,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+  });
 
     sarStack.node.addDependency(mainStack);
   }
@@ -136,15 +133,13 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [...mainStack.lambdas, ...(sarStack ? sarStack.lambdas : [])],
+      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
       notificationEmails: [],
-      kmsKeyAlias,
+      kmsKey: mainStack.kmsKey,
     },
   );
 
-  if (sarStack) {
-    monitoringStack.node.addDependency(sarStack);
-  }
+  monitoringStack.node.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {

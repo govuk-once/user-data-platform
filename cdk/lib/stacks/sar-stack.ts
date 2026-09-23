@@ -21,8 +21,8 @@ export interface SarStackProps extends StackProps {
   identityTable: Table;
   kmsKey: IKey;
   dbKmsKey: IKey;
-  dsarQueue: Queue;
-  sarQueue: Queue;
+  dsarQueue?: Queue;
+  sarQueue?: Queue;
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
@@ -97,9 +97,11 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    dsarRequestLambda.function.addEventSource(
-      new SqsEventSource(dsarQueue, { batchSize: 1 }),
-    );
+    if (dsarQueue) {
+      dsarRequestLambda.function.addEventSource(
+        new SqsEventSource(dsarQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarRequestLambda.function);
 
@@ -130,9 +132,11 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    dsarDeleteLambda.function.addEventSource(
-      new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
-    );
+    if (dsarQueue) {
+      dsarDeleteLambda.function.addEventSource(
+        new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarDeleteLambda.function);
 
@@ -182,10 +186,11 @@ export class SarStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    // Add sarQueue as event source for createSarFile lambda
-    createSarFileLambda.function.addEventSource(
-      new SqsEventSource(sarQueue, { batchSize: 1 }),
-    );
+    if (sarQueue) {
+      createSarFileLambda.function.addEventSource(
+        new SqsEventSource(sarQueue, { batchSize: 1 }),
+      );
+    }
 
     // Grant S3 write permissions to the lambda
     this.sarBucket.grantWrite(createSarFileLambda.function);

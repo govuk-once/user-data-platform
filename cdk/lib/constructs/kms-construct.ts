@@ -81,7 +81,7 @@ export class KmsConstruct extends Construct {
           'kms:Decrypt*',
           'kms:ReEncrypt*',
           'kms:GenerateDataKey*',
-          'kma:Describe*',
+          'kms:Describe*',
         ],
         resources: ['*'],
         conditions: {
@@ -97,7 +97,7 @@ export class KmsConstruct extends Construct {
         sid: 'AllowCloudwatchAlarms',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('cloudwatch.amazonaws.com')],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );
@@ -107,7 +107,7 @@ export class KmsConstruct extends Construct {
         sid: 'AllowSNSService',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('sns.amazonaws.com')],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );
