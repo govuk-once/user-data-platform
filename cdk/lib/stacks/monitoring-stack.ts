@@ -21,7 +21,7 @@ export interface MonitorStackProps extends StackProps {
   readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
-  readonly kmsKeyAlias: string;
+  readonly kmsKey: kms.IKey;
 }
 
 const mapEnvironments = {
@@ -48,14 +48,12 @@ export class MonitoringStack extends Stack {
       lambdas,
       notificationEmails = [],
       stackPrefix,
-      kmsKeyAlias,
+      kmsKey,
     } = props;
 
     const resourcePrefix = developerId
       ? `${developerId}-${environment}`
       : environment;
-
-    const kmsKey = kms.Alias.fromAliasName(this, 'KmsKeyAlias', kmsKeyAlias);
 
     this.criticalTopic = new sns.Topic(this, 'CriticalTopic', {
       topicName: `${resourcePrefix}-critical-alarms`,
