@@ -100,8 +100,7 @@ if (!skipMainStack) {
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
-    sarStack.node.addDependency(mainStack);
-  }
+  sarStack.node.addDependency(mainStack);
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
     developerId,
