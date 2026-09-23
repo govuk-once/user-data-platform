@@ -134,7 +134,7 @@ if (!skipMainStack) {
       api: mainStack.api,
       lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
       notificationEmails: [],
-      kmsKeyAlias,
+      kmsKey: mainStack.kmsKey,
     },
   );
 
