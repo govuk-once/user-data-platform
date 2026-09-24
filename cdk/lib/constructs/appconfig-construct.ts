@@ -109,6 +109,6 @@ export class AppConfigConstruct extends Construct {
       description: `Deploy feature flags to ${environment}`,
     });
 
-    this.deployment.addDependency(this.hostedConfigurationVersion);
+    this.deployment.node.addDependency(this.hostedConfigurationVersion);
   }
 }
