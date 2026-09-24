@@ -36,7 +36,7 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   getLogRetentionPeriod,
-  GovUkOnceEnvironments,
+  // GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,
