@@ -21,7 +21,8 @@ const environment = app.node.tryGetContext('env') || 'dev';
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
 const isStageOrProd =
-  environment === GovUkOnceEnvironments.Prod || GovUkOnceEnvironments.Stag;
+  environment === GovUkOnceEnvironments.Prod ||
+  environment === GovUkOnceEnvironments.Stag;
 const developerId = process.env.DEVELOPER_ID!;
 
 // AWS Env

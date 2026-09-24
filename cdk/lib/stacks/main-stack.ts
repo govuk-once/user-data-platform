@@ -528,7 +528,8 @@ export class MainStack extends Stack {
   private setRoutes(environment: string): RoutesConfig {
     let routes: RoutesConfig = _routes;
     const isStageOrProd =
-      environment === GovUkOnceEnvironments.Prod || GovUkOnceEnvironments.Stag;
+      environment === GovUkOnceEnvironments.Prod ||
+      environment === GovUkOnceEnvironments.Stag;
     if (isStageOrProd) {
       routes = Object.fromEntries(
         Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
