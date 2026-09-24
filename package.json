@@ -47,7 +47,7 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
     "k6": "^0.0.0",
-    "nx": "22.3.3",
+    "nx": "22.7.2",
     "prettier": "3.6.2",
     "semantic-release": "^25.0.5",
     "ts-node": "10.9.2",
