@@ -84,6 +84,14 @@
         "command": "npx cdk bootstrap",
         "cwd": "cdk"
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["cdk/**/*.{ts,js}"],
+        "eslintConfig": ".eslintrc.json"
+      },
+      "cache": true
     }
   }
 }
