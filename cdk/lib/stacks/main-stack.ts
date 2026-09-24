@@ -527,6 +527,7 @@ export class MainStack extends Stack {
    */
   private setRoutes(environment: string): RoutesConfig {
     let routes: RoutesConfig = _routes;
+    return routes;
     const isStageOrProd =
       environment === GovUkOnceEnvironments.Prod ||
       environment === GovUkOnceEnvironments.Stag;
