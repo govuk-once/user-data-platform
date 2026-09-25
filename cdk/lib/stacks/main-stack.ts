@@ -36,7 +36,6 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   getLogRetentionPeriod,
-  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,
@@ -97,7 +96,7 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    const routes = this.setRoutes(environment);
+    const routes = this.setRoutes();
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 
@@ -345,6 +344,8 @@ export class MainStack extends Stack {
         encryptionMasterKey: kmsKey,
       });
       eventQueues.set(eventQueueName, queue);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(queue.queueArn);
     }
     return eventQueues;
   }
@@ -423,6 +424,8 @@ export class MainStack extends Stack {
       });
 
       lambdasList.push(lambdaConstruct.function);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(lambdaConstruct.function.functionName);
     }
     return lambdasList;
   }
@@ -525,18 +528,17 @@ export class MainStack extends Stack {
    * @param environment string
    * @returns RoutesConfig
    */
-  private setRoutes(environment: string): RoutesConfig {
-    let routes: RoutesConfig = _routes;
-    const isStageOrProd =
-      environment === GovUkOnceEnvironments.Prod ||
-      environment === GovUkOnceEnvironments.Stag;
-
-    if (isStageOrProd) {
-      routes = Object.fromEntries(
-        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
-      );
-    }
-
+  private setRoutes(): RoutesConfig {
+    const routes: RoutesConfig = _routes;
     return routes;
+    // const isStageOrProd =
+    //   environment === GovUkOnceEnvironments.Prod ||
+    //   environment === GovUkOnceEnvironments.Stag;
+    // if (isStageOrProd) {
+    //   routes = Object.fromEntries(
+    //     Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
+    //   );
+    // }
+    // return routes;
   }
 }
