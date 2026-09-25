@@ -9,6 +9,7 @@ import {
   E2EStack,
   PerfStack,
 } from 'cdk/lib/stacks';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { Macie } from 'cdk/lib/macie';
@@ -123,6 +124,16 @@ if (!skipMainStack) {
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
+  const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
+    const lambda = l as unknown as lambda.IFunction & {
+      _givenPhysicalName: string;
+    };
+    return (
+      !lambda._givenPhysicalName.startsWith('startDsar') &&
+      !lambda._givenPhysicalName.startsWith('startSar') &&
+      !lambda._givenPhysicalName.startsWith('getSarStatus')
+    );
+  });
 
   const monitoringStack = new MonitoringStack(
     app,
@@ -135,10 +146,7 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [
-        ...mainStack.lambdas,
-        ...(isStageOrProd ? [] : sarStack.lambdas),
-      ],
+      lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
       kmsKey: mainStack.kmsKey,
     },

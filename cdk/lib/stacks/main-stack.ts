@@ -97,7 +97,8 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    const routes = this.setRoutes(environment);
+    // const routes = this.setRoutes(environment);
+    const routes = this.setAllRoutes();
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 
@@ -402,6 +403,7 @@ export class MainStack extends Stack {
         identityDbActions: route.identityTableActions ?? ['dynamodb:GetItem'],
         dynamoDbActions: route.dynamoDbActions ?? ['dynamodb:GetItem'],
         api,
+        disableRoute: route.disableRoute ?? false,
         httpMethod: route.method,
         routePath: route.path,
         environmentVariables: {
@@ -541,6 +543,11 @@ export class MainStack extends Stack {
       );
     }
 
+    return routes;
+  }
+
+  private setAllRoutes(): RoutesConfig {
+    const routes: RoutesConfig = _routes;
     return routes;
   }
 }
