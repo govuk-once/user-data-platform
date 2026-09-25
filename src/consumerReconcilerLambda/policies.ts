@@ -1,8 +1,3 @@
-// Pure builders for every policy document and secret payload the reconciler
-// owns. The shapes deliberately mirror what the CDK constructs produced
-// (iam-consumer-construct, consumer-config-construct, api-gateway-construct)
-// so that adopting resources created by CloudFormation is a no-op.
-
 import type { Consumer, Permission } from './consumers';
 
 export interface PolicyStatement {
@@ -227,7 +222,9 @@ export function consumerSecretValue({
 type Json = Record<string, unknown>;
 
 const toSortedArray = (v: unknown, map: (s: string) => string = (s) => s) =>
-  [...new Set((Array.isArray(v) ? v : [v]).map((x) => map(String(x))))].sort();
+  [...new Set((Array.isArray(v) ? v : [v]).map((x) => map(String(x))))].sort(
+    (a, b) => a.localeCompare(b),
+  );
 
 export function parsePolicy(
   raw: string | PolicyDocument | undefined,
@@ -306,7 +303,9 @@ export function normalizePolicy(
     });
   });
 
-  return JSON.stringify([...new Set(statements)].sort());
+  return JSON.stringify(
+    [...new Set(statements)].sort((a, b) => a.localeCompare(b)),
+  );
 }
 
 const toArray = (v: unknown): unknown[] =>
