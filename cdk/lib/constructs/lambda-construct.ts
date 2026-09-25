@@ -39,6 +39,7 @@ export interface LambdaApiConstructProps {
   readonly reservedConcurrentExecutions?: number;
   readonly checkovSuppressAWS116?: boolean;
   readonly cachingEnabled?: boolean;
+  readonly disableRoute?: boolean;
 }
 
 interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
@@ -123,9 +124,10 @@ export class LambdaApiConstruct extends Construct {
   }
 
   private configureApiRoute(): void {
-    const { api, routePath, httpMethod, cachingEnabled } = this.props;
+    const { api, routePath, httpMethod, cachingEnabled, disableRoute } =
+      this.props;
 
-    if (!api || !routePath || !httpMethod) {
+    if (disableRoute || !api || !routePath || !httpMethod) {
       return;
     }
 
