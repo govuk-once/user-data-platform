@@ -139,6 +139,7 @@ if (!skipMainStack) {
         ...mainStack.lambdas,
         ...(isStageOrProd ? [] : sarStack.lambdas),
       ],
+      consumerReconciler: mainStack.consumerReconciler?.function,
       notificationEmails: [],
       kmsKey: mainStack.kmsKey,
     },
