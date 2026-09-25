@@ -236,11 +236,5 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(generateSarPresignedUrlLambda.function);
-
-    // Retain exports while monitoring still imports them.
-    // Remove once monitoring no longer references these lambdas.
-    for (const fn of this.lambdas) {
-      this.exportValue(fn.functionName);
-    }
   }
 }

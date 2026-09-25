@@ -344,6 +344,8 @@ export class MainStack extends Stack {
         encryptionMasterKey: kmsKey,
       });
       eventQueues.set(eventQueueName, queue);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(queue.queueArn);
     }
     return eventQueues;
   }
@@ -422,6 +424,8 @@ export class MainStack extends Stack {
       });
 
       lambdasList.push(lambdaConstruct.function);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(lambdaConstruct.function.functionName);
     }
     return lambdasList;
   }
