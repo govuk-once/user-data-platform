@@ -92,6 +92,16 @@ repos:
         stages:
           - pre-commit
 
+      # Validate GPG signatures on all commits ahead of origin/main
+      - id: check-commit-signatures
+        name: Check Commit Signatures
+        entry: bash scripts/check-commit-signatures.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages:
+          - pre-push
+
       # Build all
       - id: build-all
         name: Build All
