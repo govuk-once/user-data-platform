@@ -71,6 +71,7 @@ jobs:
   deploy-staging:
     name: Deploy to staging
     needs: [e2e-dev, version]
+    if: false
     uses: ./.github/workflows/__deploy-env.yml
     with:
       environment: staging
