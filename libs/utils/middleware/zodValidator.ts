@@ -71,7 +71,7 @@ export function zodValidator(
   logger: Logger,
 ): MiddlewareObj<APIGatewayProxyEventV2> {
   return {
-    before: async (request: APIGatewayRequest) => {
+    before: (request: APIGatewayRequest) => {
       const schemas = getValidationSchemas(lambdaName);
       try {
         if (schemas.pathParameters) {
@@ -116,7 +116,7 @@ export function zodValidator(
         );
       }
     },
-    after: async (request: APIGatewayRequest) => {
+    after: (request: APIGatewayRequest) => {
       const schemas = getValidationSchemas(lambdaName);
       try {
         if (schemas.responses) {
