@@ -34,7 +34,7 @@ const sanitiseObject = (
 
 export function responseSanitiser(options: SanitiseOptions): MiddlewareObj {
   return {
-    after: async (request) => {
+    after: (request) => {
       const response = request.response;
       if (!response || !('body' in response)) return;
 

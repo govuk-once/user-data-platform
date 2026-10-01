@@ -62,7 +62,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })

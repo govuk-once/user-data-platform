@@ -55,98 +55,102 @@ function sanitizeDataRecord(record: {
 }
 
 export const lambdaHandler = async (event: SQSEvent) => {
-  for (const record of event.Records) {
-    let sarID: string;
-    let serviceName: string;
-    let serviceUserId: string;
+  await Promise.all(
+    event.Records.map(async (record) => {
+      let sarID = '';
+      let serviceName = '';
+      let serviceUserId = '';
 
-    try {
-      const messageBody = JSON.parse(record.body);
-      sarID = messageBody.sarID;
-      serviceName = messageBody.serviceName;
-      serviceUserId = messageBody.serviceUserId;
+      try {
+        const messageBody = JSON.parse(record.body);
+        sarID = messageBody.sarID;
+        serviceName = messageBody.serviceName;
+        serviceUserId = messageBody.serviceUserId;
 
-      logger.info('Processing SAR request', {
-        sarID,
-        serviceName,
-        serviceUserId,
-      });
+        logger.info('Processing SAR request', {
+          sarID,
+          serviceName,
+          serviceUserId,
+        });
 
-      // Step 1: Get the identity record to fetch the udpId
-      const identity = await factory
-        .getService('identity')
-        .getByServiceId(serviceName, serviceUserId);
+        // Step 1: Get the identity record to fetch the udpId
+        const identity = await factory
+          .getService('identity')
+          .getByServiceId(serviceName, serviceUserId);
 
-      const udpId = identity.udpId;
+        const udpId = identity.udpId;
 
-      logger.info('Retrieved udpId from identity', { sarID, udpId });
+        logger.info('Retrieved udpId from identity', { sarID, udpId });
 
-      // Step 2: Query all data records for this udpId
-      const dataRecords = await factory.getService('data').getAllByUdpID(udpId);
+        // Step 2: Query all data records for this udpId
+        const dataRecords = await factory
+          .getService('data')
+          .getAllByUdpID(udpId);
 
-      logger.info('Retrieved data records', {
-        sarID,
-        udpId,
-        recordCount: dataRecords.length,
-      });
+        logger.info('Retrieved data records', {
+          sarID,
+          udpId,
+          recordCount: dataRecords.length,
+        });
 
-      // Step 3: Sanitize the data records
-      const sanitizedRecords = dataRecords.map(sanitizeDataRecord);
+        // Step 3: Sanitize the data records
+        const sanitizedRecords = dataRecords.map(sanitizeDataRecord);
 
-      // Step 4: Create JSON blob
-      const jsonBlob = JSON.stringify(sanitizedRecords, null, 2);
+        // Step 4: Create JSON blob
+        const jsonBlob = JSON.stringify(sanitizedRecords, null, 2);
 
-      // Step 5: Store in S3
-      const s3Key = `${sarID}.json`;
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: s3Key,
-          Body: jsonBlob,
-          ContentType: 'application/json',
-          ServerSideEncryption: 'aws:kms',
-          Metadata: {
-            udpid: udpId,
-            sarid: sarID,
-          },
-        }),
-      );
+        // Step 5: Store in S3
+        const s3Key = `${sarID}.json`;
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: s3Key,
+            Body: jsonBlob,
+            ContentType: 'application/json',
+            ServerSideEncryption: 'aws:kms',
+            Metadata: {
+              udpid: udpId,
+              sarid: sarID,
+            },
+          }),
+        );
 
-      logger.info('SAR file created successfully', {
-        sarID,
-        udpId,
-        s3Key,
-        recordCount: sanitizedRecords.length,
-      });
+        logger.info('SAR file created successfully', {
+          sarID,
+          udpId,
+          s3Key,
+          recordCount: sanitizedRecords.length,
+        });
 
-      tracer.putAnnotation('sarFileCreated', true);
-    } catch (error) {
-      logger.error('Error processing SAR request', {
-        error,
-        sarID,
-        serviceName,
-        serviceUserId,
-      });
+        tracer.putAnnotation('sarFileCreated', true);
+      } catch (error) {
+        logger.error('Error processing SAR request', {
+          error,
+          sarID,
+          serviceName,
+          serviceUserId,
+        });
 
-      // Send message to DLQ
-      await sqsClient.send(
-        new SendMessageCommand({
-          QueueUrl: DLQ_URL,
-          MessageBody: record.body,
-        }),
-      );
+        // Send message to DLQ
+        await sqsClient.send(
+          new SendMessageCommand({
+            QueueUrl: DLQ_URL,
+            MessageBody: record.body,
+          }),
+        );
 
-      logger.info('Message sent to DLQ', { sarID });
-      tracer.putAnnotation('sarFileFailed', true);
-    }
-  }
+        logger.info('Message sent to DLQ', { sarID });
+        tracer.putAnnotation('sarFileFailed', true);
+      }
+    }),
+  );
 };
 
 export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })
