@@ -44,7 +44,7 @@ For reliable performance testing, you can pre-seed the DynamoDB tables with real
 Batch writes test data to `udp-identity` and `udp-data` tables:
 
 ```bash
-npx nx run @test/e2e:seed-data
+pnpm --dir e2e:seed-data
 ```
 
 **Environment Variables:**
@@ -56,7 +56,7 @@ npx nx run @test/e2e:seed-data
 **Example with custom values:**
 
 ```bash
-SEED_IDENTITY_COUNT=5000 SEED_DATA_COUNT=25000 TEST_PREFIX=perf-test npx nx run @test/e2e:seed-data
+SEED_IDENTITY_COUNT=5000 SEED_DATA_COUNT=25000 TEST_PREFIX=perf-test pnpm seed-data
 ```
 
 ### Cleanup Data
@@ -64,7 +64,7 @@ SEED_IDENTITY_COUNT=5000 SEED_DATA_COUNT=25000 TEST_PREFIX=perf-test npx nx run 
 Scans tables for records matching the test prefix and removes them:
 
 ```bash
-npx nx run @test/e2e:cleanup-data
+pnpm leanup-data
 ```
 
 **Environment Variables:**
@@ -74,17 +74,17 @@ npx nx run @test/e2e:cleanup-data
 **Example:**
 
 ```bash
-TEST_PREFIX=perf-test npx nx run @test/e2e:cleanup-data
+TEST_PREFIX=perf-test pnpm cleanup-data
 ```
 
 ## Running Tests
 
 ```bash
 # Run all E2E tests
-npx nx run @test/e2e:e2e
+pnpm e2e
 
 # Run with specific tags
-npx nx run @test/e2e:e2e --tags "@smoke"
+pnpm e2e --tags "@smoke"
 ```
 
 ## Test Isolation
