@@ -20,7 +20,7 @@ phases:
   build:
     commands:
       - echo "Running Performance tests"
-      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
+      - npm --prefix performance run "${PERF_TARGET:-smoke}"
       - echo "Performance tests completed"
 
   post_build:

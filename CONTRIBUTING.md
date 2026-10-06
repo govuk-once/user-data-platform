@@ -155,7 +155,7 @@ A unique developer ID is **auto-generated** from your git email and username:
 
 ```bash
 # Deploy your own isolated environment
-npx nx run @test/e2e:deploy-and-test
+pnpm e2e:deploy-and-test
 ```
 
 This creates a complete stack with your developer ID prefix, ensuring no conflicts with other developers.

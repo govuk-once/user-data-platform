@@ -5,10 +5,6 @@
 package-lock.json
 pnpm-lock.yaml
 dist
-.nx
-
-/.nx/cache
-/.nx/workspace-data
 
 cdk/cdk.out/
 cdk/**/cdk.out/

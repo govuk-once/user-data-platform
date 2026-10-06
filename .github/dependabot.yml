@@ -27,10 +27,6 @@ updates:
           - aws-cdk-lib
           - cdk-nag
           - constructs
-      nx:
-        patterns:
-          - nx
-          - '@nx/*'
       production:
         dependency-type: production
       development:

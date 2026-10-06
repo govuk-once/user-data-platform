@@ -12,8 +12,8 @@ on:
         description: 'CFN stack prefix (e.g. dev, stag)'
         required: true
         type: string
-      nx-target:
-        description: 'nx target to invoke (e.g. cdk:deploy:dev)'
+      deploy-script:
+        description: 'package.json script that builds and deploys the environment'
         required: true
         type: string
       version:
@@ -111,8 +111,8 @@ jobs:
       - name: Deploy CDK stack
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
-          NX_TARGET: ${{ inputs.nx-target }}
-        run: npx nx run "${NX_TARGET}"
+          DEPLOY_SCRIPT: ${{ inputs.deploy-target }}
+        run: pnpm run "${DEPLOY_SCRIPT}"
 
       - name: Get Stack outputs
         id: get-outputs
