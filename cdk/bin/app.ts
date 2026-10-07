@@ -145,7 +145,6 @@ if (!skipMainStack) {
       env: awsEnv,
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
-      api: mainStack.api,
       lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
       kmsKey: mainStack.kmsKey,

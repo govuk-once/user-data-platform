@@ -3,7 +3,6 @@ import { Stack, StackProps, Duration } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -17,7 +16,6 @@ export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
   readonly environment: string;
   readonly table: dynamodb.ITable;
-  readonly api: apigateway.RestApi;
   readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
@@ -44,7 +42,7 @@ export class MonitoringStack extends Stack {
       developerId,
       environment,
       table,
-      api,
+      // api,
       lambdas,
       notificationEmails = [],
       stackPrefix,
@@ -54,6 +52,10 @@ export class MonitoringStack extends Stack {
     const resourcePrefix = developerId
       ? `${developerId}-${environment}`
       : environment;
+
+    const apiName = developerId
+      ? `${developerId}-api-${environment}`
+      : `api-${environment}`;
 
     this.criticalTopic = new sns.Topic(this, 'CriticalTopic', {
       topicName: `${resourcePrefix}-critical-alarms`,
@@ -144,8 +146,8 @@ export class MonitoringStack extends Stack {
     this.createDynamoDBAlarms(table, resourcePrefix);
     this.addDynamoDBWidgets(table);
 
-    this.createApiGatewayAlarms(api, environment, resourcePrefix);
-    this.addApiGatewayWidgets(api, environment);
+    this.createApiGatewayAlarms(apiName, environment, resourcePrefix);
+    this.addApiGatewayWidgets(apiName, environment);
 
     lambdas.forEach((fn, index) => {
       this.createLambdaAlarms(fn, resourcePrefix, index);
@@ -155,7 +157,7 @@ export class MonitoringStack extends Stack {
     this.performanceDashboard = this.createPerformanceDashboard(
       resourcePrefix,
       table,
-      api,
+      apiName,
       environment,
       lambdas,
     );
@@ -249,7 +251,7 @@ export class MonitoringStack extends Stack {
   }
 
   private createApiMetric(
-    api: apigateway.RestApi,
+    apiName: string,
     stage: string,
     metricName: string,
     statistic: string,
@@ -258,7 +260,7 @@ export class MonitoringStack extends Stack {
       namespace: 'AWS/ApiGateway',
       metricName,
       dimensionsMap: {
-        ApiName: api.restApiName,
+        ApiName: apiName,
         Stage: stage,
       },
       period: Duration.minutes(1),
@@ -267,15 +269,15 @@ export class MonitoringStack extends Stack {
   }
 
   private createApiGatewayAlarms(
-    api: apigateway.RestApi,
+    apiName: string,
     stage: string,
     resourcePrefix: string,
   ): void {
     const errorRateMatric = new cloudwatch.MathExpression({
       expression: '(errors / requests) * 100',
       usingMetrics: {
-        errors: this.createApiMetric(api, stage, '5xxError', 'Sum'),
-        requests: this.createApiMetric(api, stage, 'Count', 'Sum'),
+        errors: this.createApiMetric(apiName, stage, '5xxError', 'Sum'),
+        requests: this.createApiMetric(apiName, stage, 'Count', 'Sum'),
       },
       period: Duration.minutes(1),
       label: '%xx Error Rate (%)',
@@ -295,7 +297,7 @@ export class MonitoringStack extends Stack {
     new cloudwatch.Alarm(this, 'ApiGateway4xxErrors', {
       alarmName: `${resourcePrefix}-api-4xx-errors`,
       alarmDescription: 'API Gateway 4xx error rate is high',
-      metric: this.createApiMetric(api, stage, '4xxError', 'Sum'),
+      metric: this.createApiMetric(apiName, stage, '4xxError', 'Sum'),
       threshold: 50,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
@@ -306,7 +308,7 @@ export class MonitoringStack extends Stack {
     new cloudwatch.Alarm(this, 'ApiGatewayLatency', {
       alarmName: `${resourcePrefix}-api-latency`,
       alarmDescription: `API Gateway p99 latency exceeds ${NFR.P95_LATENCY_MS}`,
-      metric: this.createApiMetric(api, stage, 'Latency', 'p95'),
+      metric: this.createApiMetric(apiName, stage, 'Latency', 'p95'),
       threshold: NFR.P95_LATENCY_MS,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
@@ -315,23 +317,23 @@ export class MonitoringStack extends Stack {
     });
   }
 
-  private addApiGatewayWidgets(api: apigateway.RestApi, stage: string): void {
+  private addApiGatewayWidgets(apiName: string, stage: string): void {
     this.dashboard.addWidgets(
       new cloudwatch.GraphWidget({
         title: 'Api Gateway - Requests & Errors',
         left: [
-          this.createApiMetric(api, stage, 'Count', 'Sum'),
-          this.createApiMetric(api, stage, '4xxError', 'Sum'),
-          this.createApiMetric(api, stage, '5xxError', 'Sum'),
+          this.createApiMetric(apiName, stage, 'Count', 'Sum'),
+          this.createApiMetric(apiName, stage, '4xxError', 'Sum'),
+          this.createApiMetric(apiName, stage, '5xxError', 'Sum'),
         ],
         width: 12,
       }),
       new cloudwatch.GraphWidget({
         title: 'Api Gateway - Latency',
         left: [
-          this.createApiMetric(api, stage, 'Latency', 'Average'),
-          this.createApiMetric(api, stage, 'Latency', 'p99'),
-          this.createApiMetric(api, stage, 'IntegrationLatency', 'Average'),
+          this.createApiMetric(apiName, stage, 'Latency', 'Average'),
+          this.createApiMetric(apiName, stage, 'Latency', 'p99'),
+          this.createApiMetric(apiName, stage, 'IntegrationLatency', 'Average'),
         ],
         width: 12,
       }),
@@ -410,7 +412,7 @@ export class MonitoringStack extends Stack {
   private createPerformanceDashboard(
     resourcePrefix: string,
     table: dynamodb.ITable,
-    api: apigateway.RestApi,
+    apiName: string,
     stage: string,
     lambdas: lambda.IFunction[],
   ): cloudwatch.Dashboard {
@@ -443,8 +445,8 @@ export class MonitoringStack extends Stack {
     const errorRateExpression = new cloudwatch.MathExpression({
       expression: '(errors / requests) * 100',
       usingMetrics: {
-        errors: this.createApiMetric(api, stage, '5xxError', 'Sum'),
-        requests: this.createApiMetric(api, stage, 'Count', 'Sum'),
+        errors: this.createApiMetric(apiName, stage, '5xxError', 'Sum'),
+        requests: this.createApiMetric(apiName, stage, 'Count', 'Sum'),
       },
       period: Duration.minutes(1),
       label: '5xx Error Rate (%)',
@@ -462,7 +464,7 @@ export class MonitoringStack extends Stack {
     perfDashboard.addWidgets(
       new cloudwatch.SingleValueWidget({
         title: 'P95 Latency (ms)',
-        metrics: [this.createApiMetric(api, stage, 'Latency', 'p95')],
+        metrics: [this.createApiMetric(apiName, stage, 'Latency', 'p95')],
         width: 8,
         height: 4,
       }),
@@ -474,7 +476,7 @@ export class MonitoringStack extends Stack {
       }),
       new cloudwatch.SingleValueWidget({
         title: 'Request Throughput (rpm)',
-        metrics: [this.createApiMetric(api, stage, 'Count', 'Sum')],
+        metrics: [this.createApiMetric(apiName, stage, 'Count', 'Sum')],
         width: 8,
         height: 4,
       }),
@@ -493,9 +495,9 @@ export class MonitoringStack extends Stack {
       new cloudwatch.GraphWidget({
         title: 'API Gateway - End-to-End Latency',
         left: [
-          this.createApiMetric(api, stage, 'Latency', 'p50'),
-          this.createApiMetric(api, stage, 'Latency', 'p95'),
-          this.createApiMetric(api, stage, 'Latency', 'p99'),
+          this.createApiMetric(apiName, stage, 'Latency', 'p50'),
+          this.createApiMetric(apiName, stage, 'Latency', 'p95'),
+          this.createApiMetric(apiName, stage, 'Latency', 'p99'),
         ],
         leftAnnotations: [nfrLatencyAnnotation],
         width: 12,
@@ -503,9 +505,9 @@ export class MonitoringStack extends Stack {
       new cloudwatch.GraphWidget({
         title: 'API Gateway - Integration Latency',
         left: [
-          this.createApiMetric(api, stage, 'IntegrationLatency', 'p50'),
-          this.createApiMetric(api, stage, 'IntegrationLatency', 'p95'),
-          this.createApiMetric(api, stage, 'IntegrationLatency', 'p99'),
+          this.createApiMetric(apiName, stage, 'IntegrationLatency', 'p50'),
+          this.createApiMetric(apiName, stage, 'IntegrationLatency', 'p95'),
+          this.createApiMetric(apiName, stage, 'IntegrationLatency', 'p99'),
         ],
         leftAnnotations: [nfrLatencyAnnotation],
         width: 12,
@@ -611,8 +613,8 @@ export class MonitoringStack extends Stack {
       new cloudwatch.GraphWidget({
         title: 'Error Counts by Type',
         left: [
-          this.createApiMetric(api, stage, '4xxError', 'Sum'),
-          this.createApiMetric(api, stage, '5xxError', 'Sum'),
+          this.createApiMetric(apiName, stage, '4xxError', 'Sum'),
+          this.createApiMetric(apiName, stage, '5xxError', 'Sum'),
         ],
         stacked: true,
         width: 12,
