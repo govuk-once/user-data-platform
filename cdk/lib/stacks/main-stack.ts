@@ -426,6 +426,10 @@ export class MainStack extends Stack {
         logRetentionDays: getLogRetentionPeriod(environment),
       });
 
+      if (!route.disableRoute) {
+        cdk.Tags.of(lambdaConstruct.function).add('Monitor', 'true');
+      }
+
       lambdasList.push(lambdaConstruct.function);
       // Retain export while downstream stacks remove their imports.
       this.exportValue(lambdaConstruct.function.functionName);
