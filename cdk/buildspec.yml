@@ -29,7 +29,7 @@ phases:
   build:
     commands:
       - echo "Running Cucumber E2E tests..."
-      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run e2e:${E2E_TARGET:-release}
+      - npm --prefix e2e run "${E2E_TARGET:-release}"
       - echo "E2E tests completed with exit code ${E2E_EXIT_CODE:-0}"
 
   post_build:

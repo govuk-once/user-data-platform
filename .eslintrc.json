@@ -5,7 +5,6 @@
     "node_modules",
     "coverage",
     "build",
-    ".nx",
     "cdk.out",
     "release.config.js"
   ],

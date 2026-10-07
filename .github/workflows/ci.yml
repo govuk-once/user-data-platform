@@ -47,9 +47,6 @@ jobs:
           fail-on-severity: high # Will fail on newly introduced vulnerabilities
           license-check: false
 
-      - name: NX - set SHAs
-        uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4.4.0
-
       - name: Validate Conventional Commits
         run: |
           echo "Validating commit messages..."

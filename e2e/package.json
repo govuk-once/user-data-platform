@@ -2,6 +2,14 @@
   "name": "@test/e2e",
   "type": "module",
   "private": true,
+  "scripts": {
+    "extract-env": "./scripts/extractcdk-outputs.sh --personal",
+    "e2e": "npm run extract-env && node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags 'not @kms'",
+    "pr": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags 'not @kms'",
+    "release": "node --import tsx/esm ../node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags 'not @kms'",
+    "seed-data": "tsx scripts/seed-data.ts",
+    "cleanup-data": "tsx scripts/cleanup-data.ts"
+  },
   "devDependencies": {
     "tsx": "^4.7.0"
   }
