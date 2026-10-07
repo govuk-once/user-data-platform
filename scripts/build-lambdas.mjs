@@ -1,16 +1,16 @@
 import { build } from 'esbuild';
-import { existsSync, readdirSync, readSync, rmSync } from 'fs';
+import { existsSync, readdirSync, rmSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = resolve(root, 'src');
 const outDir = resolve(root, 'build');
 
-const lambdas = readSync(srcDir, { withFileTypes: true })
+const lambdas = readdirSync(srcDir, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .filter((name) => existsSync(srcDir, name, 'hanlder.ts'));
+  .filter((name) => existsSync(resolve(srcDir, name, 'handler.ts')));
 
 if (lambdas.length === 0) {
   console.error('No Lambdas found under src/*/handler.ts');
@@ -36,4 +36,4 @@ await Promise.all(
   ),
 );
 
-console.log(`Built ${lambdas.lambdas} Lambdas into the build`);
+console.log(`Built ${lambdas.length} Lambdas into build/`);
