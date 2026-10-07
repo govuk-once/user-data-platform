@@ -220,7 +220,7 @@ pnpm test:all              # run all unit tests
 
 pnpm test:affected         # run tests affected by your changes
 
-nx run @src/getDataLambda:test   # run tests for a specific lambda
+pnpm getDataLambda:test   # run tests for a specific lambda
 
 ```
 
@@ -254,13 +254,12 @@ pnpm build:affected        # build affected projects
 
 # Deploy and run E2E tests against your personal stack
 
-npx nx run @test/e2e:deploy-and-test
+pnpm e2e:deploy-and-test
 
 
 
 # Or just run E2E tests against already-deployed code
-
-npx nx run @test/e2e:e2e
+pnpm e2e
 
 ```
 
@@ -270,11 +269,11 @@ Your personal environment uses a developer ID auto-generated from your git email
 
 ```bash
 
-npx nx run cdk:diff          # preview infrastructure changes
+pnpm cdk:diff          # preview infrastructure changes
 
-npx nx run cdk:deploy:dev    # deploy to dev
+pnpm cdk:deploy:dev    # deploy to dev
 
-npx nx run cdk:destroy:dev   # tear down your dev environment
+pnpm cdk:destroy:dev   # tear down your dev environment
 
 ```
 
@@ -358,7 +357,7 @@ Check which step failed in the GitHub Actions log:
 
 |-------------|-----|
 
-| **CDK deploy** | Check the GitHub Actions log for CloudFormation errors. Common causes: IAM permission issues, resource limit reached, or invalid CDK construct configuration. Run `npx nx run cdk:diff` locally to preview changes |
+| **CDK deploy** | Check the GitHub Actions log for CloudFormation errors. Common causes: IAM permission issues, resource limit reached, or invalid CDK construct configuration. Run `pnpm cdk:diff` locally to preview changes |
 
 | **E2E tests (CodeBuild)** | The build ID is posted in the PR comment. Check CodeBuild logs in the AWS Console: `eu-west-2 > CodeBuild > Build projects > pr-{N}-dev-e2e`. Look at the build logs for Cucumber test failures |
 
@@ -409,13 +408,13 @@ aws sts get-caller-identity
 
 # Preview what will change
 
-npx nx run cdk:diff
+pnpm cdk:diff
 
 
 
 # If bootstrap is needed (first time in an account)
 
-npx nx run cdk:bootstrap
+pnpm cdk:bootstrap
 
 ```
 
@@ -423,7 +422,7 @@ Common issues:
 
 - **"Stack is in ROLLBACK_COMPLETE state"** - delete the failed stack manually in CloudFormation console, then retry
 
-- **"Resource limit exceeded"** - check for leaked stacks from old PRs and destroy them with `npx nx run cdk:destroy:dev`
+- **"Resource limit exceeded"** - check for leaked stacks from old PRs and destroy them with `pnpm cdk:destroy:dev`
 
 - **"Access denied"** - verify your AWS role has the required permissions
 
@@ -462,7 +461,5 @@ Performance tests (k6) run as fire-and-forget on PRs (non-blocking). On the rele
 | `cdk/buildspec-perf.yml` | CodeBuild spec for performance tests (k6) |
 
 | `cdk/bin/app.ts` | CDK app entry point |
-
-| `cdk/project.json` | Nx targets for CDK (deploy, diff, destroy) |
 
 | `.pre-commit-config.yaml` | Local git hook configuration |
