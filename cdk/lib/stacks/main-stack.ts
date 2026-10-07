@@ -152,6 +152,8 @@ export class MainStack extends Stack {
 
     this.table = db.table;
 
+    cdk.Tags.of(this.table).add('Monitor', 'true');
+
     const identityDb = new DynamoDBConstruct(this, 'IdentityDynamoDb', {
       developerId,
       environment,
