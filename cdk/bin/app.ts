@@ -147,7 +147,7 @@ if (!skipMainStack) {
       table: mainStack.table,
       lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
-      kmsKey: mainStack.kmsKey,
+      kmsKeyAlias,
     },
   );
 
