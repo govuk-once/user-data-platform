@@ -67,7 +67,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.aws-creds-dev.outputs.aws-access-key-id }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.aws-creds-dev.outputs.aws-secret-access-key }}
           AWS_SESSION_TOKEN: ${{ steps.aws-creds-dev.outputs.aws-session-token }}
-        run: pnpm exec tsx cdk/scripts/test-monitoring-discovery.ts
+        run: pnpm exec tsx cdk/scripts/discovery-monitoring.ts
 
       - name: Deploy CDK stack
         run: |
