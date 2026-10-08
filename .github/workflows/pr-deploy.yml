@@ -59,6 +59,16 @@ jobs:
           aws-region: eu-west-2
           output-credentials: true
 
+      - name: Discover monitoring resources
+        env:
+          AWS_REGION: eu-west-2
+          ENVIRONMENT: dev
+          DEVELOPER_ID: ${{ env.DEVELOPER_ID }}
+          AWS_ACCESS_KEY_ID: ${{ steps.aws-creds-dev.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws-creds-dev.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws-creds-dev.outputs.aws-session-token }}
+        run: pnpm exec tsx cdk/scripts/discover-monitoring.ts
+
       - name: Deploy CDK stack
         run: |
           npx nx run cdk:deploy:dev

@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IKey } from 'aws-cdk-lib/aws-kms';
@@ -236,5 +236,9 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(generateSarPresignedUrlLambda.function);
+
+    for (const fn of this.lambdas) {
+      Tags.of(fn).add('Monitor', 'true');
+    }
   }
 }

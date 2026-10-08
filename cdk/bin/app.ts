@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { App, Aspects } from 'aws-cdk-lib';
 import {
   BackupStack,
@@ -11,6 +13,7 @@ import {
 } from 'cdk/lib/stacks';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
+import type { MonitoringInventory } from '../lib/utils/discover-monitored-resources';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { Macie } from 'cdk/lib/macie';
 
@@ -135,6 +138,21 @@ if (!skipMainStack) {
     );
   });
 
+  const inventoryPath = path.resolve(
+    process.cwd(),
+    '.generated/monitoring-inventory.json',
+  );
+
+  if (!fs.existsSync(inventoryPath)) {
+    throw new Error(
+      `Monitoring inventory not found at ${inventoryPath}. Run discovery first.`,
+    );
+  }
+
+  const inventory = JSON.parse(
+    fs.readFileSync(inventoryPath, 'utf8'),
+  ) as MonitoringInventory;
+
   const monitoringStack = new MonitoringStack(
     app,
     `${stackPrefix}-monitoring`,
@@ -145,10 +163,10 @@ if (!skipMainStack) {
       env: awsEnv,
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
-      api: mainStack.api,
       lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
-      kmsKey: mainStack.kmsKey,
+      kmsKeyAlias,
+      inventory,
     },
   );
 
