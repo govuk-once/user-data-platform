@@ -67,6 +67,7 @@
     "@aws-sdk/client-ec2": "^3.976.0",
     "@aws-sdk/client-iam": "^3.1026.0",
     "@aws-sdk/client-kms": "^3.993.0",
+    "@aws-sdk/client-resource-groups-tagging-api": "^3.1141.0",
     "@aws-sdk/client-s3": "^3.993.0",
     "@aws-sdk/client-secrets-manager": "^3.975.0",
     "@aws-sdk/client-sqs": "^3.999.0",
