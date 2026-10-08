@@ -61,10 +61,10 @@ jobs:
 
       - name: Discover monitoring resources
         env:
-          AWS_REGION: ${{ inputs.aws-region }}
-          ENVIRONMENT: ${{ inputs.stack-prefix }}
+          AWS_REGION: eu-west-2
+          ENVIRONMENT: dev
           DEVELOPER_ID: ${{ env.DEVELOPER_ID }}
-        run: pnpm exec tsx cdk/scripts/discover-monitoring.ts
+        run: pnpm exec tsx cdk/scripts/test-monitoring-discovery.ts
 
       - name: Deploy CDK stack
         run: |
