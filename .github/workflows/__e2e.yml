@@ -15,6 +15,21 @@ on:
         description: 'S3 path/key for source upload'
         required: true
         type: string
+      e2e-target:
+        description: 'Optional E2E_TARGET override passed to CodeBuild (e.g. pr)'
+        required: false
+        type: string
+        default: ''
+      post-pr-comment:
+        description: 'Post the result as a comment on the triggering pull request'
+        required: false
+        type: boolean
+        default: false
+      ref:
+        description: 'Git ref to test. Defaults to github.ref_name.'
+        required: false
+        type: string
+        default: ''
       aws-region:
         required: false
         type: string
@@ -30,6 +45,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  pull-requests: write
 
 jobs:
   e2e:
@@ -38,21 +54,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.ref || github.ref_name }}
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ inputs.node-version }}
-
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
@@ -61,56 +71,33 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Upload source to S3
-        env:
-          SOURCE_BUCKET: ${{ inputs.source-bucket }}
-          SOURCE_PATH: ${{ inputs.source-path }}
-        run: |
-          echo "UPLOADING source to s3 get store path"
-          STORE_PATH=$(pnpm store path)
-          pnpm store prune
+        uses: ./.github/actions/upload-source
+        with:
+          bucket: ${{ inputs.source-bucket }}
+          path: ${{ inputs.source-path }}
 
-          mkdir -p .pnpm-store
-          cp -r "${STORE_PATH}"/* .pnpm-store/
-
-          echo "UPLOADING source to s3 for e2e"
-          zip -rqy source.zip . -x '.git/*' -x '.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
-
-      - name: Trigger Codebuild and wait for completion
+      - name: Run E2E tests in CodeBuild
         id: codebuild
+        uses: ./.github/actions/run-codebuild
+        with:
+          project: ${{ inputs.codebuild-project }}
+          env-overrides: ${{ inputs.e2e-target && format('name=E2E_TARGET,value={0},type=PLAINTEXT', inputs.e2e-target) || '' }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Post test results to PR
+        if: always() && inputs.post-pr-comment && github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
-          CODEBUILD_PROJECT: ${{ inputs.codebuild-project }}
-          AWS_REGION: ${{ inputs.aws-region }}
-        run: |
-          echo "Starting Codebuild project: ${CODEBUILD_PROJECT}"
+          BUILD_ID: ${{ steps.codebuild.outputs.build-id }}
+          LOGS_URL: ${{ steps.codebuild.outputs.logs-url }}
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const { BUILD_ID, LOGS_URL, JOB_STATUS } = process.env;
 
-          BUILD_ID=$(aws codebuild start-build --project-name "${CODEBUILD_PROJECT}" --query 'build.id' --output text)
-
-          echo "Build started ${BUILD_ID}"
-          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
-
-          while true; do
-            BUILD_STATUS=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].buildStatus' --output text)
-            CURRENT_PHASE=$(aws codebuild batch-get-builds --ids "${BUILD_ID}" --query 'builds[0].currentPhase' --output text)
-
-            echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
-
-            case "${BUILD_STATUS}" in
-              SUCCEEDED)
-                echo "E2E tests passed!"
-                exit 0
-                ;;
-              FAILED|FAULT|STOPPED|TIMED_OUT)
-                echo "E2E tests failed with status ${BUILD_STATUS}"
-                echo "Build logs: https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${CODEBUILD_PROJECT}/build/${BUILD_ID}"
-                exit 1
-                ;;
-              IN_PROGRESS)
-                sleep 30
-                ;;
-              *)
-                echo "unknown status: ${BUILD_STATUS}"
-                sleep 30
-                ;;
-            esac
-          done
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## E2E tests results\n\n**Status:** ${JOB_STATUS}\n**Build ID:** \`${BUILD_ID}\`\n\n[Build logs](${LOGS_URL})`,
+            });

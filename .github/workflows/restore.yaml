@@ -114,22 +114,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           persist-credentials: false
 
-      - name: Setup pnpm
-        run: |
-          npm install -g pnpm
-          pnpm install
-
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
@@ -160,7 +152,7 @@ jobs:
         if: inputs.resource_type == 'dynamodb' && inputs.mode == 'backup'
         env:
           TABLE_NAME: ${{ needs.validate.outputs.full-resource-name }}
-          RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}]
+          RECOVERY_POINT_ARN: ${{ inputs.recovery_point_arn }}
           VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
           SWAP: ${{ inputs.swap }}
         run: |
@@ -196,17 +188,17 @@ jobs:
           VAULT_NAME: ${{ needs.validate.outputs.vault-name }}
           NEW_BUCKET_NAME: ${{ inputs.new_bucket_name }}
         run: |
-          args-(
+          args=(
             --mode backup
             --bucket "$BUCKET_NAME"
             --recovery-point-arn "$RECOVERY_POINT_ARN"
             --vault "$VAULT_NAME"
             --region "$AWS_REGION"
           )
-          if [-n "$NEW_BUCKET_NAME"]; then
+          if [ -n "$NEW_BUCKET_NAME" ]; then
             args+=(--new-bucket "$NEW_BUCKET_NAME")
           fi
-          npx tsx scripts/s3-restore.ts "${args[0]}"
+          npx tsx scripts/s3-restore.ts "${args[@]}"
 
       # ── Summary ────────────────────────────────────────────────────────
 

@@ -9,14 +9,15 @@ on:
         type: string
       aws-region:
         description: 'Region in aws'
-        required: true
+        required: false
         type: string
+        default: 'eu-west-2'
       stack-prefix:
-        description: 'CFN stack prefix (eg dev, pr-123)'
+        description: 'CFN stack prefix (eg dev, pr-123-dev)'
         required: true
         type: string
       perf-target:
-        description: 'Performacne target for test run'
+        description: 'Performance target for test run'
         required: false
         type: string
         default: 'smoke'
@@ -40,73 +41,46 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ inputs.node-version }}
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Configure Aws Credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Get Perf Codebuild project name
+      - name: Get Perf CodeBuild project name
         id: get-perf-project
         env:
           STACK_NAME: ${{ inputs.stack-prefix }}-perf
         run: |
           PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
-          echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
-          echo "Perf Codebuild Project: ${PERF_PROJECT}"
+          echo "perf-project=${PERF_PROJECT}" >> "$GITHUB_OUTPUT"
+          echo "Perf CodeBuild project: ${PERF_PROJECT}"
 
       - name: Get source bucket and path
         id: get-source
-        env:
-          STACK_NAME: ${{ inputs.stack-prefix }}-e2e
-        run: |
-          SOURCE_BUCKET=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName'].OutputValue" --output text)
-          echo "source-bucket=${SOURCE_BUCKET}" >> $GITHUB_OUTPUT
-          echo "Source Bucket: ${SOURCE_BUCKET}"
-          SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
-          echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
-          echo "Source Path: ${SOURCE_PATH}"
+        uses: ./.github/actions/e2e-stack-outputs
+        with:
+          stack-name: ${{ inputs.stack-prefix }}-e2e
 
       - name: Upload source to S3
-        env:
-          SOURCE_BUCKET: ${{ steps.get-source.outputs.source-bucket }}
-          SOURCE_PATH: ${{ steps.get-source.outputs.source-path }}
-        run: |
-          echo "UPLOADING source to s3 get store path"
-          STORE_PATH=$(pnpm store path)
-          pnpm store prune
+        uses: ./.github/actions/upload-source
+        with:
+          bucket: ${{ steps.get-source.outputs.source-bucket }}
+          path: ${{ steps.get-source.outputs.source-path }}
 
-          mkdir -p .pnpm-store
-          cp -r "${STORE_PATH}"/* .pnpm-store/
-
-          echo "UPLOADING source to s3 for perf"
-          zip -rqy source.zip . -x '.git/*' -x '.nx/*' -x "cdk/cdk.out/*"
-          aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
-
-      - name: Start Performance tests (fire-and-forget)
-        env:
-          PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
-          PERF_TARGET: ${{ inputs.perf-target }}
-        run: |
-          echo "Starting performance tests: ${PERF_PROJECT}"
-          BUILD_ID=$(aws codebuild start-build \
-            --project-name "${PERF_PROJECT}" \
-            --environment-variables-override "name=PERF_TARGET,value=${PERF_TARGET},type=PLAINTEXT" \
-            --query 'build.id' --output text)
-          echo "Performance test build started ${BUILD_ID}"
-          echo "Build will run independently - failures will be notified in slack channel"
+      - name: Start performance tests (fire-and-forget)
+        uses: ./.github/actions/run-codebuild
+        with:
+          project: ${{ steps.get-perf-project.outputs.perf-project }}
+          env-overrides: name=PERF_TARGET,value=${{ inputs.perf-target }},type=PLAINTEXT
+          wait: 'false'
+          aws-region: ${{ inputs.aws-region }}
