@@ -45,6 +45,20 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
+  deploy-monitoring-dev:
+    name: Deploy monitoring to dev
+    needs: [deploy-dev]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      stack-prefix: dev
+      nx-target: cdk:deploy:monitoring:dev
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+
   e2e-dev:
     name: E2E tests on dev
     needs: deploy-dev
@@ -77,6 +91,19 @@ jobs:
       environment: staging
       stack-prefix: stag
       nx-target: cdk:deploy:stag
+      version: ${{ needs.version.outputs.version }}
+      prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+
+  deploy-monitoring-staging:
+    name: Deploy monitoring to staging
+    needs: [deploy-staging]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: staging
+      stack-prefix: stag
+      nx-target: cdk:deploy:monitoring:stag
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
     secrets:
@@ -121,11 +148,23 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
+  deploy-monitoring-prod:
+    name: Deploy monitoring to production
+    needs: [deploy-prod]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: production
+      stack-prefix: prod
+      nx-target: cdk:deploy:monitoring:prod
+      version: ${{ needs.version.outputs.version }}
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+
   send-release-notification:
     if: false # Disabled until ITHC work finished
     # if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     name: Send Release Notification
-    needs: [version, deploy-prod]
+    needs: [version, deploy-monitoring-prod]
     uses: ./.github/workflows/slack-release-notification.yml
     with:
       version: ${{ needs.version.outputs.version }}
