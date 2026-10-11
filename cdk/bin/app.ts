@@ -127,10 +127,9 @@ if (!skipMainStack) {
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
 
-  const inventoryPath = path.resolve(
-    process.cwd(),
-    '.generated/monitoring-inventory.json',
-  );
+  const inventoryPath = process.env.MONITORING_INVENTORY_PATH
+    ? path.resolve(process.env.MONITORING_INVENTORY_PATH)
+    : path.resolve(__dirname, '../.generated/monitoring-inventory.json');
 
   if (!fs.existsSync(inventoryPath)) {
     throw new Error(
