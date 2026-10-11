@@ -142,20 +142,16 @@ if (!skipMainStack) {
     fs.readFileSync(inventoryPath, 'utf8'),
   ) as MonitoringInventory;
 
-  const monitoringStack = new MonitoringStack(
-    app,
-    `${stackPrefix}-monitoring`,
-    {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `Monitoring stack ${stackDescription}`,
-      notificationEmails: [],
-      kmsKeyAlias,
-      inventory,
-    },
-  );
+  new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Monitoring stack ${stackDescription}`,
+    notificationEmails: [],
+    kmsKeyAlias,
+    inventory,
+  });
 
   // Testing
   if (isNotProd) {
@@ -189,7 +185,6 @@ if (!skipMainStack) {
       e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
       sourceBucketName: e2eStack.sourceBucket.bucketName,
-      warningTopic: monitoringStack.warningTopic,
       identityTableName: mainStack.identityTable.tableName,
       dataTableName: mainStack.table.tableName,
     });
