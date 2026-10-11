@@ -11,7 +11,6 @@ import {
   E2EStack,
   PerfStack,
 } from 'cdk/lib/stacks';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import type { MonitoringInventory } from '../lib/utils/discover-monitored-resources';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
@@ -127,16 +126,6 @@ if (!skipMainStack) {
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
-  const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
-    const lambda = l as unknown as lambda.IFunction & {
-      _givenPhysicalName: string;
-    };
-    return (
-      !lambda._givenPhysicalName.startsWith('startDsar') &&
-      !lambda._givenPhysicalName.startsWith('startSar') &&
-      !lambda._givenPhysicalName.startsWith('getSarStatus')
-    );
-  });
 
   const inventoryPath = path.resolve(
     process.cwd(),
@@ -162,15 +151,11 @@ if (!skipMainStack) {
       stackPrefix,
       env: awsEnv,
       description: `Monitoring stack ${stackDescription}`,
-      table: mainStack.table,
-      lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
       kmsKeyAlias,
       inventory,
     },
   );
-
-  monitoringStack.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {

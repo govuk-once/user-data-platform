@@ -239,6 +239,8 @@ export class SarStack extends Stack {
 
     for (const fn of this.lambdas) {
       Tags.of(fn).add('Monitor', 'true');
+      /// Temporary Retain export while downstream stacks remove their imports.
+      this.exportValue(fn.functionName);
     }
   }
 }

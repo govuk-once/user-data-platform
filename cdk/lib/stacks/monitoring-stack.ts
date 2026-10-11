@@ -16,8 +16,6 @@ import { MonitoringInventory } from '../utils/discover-monitored-resources';
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
   readonly environment: string;
-  readonly table: dynamodb.ITable;
-  readonly lambdas: lambda.IFunction[];
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
   readonly kmsKeyAlias: string;
