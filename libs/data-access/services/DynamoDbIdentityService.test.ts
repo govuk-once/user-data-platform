@@ -571,7 +571,30 @@ describe('Identity Service', () => {
         KeyConditionExpression: 'sk = :sk',
         ExpressionAttributeValues: { ':sk': udpId },
       });
-      expect(result).toEqual(['app', 'dwp']);
+      expect(result).toEqual([{ serviceName: 'app' }, { serviceName: 'dwp' }]);
+    });
+
+    it('should include ttl in response for non-expired identities that have one set', async () => {
+      const futureTtl = Math.floor(Date.parse('2030-01-01') / 1000);
+      const identities: IdentityRecordEntity[] = [
+        {
+          pk: 'dvla#dvla-id',
+          sk: udpId,
+          serviceName: 'dvla',
+          serviceId: 'dvla-id',
+          udpId,
+          ttl: futureTtl,
+        },
+      ];
+
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: identities });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(result).toEqual([{ serviceName: 'dvla', ttl: futureTtl }]);
     });
 
     it('should return an empty array and log when no linked services exist', async () => {
