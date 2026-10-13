@@ -129,7 +129,11 @@ if (!skipMainStack) {
 
   const inventoryPath = process.env.MONITORING_INVENTORY_PATH
     ? path.resolve(process.env.MONITORING_INVENTORY_PATH)
-    : path.resolve(__dirname, '../.generated/monitoring-inventory.json');
+    : fs.existsSync(
+          path.resolve(__dirname, '../.generated/monitoring-inventory.json'),
+        )
+      ? path.resolve(__dirname, '../.generated/monitoring-inventory.json')
+      : path.resolve(__dirname, '../config/monitoring-inventory.ci.json');
 
   if (!fs.existsSync(inventoryPath)) {
     throw new Error(

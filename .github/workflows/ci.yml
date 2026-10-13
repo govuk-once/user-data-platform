@@ -127,7 +127,7 @@ jobs:
 
       - name: Checkov Security Scan
         env:
-          MONITORING_INVENTORY_PATH: cdk/config/monitoring-inventory.ci.json
+          MONITORING_INVENTORY_PATH: config/monitoring-inventory.ci.json
         run: |
           rm -rf cdk/cdk.out
           (cd cdk && npx cdk synth --quiet > /dev/null)
