@@ -1,6 +1,6 @@
 import {
   ResourceGroupsTaggingAPIClient,
-  GetResourcesCommand,
+  paginateGetResources,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 
 export interface MonitoringInventory {
@@ -17,46 +17,55 @@ export async function discoverMonitoredResources(
   const lambdaNames: string[] = [];
   const tableNames: string[] = [];
 
-  let paginationToken: string | undefined;
+  const paginator = paginateGetResources(
+    { client },
+    {
+      TagFilters: [{ Key: 'Monitor', Values: ['true'] }],
+      ResourceTypeFilters: ['lambda:function', 'dynamodb:table'],
+    },
+  );
 
-  do {
-    const response = await client.send(
-      new GetResourcesCommand({
-        TagFilters: [
-          {
-            Key: 'Monitor',
-            Values: ['true'],
-          },
-        ],
-        ResourceTypeFilters: ['lambda:function', 'dynamodb:table'],
-        PaginationToken: paginationToken,
-      }),
-    );
-
-    for (const resource of response.ResourceTagMappingList ?? []) {
-      const arn = resource.ResourceARN;
-      if (!arn) continue;
-
-      if (arn.includes(':function:')) {
-        const name = arn.split(':function:')[1];
-        if (name && matchesEnv(name, environment, developerId)) {
-          lambdaNames.push(name);
-        }
-      } else if (arn.includes(':table/')) {
-        const name = arn.split(':table/')[1];
-        if (name && matchesEnv(name, environment, developerId)) {
-          tableNames.push(name);
-        }
-      }
+  for await (const page of paginator) {
+    for (const resource of page.ResourceTagMappingList ?? []) {
+      const classified = classifyResource(
+        resource.ResourceARN,
+        environment,
+        developerId,
+      );
+      if (!classified) continue;
+      if (classified.type === 'lambda') lambdaNames.push(classified.name);
+      else tableNames.push(classified.name);
     }
-
-    paginationToken = response.PaginationToken;
-  } while (paginationToken);
+  }
 
   return {
-    lambdaNames: [...new Set(lambdaNames)].sort(),
-    tableNames: [...new Set(tableNames)].sort(),
+    lambdaNames: [...new Set(lambdaNames)].sort((a, b) => a.localeCompare(b)),
+    tableNames: [...new Set(tableNames)].sort((a, b) => a.localeCompare(b)),
   };
+}
+
+function classifyResource(
+  arn: string | undefined,
+  environment: string,
+  developerId: string | undefined,
+): { type: 'lambda' | 'table'; name: string } | null {
+  if (!arn) return null;
+
+  if (arn.includes(':function:')) {
+    const name = arn.split(':function:')[1];
+    return name && matchesEnv(name, environment, developerId)
+      ? { type: 'lambda', name }
+      : null;
+  }
+
+  if (arn.includes(':table/')) {
+    const name = arn.split(':table/')[1];
+    return name && matchesEnv(name, environment, developerId)
+      ? { type: 'table', name }
+      : null;
+  }
+
+  return null;
 }
 
 function matchesEnv(
