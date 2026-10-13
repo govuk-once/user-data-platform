@@ -39,7 +39,7 @@ jobs:
     with:
       environment: dev
       stack-prefix: dev
-      nx-target: cdk:deploy:dev
+      deploy-script: cdk:deploy:dev
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
     secrets:
@@ -76,7 +76,7 @@ jobs:
     with:
       environment: staging
       stack-prefix: stag
-      nx-target: cdk:deploy:stag
+      deploy-script: cdk:deploy:stag
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
     secrets:
@@ -115,7 +115,7 @@ jobs:
     with:
       environment: production
       stack-prefix: prod
-      nx-target: cdk:deploy:prod
+      deploy-script: cdk:deploy:prod
       version: ${{ needs.version.outputs.version }}
       expose-outputs: false
     secrets:

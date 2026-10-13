@@ -23,6 +23,57 @@ components:
   schemas: {}
   parameters: {}
 paths:
+  /v1/_health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service and DynamoDB connectivity
+      tags:
+        - health
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - healthy
+                    description: Health status
+                    example: healthy
+                required:
+                  - status
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
   /v1/user:
     post:
       summary: Create User Record

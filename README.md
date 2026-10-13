@@ -30,7 +30,7 @@ pip install pre-commit detect-secrets
 # Install pre-commit hooks
 pre-commit install
 
-# Install pre-push hooks (runs affected tests)
+# Install pre-push hooks (runs the full build, including tests)
 pre-commit install --hook-type pre-push
 ```
 
@@ -119,18 +119,18 @@ detect-secrets scan --baseline .secrets.baseline
 
 ## Running tests use the following commands
 
-To test the get data lambda the command: nx run @src/getDataLambda:test
-To test the post data lambda the command: nx run @src/postDataLambda:test
+To run all the unit tests: pnpm test:all
+To test a single lambda eg get data pnpm vitest run @src.getDataLambda
 
 # Running a local build
 
-To build the get data lambda the command: nx run @src/getDataLambda:build
-To build the post data lambda the command: nx run @src/postDataLambda:build
+To typecheck , test and bundle every lambda into build: pnpm build:all
+To only bundle the lambdas pnpm build:lambdas
 
 # Running the e2e Tests
 
-command: nx run @test/e2e:deploy-and-test will deploy the code to aws and run the feature tests against it
-command: nx run @test/e2e:e2e will run the tests against currently deployed code.
+command: pnpm e2e:deploy-and-test will deploy the code to aws and run the feature tests against it
+command: pnpm e2e will run the tests against currently deployed code.
 
 # Folder Structure
 
@@ -189,7 +189,7 @@ A unique developer ID is **auto-generated** from your git email and user
 ### Usage
 
 ```sh
-npx nx run @test/e2e:deploy-and-test
+npx pnpm e2e:deploy-and-test
 ```
 
 ### API Endpoints
@@ -252,7 +252,7 @@ There is a pre-commit hook which will generate the openapi docs on pre-commit
 
 if you would like to run and see them locally you can generate and serve them with
 
-``nx run @udp:openapi`
+``pnpm openapi`
 
 ### Connecting from an External Account
 
@@ -289,7 +289,7 @@ Add a consumer entry to `cdk/cdk.json` under the appropriate environment key:
 Deploy the stack:
 
 ```bash
-npx nx run cdk:deploy:dev
+npx pnpm cdk:deploy:dev
 ```
 
 This provisions:
