@@ -18,6 +18,7 @@
     "paths": {
       "@libs/data-access": ["libs/data-access/index.ts"],
       "@libs/utils": ["libs/utils/index.ts"],
+      "@libs/live-schema": ["libs/live-schema/index.ts"],
       "@libs/*": ["libs/*/src"],
       "@modules/*": ["modules/*/src"]
     }

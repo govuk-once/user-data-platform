@@ -7,3 +7,4 @@ export * from './dvla-pilot-stack';
 export * from './vpc-stack';
 export * from './e2e-stack';
 export * from './perf-stack';
+export * from './live-schema-stack';
