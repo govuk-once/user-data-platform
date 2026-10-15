@@ -810,9 +810,10 @@ export class MonitoringStack extends Stack {
   }
 
   private loadMonitoringInventory(): MonitoringInventory {
-    const inventoryPath =
-      process.env.MONITORING_INVENTORY_PATH ??
-      path.resolve(__dirname, '../../.generated/monitoring-inventory.json');
+    const inventoryPath = path.resolve(
+      __dirname,
+      '../../.generated/monitoring-inventory.json',
+    );
 
     if (!fs.existsSync(inventoryPath)) {
       throw new Error(`Monitoring inventory not found: ${inventoryPath}`);

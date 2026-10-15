@@ -1,4 +1,0 @@
-{
-  "lambdaNames": ["ci-createUserLambda-dev", "ci-getDataLambda-dev"],
-  "tableNames": ["ci-DynamoDb-dev"]
-}

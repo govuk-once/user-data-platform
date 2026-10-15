@@ -126,8 +126,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Checkov Security Scan
-        env:
-          MONITORING_INVENTORY_PATH: config/monitoring-inventory.ci.json
         run: |
           rm -rf cdk/cdk.out
           (cd cdk && npx cdk synth --quiet -c skipMonitoringStack=true > /dev/null)
