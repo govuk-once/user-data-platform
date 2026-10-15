@@ -126,18 +126,6 @@ if (!skipMainStack) {
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
 
-  if (!skipMonitoringStack) {
-    new MonitoringStack(app, `${stackPrefix}-monitoring`, {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `Monitoring stack ${stackDescription}`,
-      notificationEmails: [],
-      kmsKeyAlias,
-    });
-  }
-
   // Testing
   if (isNotProd) {
     const e2eStack = new E2EStack(app, `${stackPrefix}-e2e`, {
@@ -176,6 +164,18 @@ if (!skipMainStack) {
 
     perStack.addDependency(mainStack);
   }
+}
+
+// Monitoring
+if (!skipMonitoringStack) {
+  new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Monitoring stack ${stackDescription}`,
+    notificationEmails: [],
+  });
 }
 
 // Backup

@@ -95,7 +95,7 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
         run: |
           rm -rf cdk/cdk.out
-          (cd cdk && npx cdk synth "${STACK_NAME}" -c env="${ENVIRONMENT}" --quiet)
+          (cd cdk && npx cdk synth "${STACK_NAME}" -c env="${ENVIRONMENT}" -c skipMainStack=true --quiet)
           checkov -f "cdk/cdk.out/${STACK_NAME}.template.json" --config-file cdk/.checkov.yaml
 
       - name: Deploy monitoring CDK stack

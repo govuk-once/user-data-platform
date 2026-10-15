@@ -67,7 +67,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk deploy --exclusively \"${DEVELOPER_ID}-dev-monitoring\" -c env=dev --require-approval never",
+        "command": "npx cdk deploy --exclusively \"${DEVELOPER_ID}-dev-monitoring\" -c env=dev -c skipMainStack=true --require-approval never",
         "cwd": "cdk"
       }
     },
@@ -75,7 +75,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk deploy --exclusively \"dev-monitoring\" -c env=dev --require-approval never",
+        "command": "npx cdk deploy --exclusively \"dev-monitoring\" -c env=dev -c skipMainStack=true --require-approval never",
         "cwd": "cdk"
       }
     },
@@ -83,7 +83,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk deploy --exclusively \"stag-monitoring\" -c env=stag --require-approval never",
+        "command": "npx cdk deploy --exclusively \"stag-monitoring\" -c env=stag -c skipMainStack=true --require-approval never",
         "cwd": "cdk"
       }
     },
@@ -91,7 +91,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk deploy --exclusively \"prod-monitoring\" -c env=prod --require-approval never",
+        "command": "npx cdk deploy --exclusively \"prod-monitoring\" -c env=prod -c skipMainStack=true --require-approval never",
         "cwd": "cdk"
       }
     },

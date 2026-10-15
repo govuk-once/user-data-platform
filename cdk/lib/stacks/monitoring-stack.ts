@@ -20,7 +20,6 @@ export interface MonitorStackProps extends StackProps {
   readonly environment: string;
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
-  readonly kmsKeyAlias: string;
 }
 
 const mapEnvironments = {
@@ -44,7 +43,6 @@ export class MonitoringStack extends Stack {
       environment,
       notificationEmails = [],
       stackPrefix,
-      kmsKeyAlias,
     } = props;
 
     const inventory = this.loadMonitoringInventory();
@@ -65,6 +63,8 @@ export class MonitoringStack extends Stack {
       ? `${developerId}-api-${environment}`
       : `api-${environment}`;
 
+    const kmsKeyPrefix = developerId ? `${developerId}-` : '';
+    const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
     const kmsKey = kms.Alias.fromAliasName(
       this,
       'EncryptionKey',
