@@ -35,7 +35,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value); export DEVELOPER_ID; npx cdk ls -c env=dev | grep -v -- '-monitoring$' | xargs -r npx cdk deploy --exclusively -c env=dev --require-approval never",
+        "command": "DEVELOPER_ID=$(./scripts/set-developer.sh --value) npx cdk deploy --all -c env=dev --require-approval never",
         "cwd": "cdk"
       }
     },
@@ -43,7 +43,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^build"],
       "options": {
-        "command": "npx cdk ls -c env=dev | grep -v -- '-monitoring$' | xargs -r npx cdk deploy --exclusively -c env=dev --require-approval never",
+        "command": "npx cdk deploy --all -c env=dev -c skipMonitoringStack=true --require-approval never",
         "cwd": "cdk"
       }
     },

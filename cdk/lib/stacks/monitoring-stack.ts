@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Construct } from 'constructs';
 import { Stack, StackProps, Duration } from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
@@ -19,7 +21,6 @@ export interface MonitorStackProps extends StackProps {
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
   readonly kmsKeyAlias: string;
-  readonly inventory: MonitoringInventory;
 }
 
 const mapEnvironments = {
@@ -41,11 +42,12 @@ export class MonitoringStack extends Stack {
     const {
       developerId,
       environment,
-      inventory,
       notificationEmails = [],
       stackPrefix,
       kmsKeyAlias,
     } = props;
+
+    const inventory = this.loadMonitoringInventory();
 
     const tables = inventory.tableNames.map((name, i) =>
       dynamodb.Table.fromTableName(this, `MonitoredTable${i}`, name),
@@ -805,5 +807,19 @@ export class MonitoringStack extends Stack {
     );
 
     return perfDashboard;
+  }
+
+  private loadMonitoringInventory(): MonitoringInventory {
+    const inventoryPath =
+      process.env.MONITORING_INVENTORY_PATH ??
+      path.resolve(__dirname, '../../.generated/monitoring-inventory.json');
+
+    if (!fs.existsSync(inventoryPath)) {
+      throw new Error(`Monitoring inventory not found: ${inventoryPath}`);
+    }
+
+    return JSON.parse(
+      fs.readFileSync(inventoryPath, 'utf8'),
+    ) as MonitoringInventory;
   }
 }

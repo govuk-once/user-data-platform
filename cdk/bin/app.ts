@@ -1,5 +1,3 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { App, Aspects } from 'aws-cdk-lib';
 import {
   BackupStack,
@@ -12,7 +10,6 @@ import {
   PerfStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
-import type { MonitoringInventory } from '../lib/utils/discover-monitored-resources';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { Macie } from 'cdk/lib/macie';
 
@@ -52,6 +49,8 @@ const crossAccountPrincipals: string[] = (() => {
 
 // Setup
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
+const skipMonitoringStack =
+  app.node.tryGetContext('skipMonitoringStack') === 'true';
 
 // VPC Stack
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
@@ -127,41 +126,17 @@ if (!skipMainStack) {
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
 
-  const generatedInventory = path.resolve(
-    __dirname,
-    '../.generated/monitoring-inventory.json',
-  );
-  const fallbackInventory = path.resolve(
-    __dirname,
-    '../config/monitoring-inventory.ci.json',
-  );
-
-  const inventoryPath = process.env.MONITORING_INVENTORY_PATH
-    ? path.resolve(process.env.MONITORING_INVENTORY_PATH)
-    : fs.existsSync(generatedInventory)
-      ? generatedInventory
-      : fallbackInventory;
-
-  if (!fs.existsSync(inventoryPath)) {
-    throw new Error(
-      `Monitoring inventory not found at ${inventoryPath}. Run discovery first.`,
-    );
+  if (!skipMonitoringStack) {
+    new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `Monitoring stack ${stackDescription}`,
+      notificationEmails: [],
+      kmsKeyAlias,
+    });
   }
-
-  const inventory = JSON.parse(
-    fs.readFileSync(inventoryPath, 'utf8'),
-  ) as MonitoringInventory;
-
-  new MonitoringStack(app, `${stackPrefix}-monitoring`, {
-    developerId,
-    environment,
-    stackPrefix,
-    env: awsEnv,
-    description: `Monitoring stack ${stackDescription}`,
-    notificationEmails: [],
-    kmsKeyAlias,
-    inventory,
-  });
 
   // Testing
   if (isNotProd) {

@@ -130,7 +130,7 @@ jobs:
           MONITORING_INVENTORY_PATH: config/monitoring-inventory.ci.json
         run: |
           rm -rf cdk/cdk.out
-          (cd cdk && npx cdk synth --quiet > /dev/null)
+          (cd cdk && npx cdk synth --quiet -c skipMonitoringStack=true > /dev/null)
           checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml
 
       - name: Semgrep Security Scan

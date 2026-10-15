@@ -52,10 +52,7 @@ jobs:
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
       environment: dev
-      stack-prefix: dev
       nx-target: cdk:deploy:monitoring:dev
-      version: ${{ needs.version.outputs.version }}
-      prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
