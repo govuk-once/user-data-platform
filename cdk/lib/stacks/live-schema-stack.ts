@@ -26,7 +26,6 @@ import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { Trigger } from 'aws-cdk-lib/triggers';
 
 const DSQL_PORT = 5432;
 
@@ -79,7 +78,7 @@ export class LiveSchemaStack extends Stack {
 
     const vpc = Vpc.fromLookup(this, 'Vpc', {
       vpcName: `udp-api-vpc-${environment}`,
-      tags: { 'aws:cloudformation:stac-name': `${environment}-vpc` },
+      tags: { 'aws:cloudformation:stack-name': `${environment}-vpc` },
     });
 
     const isolatedSubnets = { subnetType: SubnetType.PRIVATE_ISOLATED };
@@ -96,9 +95,9 @@ export class LiveSchemaStack extends Stack {
 
     this.cluster.applyRemovalPolicy(getRemovalPolicy(environment));
 
-    const dsqlEndpoint = createDsqlVpcEndpoint
-      ? this.createDsqlEndpoint(vpc, isolatedSubnets, environment)
-      : undefined;
+    if (createDsqlVpcEndpoint) {
+      this.createDsqlEndpoint(vpc, isolatedSubnets, environment);
+    }
 
     const commonLambdaProps = {
       developerId,
@@ -126,17 +125,6 @@ export class LiveSchemaStack extends Stack {
       },
     ).function;
 
-    const migration = new LambdaApiConstruct(this, 'LiveSchemaMigration', {
-      ...commonLambdaProps,
-      functionName: 'LiveSchemaMigrationLambda',
-      sourcePath: 'LiveSchemaMigrationLambda',
-      timeout: Duration.minutes(5),
-      environmentVariables: {
-        ...this.lambdaEnv(stackPrefix, 'liveSchemaMigration'),
-        SCHEMA_EXTRACTOR_ROLE_ARN: schemaExtractor.role?.roleArn,
-      },
-    });
-
     this.grantDsql(schemaExtractor, 'dsql:DbConnectAdmin');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
@@ -156,14 +144,6 @@ export class LiveSchemaStack extends Stack {
       retryAttempts: 5,
       maxRecordAge: Duration.days(1),
       onFailure: new SqsDlq(this.failureQueue),
-    });
-
-    new Trigger(this, 'MigrationTrigger', {
-      handler: migration,
-      timeout: Duration.minutes(5),
-      executeAfter: dsqlEndpoint
-        ? [this.cluster, dsqlEndpoint]
-        : [this.cluster],
     });
 
     this.schemaExtractorLambda = schemaExtractor;
