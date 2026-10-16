@@ -61,7 +61,7 @@ jobs:
 
       - name: Deploy CDK stack
         run: |
-          npx nx run cdk:deploy:dev
+          pnpm cdk:deploy:dev
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{steps.aws-creds-dev.outputs.authenticated-arn}}
 
@@ -123,7 +123,7 @@ jobs:
           cp -r "${STORE_PATH}"/* .pnpm-store/
 
           echo "UPLOADING source to s3 for e2e"
-          zip -rqy source.zip . -x '.git/*' -x ',.nx/*' -x "cdk/cdk.out/*"
+          zip -rqy source.zip . -x '.git/*' -x "cdk/cdk.out/*"
           aws s3 cp source.zip "s3://${SOURCE_BUCKET}/${SOURCE_PATH}"
 
       - name: Trigger Codebuild and wait for completion

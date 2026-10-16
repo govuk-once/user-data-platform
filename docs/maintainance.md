@@ -264,7 +264,7 @@ pnpm add -D aws-cdk@latest cdk-nag@latest
 
 
 # Preview infrastructure changes
-npx nx run cdk:diff
+pnpm cdk:diff
 
 # Run CDK tests
 pnpm test:all
