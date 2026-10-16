@@ -106,7 +106,7 @@ jobs:
           AWS_REGION: ${{ inputs.aws-region }}
         run: |
           TEMPLATE_FILE="cdk/cdk.out/${STACK_NAME}.template.json"
-          SSM_PARAM="upd/${STACK_NAME}/monitoring/template-hash"
+          SSM_PARAM="/upd/${STACK_NAME}/template-hash"
 
           # Calculate hash of the synthesized template
           CURRENT_HASH=$(sha256sum "${TEMPLATE_FILE}" | awk '{print $1}')
@@ -160,7 +160,7 @@ jobs:
         env:
           AWS_REGION: ${{ inputs.aws-region }}
         run: |
-          SSM_PARAM="upd/${STACK_NAME}/monitoring/template-hash"
+          SSM_PARAM="/upd/${STACK_NAME}/template-hash"
           aws ssm put-parameter \
             --name "${SSM_PARAM}" \
             --value "${CURRENT_HASH}" \
