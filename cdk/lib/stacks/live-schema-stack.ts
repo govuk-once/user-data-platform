@@ -27,6 +27,7 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { GovUKTag } from '../gov-uk-tag';
+import { Trigger } from 'aws-cdk-lib/triggers';
 
 const DSQL_PORT = 5432;
 
@@ -96,9 +97,9 @@ export class LiveSchemaStack extends Stack {
 
     this.cluster.applyRemovalPolicy(getRemovalPolicy(environment));
 
-    if (createDsqlVpcEndpoint) {
-      this.createDsqlEndpoint(vpc, isolatedSubnets, environment);
-    }
+    const dsqlEndpoint = createDsqlVpcEndpoint
+      ? this.createDsqlEndpoint(vpc, isolatedSubnets, environment)
+      : undefined;
 
     const commonLambdaProps = {
       developerId,
@@ -133,6 +134,17 @@ export class LiveSchemaStack extends Stack {
 
     const schemaExtractor = schemaExtractorConstruct.function;
 
+    const migration = new LambdaApiConstruct(this, 'LiveSchemaMigration', {
+      ...commonLambdaProps,
+      functionName: 'LiveSchemaMigrationLambda',
+      sourcePath: 'LiveSchemaMigrationLambda',
+      timeout: Duration.minutes(5),
+      environmentVariables: {
+        ...this.lambdaEnv(stackPrefix, 'liveSchemaMigration'),
+        SCHEMA_EXTRACTOR_ROLE_ARN: schemaExtractor.role?.roleArn,
+      },
+    });
+
     this.grantDsql(schemaExtractor, 'dsql:DbConnectAdmin');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
@@ -157,6 +169,14 @@ export class LiveSchemaStack extends Stack {
       retryAttempts: 5,
       maxRecordAge: Duration.days(1),
       onFailure: new SqsDlq(this.failureQueue),
+    });
+
+    new Trigger(this, 'MigrationTrigger', {
+      handler: migration,
+      timeout: Duration.minutes(5),
+      executeAfter: dsqlEndpoint
+        ? [this.cluster, dsqlEndpoint]
+        : [this.cluster],
     });
 
     this.schemaExtractorLambda = schemaExtractor;
