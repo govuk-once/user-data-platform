@@ -182,8 +182,8 @@ export class MonitoringStack extends Stack {
   private createDynamoDBAlarms(table: dynamodb.ITable) {
     const id = this.formatResource(table.tableName); //Udp-Data-Dev
 
-    new cloudwatch.Alarm(this, `${id}-ReadThrottled`, {
-      alarmName: `${table.tableName}-read-throttled`,
+    new cloudwatch.Alarm(this, `${id}-Dynamo-ReadThrottled`, {
+      alarmName: `${table.tableName}-dynamo-read-throttled`,
       alarmDescription: 'Dynamodb read requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
         operations: [dynamodb.Operation.GET_ITEM, dynamodb.Operation.QUERY],
@@ -197,8 +197,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-WriteThrottled`, {
-      alarmName: `${table.tableName}-write-throttled`,
+    new cloudwatch.Alarm(this, `${id}-Dynamo-WriteThrottled`, {
+      alarmName: `${table.tableName}-dynamo-write-throttled`,
       alarmDescription: 'Dynamodb write requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
         operations: [
@@ -215,8 +215,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-SystemErrors`, {
-      alarmName: `${table.tableName}-system-errors`,
+    new cloudwatch.Alarm(this, `${id}-Dynamo-SystemErrors`, {
+      alarmName: `${table.tableName}-dynamo-system-errors`,
       alarmDescription: 'Dynamodb system errors detected',
       metric: table.metricSystemErrorsForOperations({
         operations: [
@@ -239,7 +239,7 @@ export class MonitoringStack extends Stack {
     const title = this.formatResource(table.tableName);
     this.dashboard.addWidgets(
       new cloudwatch.GraphWidget({
-        title: `${title} - Read/Write Capacity`,
+        title: `${title}-Dynamo - Read/Write Capacity`,
         left: [
           table.metricConsumedReadCapacityUnits({
             period: Duration.minutes(1),
@@ -251,7 +251,7 @@ export class MonitoringStack extends Stack {
         width: 12,
       }),
       new cloudwatch.GraphWidget({
-        title: `${title} - Latency`,
+        title: `${title}-Dynamo - Latency`,
         left: [
           table.metricSuccessfulRequestLatency({
             dimensionsMap: { TableName: table.tableName, Operation: 'GetItem' },
@@ -574,7 +574,7 @@ export class MonitoringStack extends Stack {
       ...tableEntries.map(
         ({ table, title }) =>
           new cloudwatch.GraphWidget({
-            title: `${title} - Request Latency`,
+            title: `${title}-Dynamo - Request Latency`,
             left: [
               table.metricSuccessfulRequestLatency({
                 dimensionsMap: {
@@ -664,7 +664,7 @@ export class MonitoringStack extends Stack {
       ...tableEntries.map(
         ({ table, title }) =>
           new cloudwatch.GraphWidget({
-            title: `${title} - System Errors`,
+            title: `${title}-Dynamo - System Errors`,
             left: [
               table.metricSystemErrorsForOperations({
                 operations: [
@@ -693,7 +693,7 @@ export class MonitoringStack extends Stack {
     tableEntries.forEach(({ table, title }) => {
       perfDashboard.addWidgets(
         new cloudwatch.GraphWidget({
-          title: `${title} - Consumed Capacity`,
+          title: `${title}-Dynamo - Consumed Capacity`,
           left: [
             table.metricConsumedReadCapacityUnits({
               period: Duration.minutes(1),
@@ -705,7 +705,7 @@ export class MonitoringStack extends Stack {
           width: 12,
         }),
         new cloudwatch.GraphWidget({
-          title: `${title} - Throttled Requests`,
+          title: `${title}-Dynamo - Throttled Requests`,
           left: [
             table.metricThrottledRequestsForOperations({
               operations: [
