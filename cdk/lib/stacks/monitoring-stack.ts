@@ -47,12 +47,12 @@ export class MonitoringStack extends Stack {
 
     const inventory = this.loadMonitoringInventory();
 
-    const tables = inventory.tableNames.map((name, i) =>
-      dynamodb.Table.fromTableName(this, `MonitoredTable${i}`, name),
+    const tables = inventory.tableNames.map((name) =>
+      dynamodb.Table.fromTableName(this, `MonitoredTable-${name}`, name),
     );
 
-    const lambdas = inventory.lambdaNames.map((name, i) =>
-      lambda.Function.fromFunctionName(this, `MonitoredLambda${i}`, name),
+    const lambdas = inventory.lambdaNames.map((name) =>
+      lambda.Function.fromFunctionName(this, `MonitoredLambda-${name}`, name),
     );
 
     const resourcePrefix = developerId
@@ -157,16 +157,16 @@ export class MonitoringStack extends Stack {
       dashboardName: `${resourcePrefix}-dashboard`,
     });
 
-    tables.forEach((table, index) => {
-      this.createDynamoDBAlarms(table, resourcePrefix, index);
+    tables.forEach((table) => {
+      this.createDynamoDBAlarms(table);
       this.addDynamoDBWidgets(table);
     });
 
     this.createApiGatewayAlarms(apiName, environment, resourcePrefix);
     this.addApiGatewayWidgets(apiName, environment);
 
-    lambdas.forEach((fn, index) => {
-      this.createLambdaAlarms(fn, resourcePrefix, index);
+    lambdas.forEach((fn) => {
+      this.createLambdaAlarms(fn);
     });
     this.addLambdaWidgets(lambdas);
 
@@ -179,15 +179,11 @@ export class MonitoringStack extends Stack {
     );
   }
 
-  private createDynamoDBAlarms(
-    table: dynamodb.ITable,
-    resourcePrefix: string,
-    index: number,
-  ) {
-    const id = `DynamoDb${index}`;
+  private createDynamoDBAlarms(table: dynamodb.ITable) {
+    const id = this.formatResource(table.tableName); //Udp-Data-Dev
 
-    new cloudwatch.Alarm(this, `${id}ReadThrottled`, {
-      alarmName: `${resourcePrefix}-dynamodb-${index}-read-throttled`,
+    new cloudwatch.Alarm(this, `${id}-ReadThrottled`, {
+      alarmName: `${table.tableName}-read-throttled`,
       alarmDescription: 'Dynamodb read requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
         operations: [dynamodb.Operation.GET_ITEM, dynamodb.Operation.QUERY],
@@ -201,8 +197,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}WriteThrottled`, {
-      alarmName: `${resourcePrefix}-dynamodb-${index}-write-throttled`,
+    new cloudwatch.Alarm(this, `${id}-WriteThrottled`, {
+      alarmName: `${table.tableName}-write-throttled`,
       alarmDescription: 'Dynamodb write requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
         operations: [
@@ -219,8 +215,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}SystemErrors`, {
-      alarmName: `${resourcePrefix}-dynamodb-${index}-system-errors`,
+    new cloudwatch.Alarm(this, `${id}-SystemErrors`, {
+      alarmName: `${table.tableName}-system-errors`,
       alarmDescription: 'Dynamodb system errors detected',
       metric: table.metricSystemErrorsForOperations({
         operations: [
@@ -240,9 +236,10 @@ export class MonitoringStack extends Stack {
   }
 
   private addDynamoDBWidgets(table: dynamodb.ITable): void {
+    const title = this.formatResource(table.tableName);
     this.dashboard.addWidgets(
       new cloudwatch.GraphWidget({
-        title: 'Dynamo - Read/Write Capacity',
+        title: `${title} - Read/Write Capacity`,
         left: [
           table.metricConsumedReadCapacityUnits({
             period: Duration.minutes(1),
@@ -254,7 +251,7 @@ export class MonitoringStack extends Stack {
         width: 12,
       }),
       new cloudwatch.GraphWidget({
-        title: 'Dynamo - Latency',
+        title: `${title} - Latency`,
         left: [
           table.metricSuccessfulRequestLatency({
             dimensionsMap: { TableName: table.tableName, Operation: 'GetItem' },
@@ -362,15 +359,11 @@ export class MonitoringStack extends Stack {
     );
   }
 
-  private createLambdaAlarms(
-    fn: lambda.IFunction,
-    resourcePrefix: string,
-    index: number,
-  ): void {
-    const id = `Lambda${index}`;
+  private createLambdaAlarms(fn: lambda.IFunction): void {
+    const id = this.formatResource(fn.functionName);
 
-    new cloudwatch.Alarm(this, `${id}Errors`, {
-      alarmName: `${resourcePrefix}-lambda-${index}-errors`,
+    new cloudwatch.Alarm(this, `${id}-Errors`, {
+      alarmName: `${fn.functionName}-errors`,
       alarmDescription: 'Lambda error count excceeds threashold',
       metric: fn.metricErrors({ period: Duration.minutes(1) }),
       threshold: 2,
@@ -380,8 +373,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}Duration`, {
-      alarmName: `${resourcePrefix}-lambda-${index}-duration`,
+    new cloudwatch.Alarm(this, `${id}-Duration`, {
+      alarmName: `${fn.functionName}-duration`,
       alarmDescription: `Lambda duration is exceeds ${NFR.LAMBDA_DURATION_P95_MS}`,
       metric: fn.metricDuration({
         period: Duration.minutes(1),
@@ -394,8 +387,8 @@ export class MonitoringStack extends Stack {
       bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}Throttles`, {
-      alarmName: `${resourcePrefix}-lambda-${index}-throttles`,
+    new cloudwatch.Alarm(this, `${id}-Throttles`, {
+      alarmName: `${fn.functionName}-throttles`,
       alarmDescription: 'Lambda is being throttled',
       metric: fn.metricThrottles({
         period: Duration.minutes(1),
@@ -410,10 +403,11 @@ export class MonitoringStack extends Stack {
   }
 
   private addLambdaWidgets(lambdas: lambda.IFunction[]): void {
-    lambdas.forEach((fn, index) => {
-      this.dashboard.addWidgets(
-        new cloudwatch.GraphWidget({
-          title: `Lambda ${index}`,
+    this.dashboard.addWidgets(
+      ...lambdas.map((fn) => {
+        const title = this.formatResource(fn.functionName);
+        return new cloudwatch.GraphWidget({
+          title: title,
           left: [
             fn.metricInvocations({ period: Duration.minutes(1) }),
             fn.metricErrors({ period: Duration.minutes(1) }),
@@ -426,9 +420,9 @@ export class MonitoringStack extends Stack {
             }),
           ],
           width: 12,
-        }),
-      );
-    });
+        });
+      }),
+    );
   }
 
   private createPerformanceDashboard(
@@ -445,6 +439,15 @@ export class MonitoringStack extends Stack {
         dashboardName: `${resourcePrefix}-performance`,
       },
     );
+
+    const lambdaEntries = lambdas.map((fn) => ({
+      fn,
+      title: this.formatResource(fn.functionName),
+    }));
+    const tableEntries = tables.map((table) => ({
+      table,
+      title: this.formatResource(table.tableName),
+    }));
 
     const nfrLatencyAnnotation: cloudwatch.HorizontalAnnotation = {
       value: NFR.P95_LATENCY_MS,
@@ -537,10 +540,10 @@ export class MonitoringStack extends Stack {
     );
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Duration`,
+            title: `${title} - Duration`,
             left: [
               fn.metricDuration({
                 period: Duration.minutes(1),
@@ -567,56 +570,57 @@ export class MonitoringStack extends Stack {
       ),
     );
 
-    tables.forEach((table) => {
-      perfDashboard.addWidgets(
-        new cloudwatch.GraphWidget({
-          title: 'DynamoDB - Request Latency',
-          left: [
-            table.metricSuccessfulRequestLatency({
-              dimensionsMap: {
-                TableName: table.tableName,
-                Operation: 'GetItem',
-              },
-              period: Duration.minutes(1),
-              statistic: 'p50',
-            }),
-            table.metricSuccessfulRequestLatency({
-              dimensionsMap: {
-                TableName: table.tableName,
-                Operation: 'PutItem',
-              },
-              period: Duration.minutes(1),
-              statistic: 'p50',
-            }),
-            table.metricSuccessfulRequestLatency({
-              dimensionsMap: {
-                TableName: table.tableName,
-                Operation: 'Query',
-              },
-              period: Duration.minutes(1),
-              statistic: 'p50',
-            }),
-            table.metricSuccessfulRequestLatency({
-              dimensionsMap: {
-                TableName: table.tableName,
-                Operation: 'GetItem',
-              },
-              period: Duration.minutes(1),
-              statistic: 'Average',
-            }),
-            table.metricSuccessfulRequestLatency({
-              dimensionsMap: {
-                TableName: table.tableName,
-                Operation: 'PutItem',
-              },
-              period: Duration.minutes(1),
-              statistic: 'Average',
-            }),
-          ],
-          width: 12,
-        }),
-      );
-    });
+    perfDashboard.addWidgets(
+      ...tableEntries.map(
+        ({ table, title }) =>
+          new cloudwatch.GraphWidget({
+            title: `${title} - Request Latency`,
+            left: [
+              table.metricSuccessfulRequestLatency({
+                dimensionsMap: {
+                  TableName: table.tableName,
+                  Operation: 'GetItem',
+                },
+                period: Duration.minutes(1),
+                statistic: 'p50',
+              }),
+              table.metricSuccessfulRequestLatency({
+                dimensionsMap: {
+                  TableName: table.tableName,
+                  Operation: 'PutItem',
+                },
+                period: Duration.minutes(1),
+                statistic: 'p50',
+              }),
+              table.metricSuccessfulRequestLatency({
+                dimensionsMap: {
+                  TableName: table.tableName,
+                  Operation: 'Query',
+                },
+                period: Duration.minutes(1),
+                statistic: 'p50',
+              }),
+              table.metricSuccessfulRequestLatency({
+                dimensionsMap: {
+                  TableName: table.tableName,
+                  Operation: 'GetItem',
+                },
+                period: Duration.minutes(1),
+                statistic: 'Average',
+              }),
+              table.metricSuccessfulRequestLatency({
+                dimensionsMap: {
+                  TableName: table.tableName,
+                  Operation: 'PutItem',
+                },
+                period: Duration.minutes(1),
+                statistic: 'Average',
+              }),
+            ],
+            width: 12,
+          }),
+      ),
+    );
 
     // ── Section 3: Error Analysis ───────────────────────────────────────
     perfDashboard.addWidgets(
@@ -646,35 +650,36 @@ export class MonitoringStack extends Stack {
     );
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Errors`,
+            title: `${title} - Errors`,
             left: [fn.metricErrors({ period: Duration.minutes(1) })],
-            width: 8,
+            width: 12,
           }),
       ),
     );
 
-    tables.forEach((table) => {
-      perfDashboard.addWidgets(
-        new cloudwatch.GraphWidget({
-          title: 'DynamoDB - System Errors',
-          left: [
-            table.metricSystemErrorsForOperations({
-              operations: [
-                dynamodb.Operation.GET_ITEM,
-                dynamodb.Operation.PUT_ITEM,
-                dynamodb.Operation.QUERY,
-              ],
-              period: Duration.minutes(1),
-              statistic: 'Sum',
-            }),
-          ],
-          width: 12,
-        }),
-      );
-    });
+    perfDashboard.addWidgets(
+      ...tableEntries.map(
+        ({ table, title }) =>
+          new cloudwatch.GraphWidget({
+            title: `${title} - System Errors`,
+            left: [
+              table.metricSystemErrorsForOperations({
+                operations: [
+                  dynamodb.Operation.GET_ITEM,
+                  dynamodb.Operation.PUT_ITEM,
+                  dynamodb.Operation.QUERY,
+                ],
+                period: Duration.minutes(1),
+                statistic: 'Sum',
+              }),
+            ],
+            width: 12,
+          }),
+      ),
+    );
 
     // ── Section 4: Throttling & Capacity ────────────────────────────────
     perfDashboard.addWidgets(
@@ -685,10 +690,10 @@ export class MonitoringStack extends Stack {
       }),
     );
 
-    tables.forEach((table) => {
+    tableEntries.forEach(({ table, title }) => {
       perfDashboard.addWidgets(
         new cloudwatch.GraphWidget({
-          title: 'DynamoDB - Consumed Capacity',
+          title: `${title} - Consumed Capacity`,
           left: [
             table.metricConsumedReadCapacityUnits({
               period: Duration.minutes(1),
@@ -700,7 +705,7 @@ export class MonitoringStack extends Stack {
           width: 12,
         }),
         new cloudwatch.GraphWidget({
-          title: 'DynamoDB - Throttled Requests',
+          title: `${title} - Throttled Requests`,
           left: [
             table.metricThrottledRequestsForOperations({
               operations: [
@@ -728,13 +733,13 @@ export class MonitoringStack extends Stack {
     });
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Throttles`,
+            title: `${title} - Throttles`,
             left: [fn.metricThrottles({ period: Duration.minutes(1) })],
             leftAnnotations: [nfrThrottleAnnotation],
-            width: 8,
+            width: 12,
           }),
       ),
     );
@@ -749,10 +754,10 @@ export class MonitoringStack extends Stack {
     );
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Concurrent Executions`,
+            title: `${title} - Concurrent Executions`,
             left: [
               new cloudwatch.Metric({
                 namespace: 'AWS/Lambda',
@@ -768,10 +773,10 @@ export class MonitoringStack extends Stack {
     );
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Init Duration (Cold Start)`,
+            title: `${title} - Init Duration (Cold Start)`,
             left: [
               new cloudwatch.Metric({
                 namespace: 'AWS/Lambda',
@@ -796,12 +801,12 @@ export class MonitoringStack extends Stack {
     );
 
     perfDashboard.addWidgets(
-      ...lambdas.map(
-        (fn, index) =>
+      ...lambdaEntries.map(
+        ({ fn, title }) =>
           new cloudwatch.GraphWidget({
-            title: `Lambda ${index} - Invocations`,
+            title: `${title} - Invocations`,
             left: [fn.metricInvocations({ period: Duration.minutes(1) })],
-            width: 8,
+            width: 12,
           }),
       ),
     );
@@ -822,5 +827,12 @@ export class MonitoringStack extends Stack {
     return JSON.parse(
       fs.readFileSync(inventoryPath, 'utf8'),
     ) as MonitoringInventory;
+  }
+
+  private formatResource(resourceName: string): string {
+    return resourceName
+      .split('-')
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join('-');
   }
 }
