@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: 'GitHub environment name (e.g. dev, staging). Leave empty to skip environment protection.'
+        description: 'GitHub environment name (e.g. dev, stag). Leave empty to skip environment protection.'
         required: false
         type: string
         default: ''
@@ -38,6 +38,9 @@ jobs:
     name: Deploy monitoring to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-monitoring-${{ inputs.developer-id }}-${{ inputs.environment }}
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
@@ -89,18 +92,78 @@ jobs:
           fi
           echo "STACK_NAME=$STACK_NAME" >> "$GITHUB_ENV"
 
-      - name: Checkov Security Scan
+      - name: Synthesize Monitoring Stack
         env:
           DEVELOPER_ID: ${{ inputs.developer-id }}
           ENVIRONMENT: ${{ inputs.environment }}
         run: |
           rm -rf cdk/cdk.out
           (cd cdk && npx cdk synth "${STACK_NAME}" -c env="${ENVIRONMENT}" -c skipMainStack=true --quiet)
+
+      - name: Compare Monitoring Template Hash
+        id: compare
+        env:
+          AWS_REGION: ${{ inputs.aws-region }}
+        run: |
+          TEMPLATE_FILE="cdk/cdk.out/${STACK_NAME}.template.json"
+          SSM_PARAM="upd/${STACK_NAME}/monitoring/template-hash"
+
+          # Calculate hash of the synthesized template
+          CURRENT_HASH=$(sha256sum "${TEMPLATE_FILE}" | awk '{print $1}')
+          echo "CURRENT_HASH=${CURRENT_HASH}" >> "$GITHUB_ENV"
+          echo "Current template hash: ${CURRENT_HASH}"
+
+          # Retrieve previous hash from SSM (absent on first deploy)
+          PREVIOUS_HASH=$(aws ssm get-parameter \
+            --name "${SSM_PARAM}" \
+            --query "Parameter.Value" \
+            --output text 2>/dev/null || echo "")
+
+          # Check the CloudFormation stack actually exists.
+          STACK_EXISTS=$(aws cloudformation describe-stacks \
+            --stack-name "${STACK_NAME}" \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -z "${PREVIOUS_HASH}" ]; then
+            echo "No previous hash found in SSM — first deployment."
+            echo "deploy_required=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "${STACK_EXISTS}" ]; then
+            echo "Stack ${STACK_NAME} does not exist in CloudFormation — deployment required."
+            echo "deploy_required=true" >> "$GITHUB_OUTPUT"
+          elif [ "${CURRENT_HASH}" != "${PREVIOUS_HASH}" ]; then
+            echo "Template changed (${PREVIOUS_HASH} → ${CURRENT_HASH}) — deployment required."
+            echo "deploy_required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Template unchanged and stack exists — skipping deployment."
+            echo "deploy_required=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkov Security Scan
+        if: steps.compare.outputs.deploy_required == 'true'
+        env:
+          DEVELOPER_ID: ${{ inputs.developer-id }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
           checkov -f "cdk/cdk.out/${STACK_NAME}.template.json" --config-file cdk/.checkov.yaml
 
       - name: Deploy monitoring CDK stack
+        if: steps.compare.outputs.deploy_required == 'true'
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
           NX_TARGET: ${{ inputs.nx-target }}
           DEVELOPER_ID: ${{ inputs.developer-id }}
         run: npx nx run "${NX_TARGET}"
+
+      - name: Save Monitoring Template Hash
+        if: steps.compare.outputs.deploy_required == 'true'
+        env:
+          AWS_REGION: ${{ inputs.aws-region }}
+        run: |
+          SSM_PARAM="upd/${STACK_NAME}/monitoring/template-hash"
+          aws ssm put-parameter \
+            --name "${SSM_PARAM}" \
+            --value "${CURRENT_HASH}" \
+            --type String \
+            --overwrite
+          echo "Saved monitoring template hash to ${SSM_PARAM}"
