@@ -1,7 +1,7 @@
 export const LIVE_SCHEMAS_TABLE = 'live_schemas';
 export const LIVE_USER_SCHEMAS_TABLE = 'live_user_scheams';
 
-export const SCHEMA_EXTRSCTOR_DB_ROLE = 'live_schema_extractor';
+export const SCHEMA_EXTRACTOR_DB_ROLE = 'live_schema_extractor';
 
 export const TABLE_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS ${LIVE_SCHEMAS_TABLE} {
