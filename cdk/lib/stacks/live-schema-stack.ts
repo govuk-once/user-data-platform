@@ -66,7 +66,7 @@ export class LiveSchemaStack extends Stack {
     const kmsKey = Key.fromKeyArn(this, 'KmsKey', resolve(params.kmsKeyArn));
     const dbKmsKey = Key.fromKeyArn(
       this,
-      'KmsKey',
+      'DbKmsKey',
       resolve(params.dbKmsKeyArn),
     );
 
