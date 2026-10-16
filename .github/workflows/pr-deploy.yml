@@ -81,7 +81,16 @@ jobs:
           SOURCE_PATH=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='SourcePath'].OutputValue" --output text)
           echo "source-path=${SOURCE_PATH}" >> $GITHUB_OUTPUT
           echo "source path: ${SOURCE_PATH}"
-
+  deploy-monitoring:
+    needs: deploy
+    name: Deploy monitoring stack to PR environment
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      developer-id: pr-${{ github.event.pull_request.number }}
+      nx-target: cdk:deploy:monitoring:pr
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
   e2e-tests:
     name: Run E2E Tests
     needs: deploy
