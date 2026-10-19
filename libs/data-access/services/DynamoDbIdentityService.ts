@@ -116,6 +116,7 @@ export class DynamoDBIdentityService {
 
     for (const identity of identities) {
       try {
+        // NOSONAR: sequential deletes intentional — rethrows on unexpected errors to stop early
         await this.delete(identity.pk, identity.sk);
         deletedCount++;
       } catch (error) {

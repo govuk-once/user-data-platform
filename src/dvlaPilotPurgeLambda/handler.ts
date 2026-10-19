@@ -64,6 +64,7 @@ const fetchDVLAKeys = async (): Promise<IdentityTableKey[]> => {
   let lastEvaluatedKey: Record<string, AttributeValue> | undefined;
 
   do {
+    // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
     const scanResponse = await dynamoClient.send(
       new ScanCommand({
         TableName: IDENTITY_TABLE_NAME,
@@ -137,6 +138,7 @@ export const lambdaHandler = async (event: { key: string }): Promise<void> => {
     const batchNumber = Math.floor(offset / BATCH_SIZE) + 1;
     const batch = allKeys.slice(offset, offset + BATCH_SIZE);
 
+    // NOSONAR: sequential batching intentional — limits concurrency to BATCH_SIZE deletions at a time to avoid DynamoDB throttling
     const batchFailureCount = await deleteBatch(batch);
     totalFailureCount += batchFailureCount;
 
@@ -165,7 +167,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })
