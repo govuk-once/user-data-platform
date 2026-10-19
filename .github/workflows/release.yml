@@ -97,11 +97,8 @@ jobs:
     needs: [deploy-staging]
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
-      environment: staging
-      stack-prefix: stag
+      environment: stag
       nx-target: cdk:deploy:monitoring:stag
-      version: ${{ needs.version.outputs.version }}
-      prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
@@ -146,10 +143,8 @@ jobs:
     needs: [deploy-prod]
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
-      environment: production
-      stack-prefix: prod
+      environment: prod
       nx-target: cdk:deploy:monitoring:prod
-      version: ${{ needs.version.outputs.version }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 

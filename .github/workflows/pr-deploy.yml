@@ -27,6 +27,17 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
+  deploy-monitoring:
+    needs: deploy
+    name: Deploy monitoring stack to PR environment
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      developer-id: pr-${{ github.event.pull_request.number }}
+      nx-target: cdk:deploy:monitoring:pr
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+
   e2e-tests:
     name: Run E2E Tests
     needs: deploy

@@ -49,18 +49,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ inputs.node-version }}
 
-      - name: Setup pnpm
-        run: npm install -g pnpm
-
-      - name: Install Dependencies
-        run: |
-          python3 -m pip install checkov
-          pnpm install --frozen-lockfile
+      - name: Install security tooling
+        run: python3 -m pip install checkov
 
       - name: Configure AWS Credentials
         id: aws-creds
