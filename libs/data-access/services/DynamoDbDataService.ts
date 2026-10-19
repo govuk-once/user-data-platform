@@ -101,6 +101,7 @@ export class DynamoDbDataService {
     let exclusiveStartKey: Record<string, unknown> | undefined;
 
     do {
+      // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
       const response = await this.client.send(
         new QueryCommand({
           TableName: this.tableName,
@@ -151,6 +152,7 @@ export class DynamoDbDataService {
     let exclusiveStartKey: Record<string, unknown> | undefined;
 
     do {
+      // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
       const response = await this.client.send(
         new QueryCommand({
           TableName: this.tableName,
@@ -162,11 +164,12 @@ export class DynamoDbDataService {
         }),
       );
 
-      for (const item of response.Items ?? []) {
-        items.push(
-          await decryptItem<DynamoDBDataEntity>(item, this.encryption),
-        );
-      }
+      const pageItems = await Promise.all(
+        (response.Items ?? []).map((item) =>
+          decryptItem<DynamoDBDataEntity>(item, this.encryption),
+        ),
+      );
+      items.push(...pageItems);
 
       exclusiveStartKey = response.LastEvaluatedKey;
     } while (exclusiveStartKey);

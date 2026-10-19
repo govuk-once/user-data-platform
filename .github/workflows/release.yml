@@ -80,7 +80,6 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
   deploy-staging:
-    if: false # Disabled until ITHC work finished
     name: Deploy to staging
     needs: [e2e-dev, version]
     uses: ./.github/workflows/__deploy-env.yml
@@ -107,7 +106,6 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   e2e-staging:
-    if: false # Disabled until ITHC work finished
     name: E2E tests on staging
     needs: deploy-staging
     uses: ./.github/workflows/__e2e.yml
@@ -119,7 +117,6 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   perf-test-staging:
-    if: false # Disabled until ITHC work finished
     name: 'Performance Tests'
     needs: deploy-staging
     uses: './.github/workflows/__perf-test.yml'
@@ -132,7 +129,6 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
   deploy-prod:
-    if: false # Disabled until ITHC work finished
     name: Deploy to production
     needs: [version, e2e-staging, perf-test-staging]
     uses: ./.github/workflows/__deploy-env.yml
@@ -158,8 +154,7 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
   send-release-notification:
-    if: false # Disabled until ITHC work finished
-    # if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
+    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     name: Send Release Notification
     needs: [version, deploy-monitoring-prod]
     uses: ./.github/workflows/slack-release-notification.yml

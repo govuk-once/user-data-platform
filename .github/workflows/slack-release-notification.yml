@@ -31,16 +31,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f #v6
-        with:
-          node-version: 24
-
-      - name: Install dependencies
-        run: pnpm i --frozen-lockfile
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
@@ -53,6 +45,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           VERSION: ${{ inputs.version }}
           TYPE: ${{ inputs.type }}
           TITLE: 'UDP ${{ inputs.type }} release: v${{ inputs.version }}'
@@ -60,9 +53,9 @@ jobs:
           TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
         run: |
           MESSAGE=$(gh release view "v${VERSION}" \
-          --repo "${{ github.repository }}" \
-          --json body \
-          --jq .body \
-          | pnpm exec tsx scripts/build-release-notification.ts)
+            --repo "${REPO}" \
+            --json body \
+            --jq .body \
+            | pnpm exec tsx scripts/build-release-notification.ts)
 
           aws sns publish --topic-arn "$TOPIC_ARN" --message "$MESSAGE"

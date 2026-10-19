@@ -1,0 +1,89 @@
+name: Run CodeBuild project
+description: Starts a CodeBuild build and optionally waits for it to finish, failing if the build does not succeed. Requires AWS credentials.
+
+inputs:
+  project:
+    description: 'CodeBuild project name'
+    required: true
+  env-overrides:
+    description: 'Optional space-separated environment variable overrides, e.g. "name=E2E_TARGET,value=pr,type=PLAINTEXT"'
+    required: false
+    default: ''
+  wait:
+    description: 'Wait for the build to complete ("true"/"false")'
+    required: false
+    default: 'true'
+  poll-interval:
+    description: 'Seconds between status checks while waiting'
+    required: false
+    default: '30'
+  aws-region:
+    required: false
+    default: 'eu-west-2'
+
+outputs:
+  build-id:
+    value: ${{ steps.start.outputs.build-id }}
+  logs-url:
+    value: ${{ steps.start.outputs.logs-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Start build
+      id: start
+      shell: bash
+      env:
+        PROJECT: ${{ inputs.project }}
+        ENV_OVERRIDES: ${{ inputs.env-overrides }}
+        AWS_REGION: ${{ inputs.aws-region }}
+      run: |
+        echo "Starting CodeBuild project: ${PROJECT}"
+
+        args=(--project-name "${PROJECT}" --query 'build.id' --output text)
+        if [ -n "${ENV_OVERRIDES}" ]; then
+          read -ra overrides <<< "${ENV_OVERRIDES}"
+          args+=(--environment-variables-override "${overrides[@]}")
+        fi
+
+        BUILD_ID=$(aws codebuild start-build "${args[@]}")
+        LOGS_URL="https://${AWS_REGION}.console.aws.amazon.com/codesuite/codebuild/projects/${PROJECT}/build/${BUILD_ID}"
+
+        echo "Build started ${BUILD_ID}"
+        echo "Build logs: ${LOGS_URL}"
+        {
+          echo "build-id=${BUILD_ID}"
+          echo "logs-url=${LOGS_URL}"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Wait for build to complete
+      if: inputs.wait == 'true'
+      shell: bash
+      env:
+        BUILD_ID: ${{ steps.start.outputs.build-id }}
+        LOGS_URL: ${{ steps.start.outputs.logs-url }}
+        POLL_INTERVAL: ${{ inputs.poll-interval }}
+      run: |
+        while true; do
+          read -r BUILD_STATUS CURRENT_PHASE <<< "$(aws codebuild batch-get-builds --ids "${BUILD_ID}" \
+            --query 'builds[0].[buildStatus,currentPhase]' --output text)"
+
+          echo "Build status: ${BUILD_STATUS}, phase: ${CURRENT_PHASE}"
+
+          case "${BUILD_STATUS}" in
+            SUCCEEDED)
+              echo "Build succeeded"
+              exit 0
+              ;;
+            FAILED|FAULT|STOPPED|TIMED_OUT)
+              echo "::error::Build failed with status ${BUILD_STATUS}. Logs: ${LOGS_URL}"
+              exit 1
+              ;;
+            IN_PROGRESS)
+              ;;
+            *)
+              echo "Unknown status: ${BUILD_STATUS}"
+              ;;
+          esac
+          sleep "${POLL_INTERVAL}"
+        done

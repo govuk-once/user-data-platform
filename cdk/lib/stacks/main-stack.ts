@@ -97,8 +97,8 @@ export class MainStack extends Stack {
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
-    // const routes = this.setRoutes(environment);
-    const routes = this.setAllRoutes();
+    const routes = this.setRoutes(environment);
+    // const routes = this.setAllRoutes();
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 

@@ -22,7 +22,7 @@ export function udpErrorHandling(
   logger: Logger,
 ): MiddlewareObj<APIGatewayProxyEventV2> {
   return {
-    onError: async (request: APIGatewayRequest) => {
+    onError: (request: APIGatewayRequest) => {
       if (request.response !== undefined) {
         return;
       }
