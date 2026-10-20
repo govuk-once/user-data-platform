@@ -34,7 +34,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           output-credentials: true
 
-      - name: Deploy CDK stack
+      - name: Destroy CDK stacks
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
         run: pnpm cdk:destroy:dev
