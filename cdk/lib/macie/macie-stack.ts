@@ -8,6 +8,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cr from 'aws-cdk-lib/custom-resources';
 
 import { MacieAccess } from './macie-access';
+import { GovUKTag } from '../gov-uk-tag';
 
 const cache = new Map<string, boolean>();
 
@@ -45,6 +46,7 @@ export class MacieStack extends Stack {
         },
       }),
     );
+    GovUKTag.of(macieCrRole).DataClassification.OFFICIAL_SENSITIVE();
 
     this.enablement = new cr.AwsCustomResource(this, 'EnableMacie', {
       role: macieCrRole,
@@ -73,6 +75,10 @@ export class MacieStack extends Stack {
         ignoreErrorCodesMatching: 'ResourceNotFoundException',
       },
     });
+    GovUKTag.of(this.enablement)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
 
     const macieSourceArns = [
       `arn:${this.partition}:macie2:${this.region}:${this.account}:export-configuration:*`,
@@ -98,6 +104,7 @@ export class MacieStack extends Stack {
         conditions: confusedDeputy,
       }),
     );
+    GovUKTag.of(resultsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const bucketName = `macie-results-${this.account}-${this.region}`;
     const bucketArn = `arn:${this.partition}:s3:::${bucketName}`;
@@ -114,6 +121,10 @@ export class MacieStack extends Stack {
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
         });
+    GovUKTag.of(resultsBucket)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNAL()
+      .PII.TRUE();
 
     const resultsBucketPolicy = new s3.CfnBucketPolicy(
       this,
@@ -167,11 +178,16 @@ export class MacieStack extends Stack {
         `macie-export-${this.account}-${this.region}`,
       ),
     };
+
     const exportConfig = new cr.AwsCustomResource(this, 'ExportConfig', {
       role: macieCrRole,
       onCreate: exportCall,
       onUpdate: exportCall,
     });
+    GovUKTag.buriedOf(this, 'AWS679f53fac')
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
 
     exportConfig.node.addDependency(this.enablement);
     exportConfig.node.addDependency(resultsBucketPolicy);

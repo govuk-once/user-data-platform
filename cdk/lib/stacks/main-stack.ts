@@ -1,6 +1,6 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import { Construct, type IConstruct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -42,6 +42,7 @@ import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
+import { GovUKTag } from '../gov-uk-tag';
 
 type RoutesConfig = Record<string, RouteConfig>;
 
@@ -67,6 +68,7 @@ export class MainStack extends Stack {
   public readonly identityTable: dynamodb.Table;
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
+  public readonly lambdaApiConstructs: LambdaApiConstruct[];
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
   public readonly dsarQueue?: sqs.Queue;
@@ -98,7 +100,6 @@ export class MainStack extends Stack {
 
     // Filter out SAR / DSAR routes based on env !== prod
     const routes = this.setRoutes(environment);
-    // const routes = this.setAllRoutes();
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 
@@ -134,6 +135,7 @@ export class MainStack extends Stack {
     });
     this.kmsKey = kmsConstruct.key;
     MacieAccess.markKMSKeyForAccess(this.kmsKey);
+    GovUKTag.of(this.kmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const dbKms = new KmsConstruct(this, 'dbKms', {
       developerId,
@@ -141,6 +143,7 @@ export class MainStack extends Stack {
       namePrefix: 'db-kms-encryption',
     });
     this.dbKmsKey = dbKms.key;
+    GovUKTag.of(this.dbKmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
@@ -151,6 +154,10 @@ export class MainStack extends Stack {
     });
 
     this.table = db.table;
+    GovUKTag.of(this.table)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const identityDb = new DynamoDBConstruct(this, 'IdentityDynamoDb', {
       developerId,
@@ -168,6 +175,10 @@ export class MainStack extends Stack {
     });
 
     this.identityTable = identityDb.table;
+    GovUKTag.of(this.identityTable)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const featureFlags =
       featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
@@ -178,6 +189,10 @@ export class MainStack extends Stack {
       applicationName: `${serviceName}-appconfig`,
       featureFlags,
     });
+    GovUKTag.of(appConfig)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
 
     this.appConfigApplicationId = appConfig.application.ref;
     this.appConfigEnvironmentId = appConfig.environment.ref;
@@ -216,7 +231,7 @@ export class MainStack extends Stack {
       routes,
     );
 
-    this.lambdas = this.createLambdaFunctions({
+    this.lambdaApiConstructs = this.createLambdaFunctions({
       developerId,
       environment,
       stackPrefix,
@@ -232,9 +247,22 @@ export class MainStack extends Stack {
       dynamoDbEndpointUrl,
       routes,
     });
+    this.lambdas = this.lambdaApiConstructs.map(
+      (lambdaApiConstruct) => lambdaApiConstruct.function,
+    );
+    this.lambdaGovUKTagging();
 
     this.dsarQueue = eventQueues.get('dsarQueue')!;
+    GovUKTag.of(this.dsarQueue as IConstruct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
     this.sarQueue = eventQueues.get('sarQueue')!;
+    GovUKTag.of(this.sarQueue as IConstruct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const { IamConsumerConfigs, consumerthrottleConfigs } =
       this.buildConsumerConfigs(externalConsumers);
@@ -317,6 +345,11 @@ export class MainStack extends Stack {
         description: 'KMS Key ARN',
       },
     ]);
+
+    GovUKTag.buriedOf(this, 'AWS679f53fac')
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
   }
 
   private createEventQueues(
@@ -367,7 +400,7 @@ export class MainStack extends Stack {
     cachingEnabled: boolean;
     dynamoDbEndpointUrl?: string;
     routes: RoutesConfig;
-  }): lambda.Function[] {
+  }): LambdaApiConstruct[] {
     const {
       developerId,
       environment,
@@ -385,7 +418,7 @@ export class MainStack extends Stack {
       routes,
     } = params;
 
-    const lambdasList = [];
+    const lambdaApiConstructsList = [];
     for (const route of Object.values(routes)) {
       const routeQueue = route.queueName
         ? eventQueues.get(route.queueName)
@@ -426,11 +459,12 @@ export class MainStack extends Stack {
         logRetentionDays: getLogRetentionPeriod(environment),
       });
 
-      lambdasList.push(lambdaConstruct.function);
+      lambdaApiConstructsList.push(lambdaConstruct);
       // Retain export while downstream stacks remove their imports.
       this.exportValue(lambdaConstruct.function.functionName);
     }
-    return lambdasList;
+
+    return lambdaApiConstructsList;
   }
 
   private buildConsumerConfigs(
@@ -491,6 +525,10 @@ export class MainStack extends Stack {
       displayName: `${environment}-release-notifications`,
       masterKey: this.kmsKey,
     });
+    GovUKTag.of(releaseTopic)
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNET_FACING()
+      .PII.FALSE();
 
     const param = `/${environmentLongNames[environment]}/udp-param/udp/release`;
     const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
@@ -515,6 +553,14 @@ export class MainStack extends Stack {
           iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
         ],
       });
+      GovUKTag.of(slack)
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
+      GovUKTag.buriedOf(slack, 'ReleaseSlackChannel/ConfigurationRole/Resource')
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
 
       slack.role?.addToPrincipalPolicy(
         new iam.PolicyStatement({
@@ -522,6 +568,15 @@ export class MainStack extends Stack {
           resources: [this.kmsKey.keyArn],
         }),
       );
+    }
+  }
+
+  private lambdaGovUKTagging() {
+    for (const lambdaApiConstruct of this.lambdaApiConstructs) {
+      GovUKTag.of(lambdaApiConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.ISOLATED();
     }
   }
 
@@ -543,11 +598,6 @@ export class MainStack extends Stack {
       );
     }
 
-    return routes;
-  }
-
-  private setAllRoutes(): RoutesConfig {
-    const routes: RoutesConfig = _routes;
     return routes;
   }
 }

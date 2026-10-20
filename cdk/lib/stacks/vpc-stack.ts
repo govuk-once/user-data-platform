@@ -3,6 +3,7 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
+import { GovUKTag } from '../gov-uk-tag';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 
 export interface VpcStackProps extends StackProps {
@@ -43,6 +44,11 @@ export class VpcStack extends Stack {
       maxAzs,
       kmsKey: kmsConstruct.key,
     });
+
+    GovUKTag.of(vpcConstuct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.ISOLATED()
+      .PII.TRUE();
 
     this.vpc = vpcConstuct.vpc;
     this.vpcEndpointSecurityGroup = vpcConstuct.vpcEndpointSecurityGroup;
@@ -89,6 +95,11 @@ export class VpcStack extends Stack {
         exportName: `${id}-PrivateSubnet${idx}Id`,
         description: `Private subnet ${idx} ID`,
       });
+
+      GovUKTag.of(subnet)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .Exposure.ISOLATED()
+        .PII.TRUE();
     });
   }
 }

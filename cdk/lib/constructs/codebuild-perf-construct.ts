@@ -23,6 +23,7 @@ import {
   getRemovalPolicy,
 } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface CodeBuildPerfConstructProps {
   readonly developerId?: string;
@@ -77,11 +78,13 @@ export class CodeBuildPerfConstruct extends Construct {
       retention: getLogRetentionPeriod(environment),
       removalPolicy: getRemovalPolicy(environment),
     });
+    GovUKTag.of(this.logGroup).PII.FALSE().DataClassification.OFFICIAL();
 
     const codeBuildRole = new Role(this, 'CodeBuildRole', {
       assumedBy: new ServicePrincipal('codebuild.amazonaws.com'),
       description: `IAM role for Performance Test Codebuild Project - ${resourcePrefix}`,
     });
+    GovUKTag.of(codeBuildRole).DataClassification.OFFICIAL();
 
     codeBuildRole.addToPolicy(
       new PolicyStatement({
