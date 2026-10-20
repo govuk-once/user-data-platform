@@ -116,6 +116,7 @@ export class DynamoDBIdentityService {
 
     for (const identity of identities) {
       try {
+        // NOSONAR: sequential deletes intentional — rethrows on unexpected errors to stop early
         await this.delete(identity.pk, identity.sk);
         deletedCount++;
       } catch (error) {
@@ -157,17 +158,17 @@ export class DynamoDBIdentityService {
   public async getAllLinkedServices(
     serviceName: string,
     serviceId: string,
-  ): Promise<string[]> {
+  ): Promise<{ serviceName: string; ttl?: number }[]> {
     const identity = await this.getByServiceId(serviceName, serviceId);
     const identities = await this.queryBySk(identity.udpId);
     const linkedServices = identities
-      .map((identity) => {
-        if (identity.ttl && identity.ttl < this.getCurrentTTL()) {
-          return 'expired';
-        }
-        return identity.serviceName;
-      })
-      .filter((service) => service !== 'expired');
+      .filter(
+        (identity) => !identity.ttl || identity.ttl >= this.getCurrentTTL(),
+      )
+      .map((identity) => ({
+        serviceName: identity.serviceName,
+        ...(identity.ttl !== undefined && { ttl: identity.ttl }),
+      }));
 
     if (linkedServices.length === 0) {
       this.logger?.debug(`No linked service found for UDPID ${identity.udpId}`);

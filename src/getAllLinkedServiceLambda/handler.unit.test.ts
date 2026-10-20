@@ -117,7 +117,38 @@ describe('getAllLinkedServiceLambda', () => {
 
       expect(result.statusCode).toBe(200);
       expect(JSON.parse(result.body)).toMatchObject({
-        linkedServices: ['app', 'dwp'],
+        linkedServices: [{ serviceName: 'app' }, { serviceName: 'dwp' }],
+      });
+    });
+
+    it('should return 200 with ttl included for non-expired identities that have one set', async () => {
+      const futureTtl = Math.floor(Date.parse('2030-01-01') / 1000);
+      const event: APIGatewayProxyEventV2 = {
+        headers: { 'Content-Type': 'application/json' },
+        requestContext: {} as any,
+        isBase64Encoded: false,
+        rawPath: `/v1/identity/${mockServiceName}/${mockServiceId}/linked-services`,
+        rawQueryString: '',
+        version: '2.0',
+        routeKey: 'GET /v1/identity/{serviceName}/{identifier}/linked-services',
+        pathParameters: {
+          serviceName: mockServiceName,
+          identifier: mockServiceId,
+        },
+      };
+
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [mockBaseIdentity] })
+        .resolvesOnce({
+          Items: [{ ...mockIdentities[0], ttl: futureTtl }],
+        });
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toMatchObject({
+        linkedServices: [{ serviceName: 'app', ttl: futureTtl }],
       });
     });
 

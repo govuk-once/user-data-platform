@@ -57,6 +57,7 @@ export const lambdaHandler = async (event: S3Event) => {
       const sarID = objectKey.replace('.json', '');
 
       // Get object metadata to retrieve udpID
+      // NOSONAR: sequential per-record processing intentional — rethrows to trigger Lambda retry; steps within a record are also dependent on each other
       const headResponse = await s3Client.send(
         new HeadObjectCommand({
           Bucket: bucket,
@@ -82,6 +83,7 @@ export const lambdaHandler = async (event: S3Event) => {
 
       // Generate pre-signed URL with 7-day expiry
       const presignedUrlExpiry = 7 * 24 * 60 * 60; // 7 days in seconds
+      // NOSONAR: depends on headResponse from above; sequential per-record processing intentional
       const presignedURL = await getSignedUrl(
         s3Client,
         new GetObjectCommand({
@@ -111,6 +113,7 @@ export const lambdaHandler = async (event: S3Event) => {
       };
 
       // Save to DynamoDB
+      // NOSONAR: depends on presignedURL from above; sequential per-record processing intentional
       await factory.getService('sar').save(sarRecord);
 
       logger.info('SAR record created successfully', {
@@ -139,7 +142,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })

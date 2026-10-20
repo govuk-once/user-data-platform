@@ -9,8 +9,8 @@ import {
   E2EStack,
   PerfStack,
 } from 'cdk/lib/stacks';
-
-import { GovUkOnceEnvironments, repoMetaData } from 'cdk/constants/environment';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
 import { Macie } from 'cdk/lib/macie';
@@ -22,6 +22,9 @@ const app = new App();
 const environment = app.node.tryGetContext('env') || 'dev';
 const isNotProd = environment !== GovUkOnceEnvironments.Prod;
 const isNotDev = environment !== GovUkOnceEnvironments.Dev;
+const isStageOrProd =
+  environment === GovUkOnceEnvironments.Prod ||
+  environment === GovUkOnceEnvironments.Stag;
 const developerId = process.env.DEVELOPER_ID!;
 
 // AWS Env
@@ -81,7 +84,7 @@ if (!skipMainStack) {
     ...repoMetaData,
   });
 
-  mainStack.addDependency(vpcStack);
+  mainStack.node.addDependency(vpcStack);
 
   // SAR stack
   const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
@@ -94,14 +97,15 @@ if (!skipMainStack) {
     identityTable: mainStack.identityTable,
     kmsKey: mainStack.kmsKey,
     dbKmsKey: mainStack.dbKmsKey,
-    dsarQueue: mainStack.dsarQueue,
-    sarQueue: mainStack.sarQueue,
+    ...(!isStageOrProd && { dsarQueue: mainStack.dsarQueue }),
+    ...(!isStageOrProd && { sarQueue: mainStack.sarQueue }),
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
-  sarStack.addDependency(mainStack);
+
+  sarStack.node.addDependency(mainStack);
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
     developerId,
@@ -116,10 +120,21 @@ if (!skipMainStack) {
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
-  dvlaPilotStack.addDependency(mainStack);
+
+  dvlaPilotStack.node.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
+  const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
+    const lambda = l as unknown as lambda.IFunction & {
+      _givenPhysicalName: string;
+    };
+    return (
+      !lambda._givenPhysicalName.startsWith('startDsar') &&
+      !lambda._givenPhysicalName.startsWith('startSar') &&
+      !lambda._givenPhysicalName.startsWith('getSarStatus')
+    );
+  });
 
   const monitoringStack = new MonitoringStack(
     app,
@@ -132,13 +147,13 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
+      lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
       notificationEmails: [],
-      kmsKeyAlias,
+      kmsKey: mainStack.kmsKey,
     },
   );
 
-  monitoringStack.addDependency(sarStack);
+  monitoringStack.node.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {
@@ -158,7 +173,7 @@ if (!skipMainStack) {
       e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
     });
 
-    e2eStack.addDependency(mainStack);
+    e2eStack.node.addDependency(mainStack);
 
     const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
       developerId,
@@ -177,7 +192,7 @@ if (!skipMainStack) {
       dataTableName: mainStack.table.tableName,
     });
 
-    perStack.addDependency(mainStack);
+    perStack.node.addDependency(mainStack);
   }
 }
 

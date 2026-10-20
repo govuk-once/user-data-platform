@@ -5,6 +5,10 @@
 # Node Files
 node_modules/
 
+# Local
+.claude/
+.vscode/
+
 # Build outputs
 build/
 dist/
@@ -20,9 +24,9 @@ coverage
 .github/instructions/nx.instructions.mda
 .github/instructions/nx.instructions.md
 
-# CDK
-cdk.out
-
 # Checkov
 checkov-results.json
 checkov-results.xml
+
+# CDK
+cdk.out/

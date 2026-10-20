@@ -23,7 +23,7 @@ import { MacieAccess } from '../macie/macie-access';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
-import { routes } from '@libs/utils';
+import { routes as _routes, type RouteConfig } from '@libs/utils';
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
@@ -36,12 +36,15 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   environmentLongNames,
   getLogRetentionPeriod,
+  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
 import { GovUKTag } from '../gov-uk-tag';
+
+type RoutesConfig = Record<string, RouteConfig>;
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -68,8 +71,8 @@ export class MainStack extends Stack {
   public readonly lambdaApiConstructs: LambdaApiConstruct[];
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
-  public readonly dsarQueue: sqs.Queue;
-  public readonly sarQueue: sqs.Queue;
+  public readonly dsarQueue?: sqs.Queue;
+  public readonly sarQueue?: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
@@ -95,6 +98,8 @@ export class MainStack extends Stack {
       dynamoDbEndpointUrl,
     } = props;
 
+    // Filter out SAR / DSAR routes based on env !== prod
+    const routes = this.setRoutes(environment);
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 
@@ -223,6 +228,7 @@ export class MainStack extends Stack {
       developerId,
       environment,
       kmsConstruct.key,
+      routes,
     );
 
     this.lambdaApiConstructs = this.createLambdaFunctions({
@@ -239,6 +245,7 @@ export class MainStack extends Stack {
       lambdaSecurityGroup,
       cachingEnabled,
       dynamoDbEndpointUrl,
+      routes,
     });
     this.lambdas = this.lambdaApiConstructs.map(
       (lambdaApiConstruct) => lambdaApiConstruct.function,
@@ -349,6 +356,7 @@ export class MainStack extends Stack {
     developerId: string | undefined,
     environment: string,
     kmsKey: kms.IKey,
+    routes: RoutesConfig,
   ): Map<string, sqs.Queue> {
     const eventQueueNames = [
       ...new Set(
@@ -371,6 +379,8 @@ export class MainStack extends Stack {
         encryptionMasterKey: kmsKey,
       });
       eventQueues.set(eventQueueName, queue);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(queue.queueArn);
     }
     return eventQueues;
   }
@@ -389,7 +399,8 @@ export class MainStack extends Stack {
     lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
     cachingEnabled: boolean;
     dynamoDbEndpointUrl?: string;
-  }): lambda.Function[] {
+    routes: RoutesConfig;
+  }): LambdaApiConstruct[] {
     const {
       developerId,
       environment,
@@ -404,6 +415,7 @@ export class MainStack extends Stack {
       lambdaSecurityGroup,
       cachingEnabled,
       dynamoDbEndpointUrl,
+      routes,
     } = params;
 
     const lambdaApiConstructsList = [];
@@ -424,6 +436,7 @@ export class MainStack extends Stack {
         identityDbActions: route.identityTableActions ?? ['dynamodb:GetItem'],
         dynamoDbActions: route.dynamoDbActions ?? ['dynamodb:GetItem'],
         api,
+        disableRoute: route.disableRoute ?? false,
         httpMethod: route.method,
         routePath: route.path,
         environmentVariables: {
@@ -447,6 +460,8 @@ export class MainStack extends Stack {
       });
 
       lambdaApiConstructsList.push(lambdaConstruct);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(lambdaConstruct.function.functionName);
     }
 
     return lambdaApiConstructsList;
@@ -563,5 +578,26 @@ export class MainStack extends Stack {
         .PII.TRUE()
         .Exposure.ISOLATED();
     }
+  }
+
+  /**
+   * Filter routes based on environment. If the environment is stage or prod,
+   * filter out any routes that have disableRoute set to true.
+   * @param environment string
+   * @returns RoutesConfig
+   */
+  private setRoutes(environment: string): RoutesConfig {
+    let routes: RoutesConfig = _routes;
+    const isStageOrProd =
+      environment === GovUkOnceEnvironments.Prod ||
+      environment === GovUkOnceEnvironments.Stag;
+
+    if (isStageOrProd) {
+      routes = Object.fromEntries(
+        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
+      );
+    }
+
+    return routes;
   }
 }

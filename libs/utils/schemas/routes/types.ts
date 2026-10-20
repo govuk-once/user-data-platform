@@ -32,6 +32,7 @@ export interface RouteConfig<
   query?: TQuery;
   successResponses: HttpResponse<TResponse>[];
   errorResponses: HttpResponse<TResponse>[];
+  disableRoute?: boolean;
 }
 
 export type RouteParams<T extends RouteConfig> = T['params'] extends z.ZodAny

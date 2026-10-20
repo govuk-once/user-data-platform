@@ -93,12 +93,23 @@ repos:
         stages:
           - pre-commit
 
+      # Validate GPG signatures on all commits ahead of origin/main
+      - id: check-commit-signatures
+        name: Check Commit Signatures
+        entry: bash scripts/check-commit-signatures.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages:
+          - pre-push
+
       # Build all
       - id: build-all
         name: Build All
-        entry: pnpm build:all
+        entry: bash -c "CI=true NX_DAEMON=false pnpm build:all --skip-nx-cache"
         language: system
         always_run: true
+        pass_filenames: false
         stages:
           - pre-push
 

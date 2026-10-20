@@ -64,7 +64,7 @@ export function envValidator<TEvent = unknown, TResult = unknown>(
   }
 
   return {
-    before: async (request) => {
+    before: (request) => {
       const missingVaraiables: string[] = [];
       const validatedValues: Record<string, string> = {};
 

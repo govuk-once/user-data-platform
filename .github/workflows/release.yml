@@ -118,9 +118,9 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
   send-release-notification:
+    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     name: Send Release Notification
     needs: [version, deploy-prod]
-    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     uses: ./.github/workflows/slack-release-notification.yml
     with:
       version: ${{ needs.version.outputs.version }}

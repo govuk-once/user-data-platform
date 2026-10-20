@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
+  GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
 
 export interface VpcConstructProps {
@@ -60,42 +61,42 @@ export class VpcConstruct extends Construct {
 
     this.environment = props.environment;
     this.maxAzs = props.maxAzs ?? 2;
-    this.vpcCidr = props.vpcCidr ?? '10.0.0.0/16';
+    this.vpcCidr = props.vpcCidr ?? '10.0.0.0/16'; // NOSONAR - safe default CIDR for internal VPC, overridable via props
     this.kmsKey = props.kmsKey;
 
     /**
-     * VPC
-     * TODO: detailed comments on VPC setup
+     * VPC: isolated private subnets, no NAT gateway, DNS enabled,
+     * endpoint security group allowing HTTPS from VPC CIDR.
      */
     this.setupVPC();
 
     /**
-     * Lambda Security Group and Rules
-     * TODO: detailed comments on Lambda Security Group and Rules
+     * Lambda security group: DNS and HTTPS ingress from VPC CIDR,
+     * egress restricted to VPC endpoints and DNS resolver.
      */
     this.setupLambdaSecurityGroup();
 
     /**
-     * Codebuild Security Group
-     * TODO: detailed comments on Codebuild Security Group
+     * CodeBuild security group: egress restricted to VPC endpoints
+     * and DNS resolver only, no inbound allowed.
      */
     this.setupcCodebuildSecurityGroup();
 
     /**
-     * VPC Endpoints
-     * TODO: detailed comments on VPC Endpoints
+     * Private interface endpoints for KMS, API Gateway, Cognito,
+     * CloudWatch, ECR, SQS, DynamoDB, S3, STS, and Secrets Manager.
      */
     this.setupVpcEndpoints();
 
     /**
-     * Private / Isolated NACL
-     * TODO: detailed comments on Private / Isolated NACL
+     * NACL for isolated subnets: denies inbound admin ports (SSH, RDP),
+     * allows all traffic within the VPC CIDR.
      */
     this.setupPrivateIsolatedNacl();
 
     /**
-     * Flow Log Group
-     * TODO: detailed comments on Flow Log Group
+     * CloudWatch log group for VPC flow logs with environment-scoped
+     * retention, removal policy, and KMS encryption.
      */
     this.setupLogGroup();
 
@@ -116,6 +117,16 @@ export class VpcConstruct extends Construct {
       enableDnsSupport: true,
       natGateways: 0,
       subnetConfiguration: [
+        {
+          name: 'public',
+          subnetType: ec2.SubnetType.PUBLIC,
+          cidrMask: 24,
+        },
+        {
+          name: 'private-egres',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 24,
+        },
         {
           name: 'private',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
@@ -201,7 +212,9 @@ export class VpcConstruct extends Construct {
       vpc: this.vpc,
       securityGroupName: `codebuild-sg-${this.environment}`,
       description:
-        'Security group for CodeBuild e2e, outbound to VPC endpoints only',
+        this.environment === GovUkOnceEnvironments.Prod
+          ? 'Security group for CodeBuild with NAT gateway access' // Keep the existing description to avoid replacing the named security group during prod deployment.
+          : 'Security group for CodeBuild e2e, outbound to VPC endpoints only',
       allowAllOutbound: false,
     });
 
