@@ -1,5 +1,5 @@
 import { IConstruct } from 'constructs';
-import { CfnResource, IAspect, TagManager } from 'aws-cdk-lib';
+import { CfnResource, IAspect, Stack, TagManager } from 'aws-cdk-lib';
 
 import { APP_TAG_PRIORITY } from './gov-uk-tag.const';
 import { GovUKTagAspectBase } from './gov-uk-tag-base.abstract';
@@ -54,7 +54,11 @@ export class GovUKTagApplyAspect extends GovUKTagAspectBase implements IAspect {
   public visit(node: IConstruct): void {
     if (this.disabled) return;
 
-    // Not every construct is a CFN resource; L2s wrap L1s and are visited too.
+    if (node instanceof Stack) {
+      this.applyAppTags(node.tags);
+      return;
+    }
+
     if (!CfnResource.isCfnResource(node)) return;
 
     const tagManager = GovUKTagAspectBase.tagManagerOf(node);
