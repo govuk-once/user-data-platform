@@ -45,7 +45,8 @@ repos:
             'docs/index.html',
             '--exclude-files',
             'e2e/src/features/sar.feature',
-            'e2e/src/features/sar.feature',
+            '--exclude-files',
+            'cdk/lib/gov-uk-tag/tag/data-classification.tag.ts',
           ]
 
   - repo: local
@@ -91,6 +92,16 @@ repos:
         pass_filenames: false
         stages:
           - pre-commit
+
+      # Validate GPG signatures on all commits ahead of origin/main
+      - id: check-commit-signatures
+        name: Check Commit Signatures
+        entry: bash scripts/check-commit-signatures.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages:
+          - pre-push
 
       # Build all
       - id: build-all
