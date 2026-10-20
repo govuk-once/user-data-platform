@@ -252,17 +252,21 @@ export class MainStack extends Stack {
     );
     this.lambdaGovUKTagging();
 
-    this.dsarQueue = eventQueues.get('dsarQueue')!;
-    GovUKTag.of(this.dsarQueue as IConstruct)
-      .DataClassification.OFFICIAL_SENSITIVE()
-      .PII.TRUE()
-      .Exposure.INTERNAL();
+    this.dsarQueue = eventQueues.get('dsarQueue');
+    if (this.dsarQueue) {
+      GovUKTag.of(this.dsarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
+    }
 
-    this.sarQueue = eventQueues.get('sarQueue')!;
-    GovUKTag.of(this.sarQueue as IConstruct)
-      .DataClassification.OFFICIAL_SENSITIVE()
-      .PII.TRUE()
-      .Exposure.INTERNAL();
+    this.sarQueue = eventQueues.get('sarQueue');
+    if (this.sarQueue) {
+      GovUKTag.of(this.sarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
+    }
 
     const { IamConsumerConfigs, consumerthrottleConfigs } =
       this.buildConsumerConfigs(externalConsumers);
