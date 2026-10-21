@@ -12,19 +12,12 @@ import {
   EXPECTED_COLUMNS,
   SCHEMA_EXTRACTOR_DB_ROLE,
   TABLE_DDL,
-  USER_SCHEMA_EXTRACTOR_DB_ROLE,
 } from '@libs/live-schema';
 
-const {
-  DSQL_ENDPOINT,
-  AWS_REGION,
-  SCHEMA_EXTRACTOR_ROLE_ARN,
-  USER_SCHEMA_EXTRACTOR_ROLE_ARN,
-} = requireEnvVars(
+const { DSQL_ENDPOINT, AWS_REGION, SCHEMA_EXTRACTOR_ROLE_ARN } = requireEnvVars(
   'DSQL_ENDPOINT',
   'AWS_REGION',
   'SCHEMA_EXTRACTOR_ROLE_ARN',
-  'USER_SCHEMA_EXTRACTOR_ROLE_ARN',
 );
 
 const { STACK: stack, SERVICE_NAME: serviceName = 'udpLiveSchemaMigration' } =
@@ -45,7 +38,6 @@ const DB_ROLE_NAME = /^[a-z_][a-z0-9_]*$/;
 
 const iamRoleFor: Record<string, string> = {
   [SCHEMA_EXTRACTOR_DB_ROLE]: SCHEMA_EXTRACTOR_ROLE_ARN,
-  [USER_SCHEMA_EXTRACTOR_DB_ROLE]: USER_SCHEMA_EXTRACTOR_ROLE_ARN,
 };
 
 const db = new DsqlConnection({

@@ -22,13 +22,13 @@ export const TABLE_DDL: string[] = [
 export interface DbRoleGrant {
   role: string;
   table: string;
-  privilages: string[];
+  privileges: string[];
 }
 
 export const DB_ROLE_GRANTS: DbRoleGrant[] = [
   {
-    role: SCHEMA_EXTRSCTOR_DB_ROLE,
+    role: SCHEMA_EXTRACTOR_DB_ROLE,
     table: LIVE_SCHEMAS_TABLE,
-    privilages: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+    privileges: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
   },
 ];
