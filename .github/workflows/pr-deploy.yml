@@ -22,7 +22,7 @@ jobs:
     with:
       stack-prefix: pr-${{ github.event.pull_request.number }}-dev
       developer-id: pr-${{ github.event.pull_request.number }}
-      nx-target: cdk:deploy:dev
+      deploy-script: cdk:deploy:dev
       ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
