@@ -8,8 +8,8 @@ on:
         required: false
         type: string
         default: ''
-      nx-target:
-        description: 'nx target to invoke (e.g. cdk:deploy:monitoring:dev)'
+      deploy-script:
+        description: 'package.json script that builds and deploys the environment'
         required: true
         type: string
       developer-id:
@@ -128,9 +128,9 @@ jobs:
         if: steps.compare.outputs.deploy_required == 'true'
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
-          NX_TARGET: ${{ inputs.nx-target }}
+          DEPLOY_SCRIPT: ${{ inputs.deploy-script }}
           DEVELOPER_ID: ${{ inputs.developer-id }}
-        run: npx nx run "${NX_TARGET}"
+        run: pnpm run "${DEPLOY_SCRIPT}"
 
       - name: Save Monitoring Template Hash
         if: steps.compare.outputs.deploy_required == 'true'

@@ -34,7 +34,7 @@ jobs:
     with:
       environment: dev
       developer-id: pr-${{ github.event.pull_request.number }}
-      nx-target: cdk:deploy:monitoring:pr
+      deploy-script: cdk:deploy:monitoring
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 

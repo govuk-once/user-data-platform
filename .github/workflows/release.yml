@@ -52,7 +52,7 @@ jobs:
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
       environment: dev
-      nx-target: cdk:deploy:monitoring:dev
+      deploy-script: cdk:deploy:monitoring:dev
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
@@ -98,7 +98,7 @@ jobs:
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
       environment: stag
-      nx-target: cdk:deploy:monitoring:stag
+      deploy-script: cdk:deploy:monitoring:stag
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
 
@@ -144,7 +144,7 @@ jobs:
     uses: ./.github/workflows/__deploy-monitoring.yml
     with:
       environment: prod
-      nx-target: cdk:deploy:monitoring:prod
+      deploy-script: cdk:deploy:monitoring:prod
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
 
