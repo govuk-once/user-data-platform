@@ -8,6 +8,7 @@ import {
   VpcStack,
   E2EStack,
   PerfStack,
+  LiveSchemaStack,
 } from 'cdk/lib/stacks';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
@@ -123,6 +124,22 @@ if (!skipMainStack) {
 
   dvlaPilotStack.node.addDependency(mainStack);
 
+  // Live schemas. Consumes main stack resources via SSM parameters, so this
+  // dependency only orders deployment - no exports.
+  const liveSchemaStack = new LiveSchemaStack(
+    app,
+    `${stackPrefix}-live-schema`,
+    {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `Live schema extraction stack ${stackDescription}`,
+    },
+  );
+
+  liveSchemaStack.addDependency(mainStack);
+
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
   const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
@@ -147,7 +164,11 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
+      lambdas: [
+        ...monLambdas,
+        ...(isStageOrProd ? [] : sarStack.lambdas),
+        ...liveSchemaStack.lambdas,
+      ],
       notificationEmails: [],
       kmsKey: mainStack.kmsKey,
     },
