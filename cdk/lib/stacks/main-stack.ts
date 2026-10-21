@@ -38,6 +38,7 @@ import {
   getLogRetentionPeriod,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
+import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
@@ -162,6 +163,8 @@ export class MainStack extends Stack {
       tableName: 'udp-data',
       kmsKey: kmsConstruct.key,
       ttlAttributeName: 'ttl',
+      // Feeds the live schema extractors; keys are always included on REMOVE.
+      stream: dynamodb.StreamViewType.NEW_IMAGE,
     });
 
     this.table = db.table;
@@ -265,17 +268,21 @@ export class MainStack extends Stack {
     );
     this.lambdaGovUKTagging();
 
-    this.dsarQueue = eventQueues.get('dsarQueue')!;
-    GovUKTag.of(this.dsarQueue as IConstruct)
-      .DataClassification.OFFICIAL_SENSITIVE()
-      .PII.TRUE()
-      .Exposure.INTERNAL();
+    this.dsarQueue = eventQueues.get('dsarQueue');
+    if (this.dsarQueue) {
+      GovUKTag.of(this.dsarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
+    }
 
-    this.sarQueue = eventQueues.get('sarQueue')!;
-    GovUKTag.of(this.sarQueue as IConstruct)
-      .DataClassification.OFFICIAL_SENSITIVE()
-      .PII.TRUE()
-      .Exposure.INTERNAL();
+    this.sarQueue = eventQueues.get('sarQueue');
+    if (this.sarQueue) {
+      GovUKTag.of(this.sarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
+    }
 
     const { IamConsumerConfigs, consumerthrottleConfigs } =
       this.buildConsumerConfigs(externalConsumers);
@@ -319,6 +326,8 @@ export class MainStack extends Stack {
     if (!developerId?.startsWith('pr')) {
       this.createReleaseNotifications(environment);
     }
+
+    this.publishSharedParameters(stackPrefix);
 
     this.createCfnOutputs(id, [
       {
@@ -521,6 +530,28 @@ export class MainStack extends Stack {
     }
 
     return { IamConsumerConfigs, consumerthrottleConfigs };
+  }
+
+  /**
+   * Publishes values downstream stacks need via SSM rather than CFN exports,
+   * so consumers (e.g. LiveSchemaStack) never pin these resources in place.
+   */
+  private publishSharedParameters(stackPrefix: string): void {
+    const names = mainStackParameterNames(stackPrefix);
+    const values: Record<keyof typeof names, string> = {
+      dataTableStreamArn: this.table.tableStreamArn!,
+      kmsKeyArn: this.kmsKey.keyArn,
+      dbKmsKeyArn: this.dbKmsKey.keyArn,
+    };
+
+    for (const [key, value] of Object.entries(values)) {
+      const param = new StringParameter(this, `SharedParam-${key}`, {
+        parameterName: names[key as keyof typeof names],
+        stringValue: value,
+      });
+
+      GovUKTag.of(param).DataClassification.OFFICIAL().PII.FALSE();
+    }
   }
 
   private createCfnOutputs(

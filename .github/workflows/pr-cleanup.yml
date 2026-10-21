@@ -37,4 +37,4 @@ jobs:
       - name: Destroy CDK stacks
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
-        run: npx nx run cdk:destroy:dev
+        run: pnpm cdk:destroy:dev

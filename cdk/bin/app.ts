@@ -8,6 +8,7 @@ import {
   VpcStack,
   E2EStack,
   PerfStack,
+  LiveSchemaStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
@@ -123,6 +124,22 @@ if (!skipMainStack) {
   });
 
   dvlaPilotStack.node.addDependency(mainStack);
+
+  // Live schemas. Consumes main stack resources via SSM parameters, so this
+  // dependency only orders deployment - no exports.
+  const liveSchemaStack = new LiveSchemaStack(
+    app,
+    `${stackPrefix}-live-schema`,
+    {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `Live schema extraction stack ${stackDescription}`,
+    },
+  );
+
+  liveSchemaStack.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;

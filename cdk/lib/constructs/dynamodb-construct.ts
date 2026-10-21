@@ -35,6 +35,7 @@ export interface DynamoDBConstructProps {
   readonly localSecondaryIndexes?: LocalSecondaryIndexeConfig[];
   readonly globalSecondaryIndexes?: GlobalSecondaryIndexeConfig[];
   readonly ttlAttributeName?: string;
+  readonly stream?: dynamodb.StreamViewType;
 }
 
 export class DynamoDBConstruct extends Construct {
@@ -54,6 +55,7 @@ export class DynamoDBConstruct extends Construct {
       localSecondaryIndexes = [],
       globalSecondaryIndexes = [],
       ttlAttributeName,
+      stream,
     } = props;
 
     const fullTableName = developerId
@@ -76,6 +78,7 @@ export class DynamoDBConstruct extends Construct {
         environment !== GovUkOnceEnvironments.Dev && !developerId,
       removalPolicy: getRemovalPolicy(environment),
       timeToLiveAttribute: ttlAttributeName,
+      stream,
     });
 
     for (const lsiConfig of localSecondaryIndexes) {
