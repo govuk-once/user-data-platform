@@ -528,10 +528,12 @@ export class MainStack extends Stack {
     };
 
     for (const [key, value] of Object.entries(values)) {
-      new StringParameter(this, `SharedParam-${key}`, {
+      const param = new StringParameter(this, `SharedParam-${key}`, {
         parameterName: names[key as keyof typeof names],
         stringValue: value,
       });
+
+      GovUKTag.of(param).DataClassification.OFFICIAL().PII.FALSE();
     }
   }
 

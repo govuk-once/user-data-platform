@@ -26,6 +26,7 @@ import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { GovUKTag } from '../gov-uk-tag';
 
 const DSQL_PORT = 5432;
 
@@ -109,7 +110,7 @@ export class LiveSchemaStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     };
 
-    const schemaExtractor = new LambdaApiConstruct(
+    const schemaExtractorConstruct = new LambdaApiConstruct(
       this,
       'LiveSchemaExtractor',
       {
@@ -123,7 +124,14 @@ export class LiveSchemaStack extends Stack {
           'liveSchemaExtractor',
         ),
       },
-    ).function;
+    );
+
+    GovUKTag.of(schemaExtractorConstruct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
+    const schemaExtractor = schemaExtractorConstruct.function;
 
     this.grantDsql(schemaExtractor, 'dsql:DbConnectAdmin');
 
@@ -133,6 +141,11 @@ export class LiveSchemaStack extends Stack {
       encryptionMasterKey: kmsKey,
       retentionPeriod: Duration.days(14),
     });
+
+    GovUKTag.of(this.failureQueue)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
 
     dataTable.grantStreamRead(schemaExtractor);
     schemaExtractor.addEventSourceMapping('DataTableStream', {
@@ -197,6 +210,7 @@ export class LiveSchemaStack extends Stack {
     sg.addEgressRule(vpcCidr, Port.tcp(DSQL_PORT), 'POSTgress tp DSQL');
     sg.addEgressRule(vpcCidr, Port.udp(53), 'DNS (UDP) to VPC resolver');
     sg.addEgressRule(vpcCidr, Port.tcp(53), 'DNS (TCP) to VPC resolver');
+    GovUKTag.of(sg).DataClassification.OFFICIAL_SENSITIVE().Exposure.ISOLATED();
 
     return sg;
   }
@@ -218,8 +232,9 @@ export class LiveSchemaStack extends Stack {
       Port.tcp(DSQL_PORT),
       'Postgres from VPC CIDR',
     );
+    GovUKTag.of(sg).DataClassification.OFFICIAL_SENSITIVE().Exposure.ISOLATED();
 
-    return new InterfaceVpcEndpoint(this, 'DSQLEndpoint', {
+    const endpoint = new InterfaceVpcEndpoint(this, 'DSQLEndpoint', {
       vpc,
       service: new InterfaceVpcEndpointService(
         this.cluster.attrVpcEndpointServiceName,
@@ -229,5 +244,11 @@ export class LiveSchemaStack extends Stack {
       subnets,
       securityGroups: [sg],
     });
+
+    GovUKTag.of(endpoint)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.ISOLATED();
+
+    return endpoint;
   }
 }
