@@ -1826,11 +1826,25 @@ paths:
                   linkedServices:
                     type: array
                     items:
-                      type: string
-                    description: The list of service names linked to the same UDP user
+                      type: object
+                      properties:
+                        serviceName:
+                          type: string
+                        ttl:
+                          type: integer
+                          minimum: 0
+                          exclusiveMinimum: true
+                      required:
+                        - serviceName
+                      description: A service linked to the same UDP user
+                      example:
+                        serviceName: DVLA
+                        ttl: 1893456000
+                    description: The list of services linked to the same UDP user
                     example:
-                      - DVLA
-                      - DWP
+                      - serviceName: DVLA
+                        ttl: 1893456000
+                      - serviceName: DWP
                 required:
                   - linkedServices
         '400':

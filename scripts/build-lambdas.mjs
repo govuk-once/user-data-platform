@@ -24,7 +24,7 @@ await Promise.all(
     build({
       entryPoints: [resolve(srcDir, name, 'handler.ts')],
       outfile: resolve(outDir, name, 'index.js'),
-      tsconfig: resolve(srcDir, name, 'tsconfig.json'),
+      tsconfig: resolve(root, 'tsconfig.lambda.json'),
       bundle: true,
       minify: true,
       platform: 'node',

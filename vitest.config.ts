@@ -22,6 +22,10 @@ export default defineConfig({
         './libs/data-access/index.ts',
       ),
       '@libs/utils': path.resolve(__dirname, './libs/utils/index.ts'),
+      '@libs/live-schema': path.resolve(
+        __dirname,
+        './libs/live-schema/index.ts',
+      ),
     },
   },
 });

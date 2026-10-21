@@ -4,10 +4,10 @@ from checkov.common.models.enums import CheckResult, CheckCategories
 class KmsRotationPeriod(BaseResourceCheck):
     def __init__(self):
         name = "Ensure KMS Key rotation period is 90 days or less"
-        id = "CUSTOM_KMS_001"
+        check_id = "CUSTOM_KMS_001"
         supported_resources = ["AWS::KMS::Key"]
         categories = [CheckCategories.ENCRYPTION]
-        super().__init__(name=name, id=id, categories=categories,supported_resources=supported_resources)
+        super().__init__(name=name, id=check_id, categories=categories,supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf):
         enable_rotation = conf.get("Properties", {}).get("EnableKeyRotation", False)

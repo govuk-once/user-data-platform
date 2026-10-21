@@ -9,6 +9,7 @@ import {
   ServicePrincipal,
 } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { GovUKTag } from '../gov-uk-tag';
 
 export type Permission = 'read' | 'write' | 'delete';
 
@@ -77,6 +78,7 @@ export class IamConsumerConstruct extends Construct {
           resources: apiResources,
         }),
       );
+      GovUKTag.of(role).DataClassification.OFFICIAL_SENSITIVE();
 
       this.consumerRoles.set(consumerName, role);
 

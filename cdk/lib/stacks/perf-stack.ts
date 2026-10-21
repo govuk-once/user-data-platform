@@ -6,6 +6,7 @@ import { CodeBuildPerfConstruct } from '../constructs/codebuild-perf-construct';
 import { Construct } from 'constructs';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { SnsTopic } from 'aws-cdk-lib/aws-events-targets';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface PerfStackProps extends StackProps {
   readonly developerId?: string;
@@ -62,7 +63,7 @@ export class PerfStack extends Stack {
       dataTableName,
     });
 
-    new Rule(this, `PerfTestFailureRule`, {
+    const perfTestFailureRule = new Rule(this, `PerfTestFailureRule`, {
       ruleName: `${resourcePrefix}-perf-test-failure`,
       description: `Alert on performance test failures for ${resourcePrefix}`,
       eventPattern: {
@@ -75,6 +76,7 @@ export class PerfStack extends Stack {
       },
       targets: [new SnsTopic(warningTopic)],
     });
+    GovUKTag.of(perfTestFailureRule).DataClassification.OFFICIAL().PII.FALSE();
 
     new CfnOutput(this, 'PerfCodeBuildProjectName', {
       value: this.codebuildProject.project.projectName,

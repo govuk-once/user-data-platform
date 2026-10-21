@@ -8,10 +8,12 @@ import {
   VpcStack,
   E2EStack,
   PerfStack,
+  LiveSchemaStack,
 } from 'cdk/lib/stacks';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
+import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
 import { Macie } from 'cdk/lib/macie';
 
 // App
@@ -83,7 +85,7 @@ if (!skipMainStack) {
     ...repoMetaData,
   });
 
-  mainStack.addDependency(vpcStack);
+  mainStack.node.addDependency(vpcStack);
 
   // SAR stack
   const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
@@ -104,7 +106,7 @@ if (!skipMainStack) {
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
-  sarStack.addDependency(mainStack);
+  sarStack.node.addDependency(mainStack);
 
   const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
     developerId,
@@ -120,7 +122,23 @@ if (!skipMainStack) {
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
   });
 
-  dvlaPilotStack.addDependency(mainStack);
+  dvlaPilotStack.node.addDependency(mainStack);
+
+  // Live schemas. Consumes main stack resources via SSM parameters, so this
+  // dependency only orders deployment - no exports.
+  const liveSchemaStack = new LiveSchemaStack(
+    app,
+    `${stackPrefix}-live-schema`,
+    {
+      developerId,
+      environment,
+      stackPrefix,
+      env: awsEnv,
+      description: `Live schema extraction stack ${stackDescription}`,
+    },
+  );
+
+  liveSchemaStack.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
@@ -146,13 +164,17 @@ if (!skipMainStack) {
       description: `Monitoring stack ${stackDescription}`,
       table: mainStack.table,
       api: mainStack.api,
-      lambdas: [...monLambdas, ...(isStageOrProd ? [] : sarStack.lambdas)],
+      lambdas: [
+        ...monLambdas,
+        ...(isStageOrProd ? [] : sarStack.lambdas),
+        ...liveSchemaStack.lambdas,
+      ],
       notificationEmails: [],
       kmsKey: mainStack.kmsKey,
     },
   );
 
-  monitoringStack.addDependency(sarStack);
+  monitoringStack.node.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {
@@ -172,7 +194,7 @@ if (!skipMainStack) {
       e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
     });
 
-    e2eStack.addDependency(mainStack);
+    e2eStack.node.addDependency(mainStack);
 
     const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
       developerId,
@@ -191,7 +213,7 @@ if (!skipMainStack) {
       dataTableName: mainStack.table.tableName,
     });
 
-    perStack.addDependency(mainStack);
+    perStack.node.addDependency(mainStack);
   }
 }
 
@@ -206,7 +228,23 @@ if (isNotDev) {
   });
 }
 
-// Aspects
+// Checkov Aspect
 Aspects.of(app).add(new CheckovSuppressionAspect());
+
+// GovUKTag Aspect
+GovUKTag.applyAspect(app, {
+  mandatoryAppTags: {
+    Product: GovUKTag.Once.Suggested.UDP.Product,
+    Service: GovUKTag.Once.Suggested.UDP.Service,
+    Component: GovUKTag.Once.Suggested.UDP.Component,
+    Environment: GovUKTag.Once.mapEnvironment(environment),
+    Owner: GovUKTag.Once.Suggested.UDP.Owner,
+    Source: GovUKTag.Once.Suggested.UDP.Source,
+  },
+  optionalAppTags: {
+    RepositoryUrl: GovUKTag.Once.Suggested.UDP.RepositoryUrl,
+    BillingProject: GovUKTag.Once.Suggested.UDP.BillingProject,
+  },
+});
 
 app.synth();

@@ -8,6 +8,7 @@ import {
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
+import { GovUKTag } from '../gov-uk-tag';
 
 export interface ExternalConsumerConfig {
   readonly accountId: string;
@@ -54,6 +55,7 @@ export class ConsumerConfigConstruct extends Construct {
       alias: `alias/${secretPathPrefix}-consumer-config`,
       enableKeyRotation: true,
     });
+    GovUKTag.of(key).DataClassification.OFFICIAL_SENSITIVE();
 
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
@@ -98,6 +100,7 @@ export class ConsumerConfigConstruct extends Construct {
         secretObjectValue: secretValue,
         encryptionKey: key,
       });
+      GovUKTag.of(secret).DataClassification.OFFICIAL_SENSITIVE().PII.FALSE();
 
       secret.addToResourcePolicy(
         new PolicyStatement({
