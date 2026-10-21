@@ -138,7 +138,7 @@ if (!skipMainStack) {
     },
   );
 
-  liveSchemaStack.addDependency(mainStack);
+  liveSchemaStack.node.addDependency(mainStack);
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
