@@ -1,6 +1,6 @@
 /** @type {import('semantic-release').GlobalConfig} */
 module.exports = {
-  branches: ['main'],
+  branches: ['UDP-440-test-semantic-version-and-signed-commit'],
   // notes: false,`
   plugins: [
     [
