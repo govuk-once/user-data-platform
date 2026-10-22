@@ -145,6 +145,11 @@ export class LiveSchemaStack extends Stack {
       },
     });
 
+    GovUKTag.of(migration)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
     this.grantDsql(schemaExtractor, 'dsql:DbConnect');
     this.grantDsql(migration.function, 'dsql:DbConnectAdmin');
 
