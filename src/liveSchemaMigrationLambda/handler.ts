@@ -9,7 +9,6 @@ import {
 import {
   DB_ROLE_GRANTS,
   DsqlConnection,
-  EXPECTED_COLUMNS,
   SCHEMA_EXTRACTOR_DB_ROLE,
   TABLE_DDL,
 } from '@libs/live-schema';
@@ -45,24 +44,6 @@ const db = new DsqlConnection({
   region: AWS_REGION,
   user: 'admin',
 });
-
-/**
- * Drops tables left by an earlier, incompatible revision of this stack (see
- * EXPECTED_COLUMNS) so the DDL below recreates them in the current shape.
- */
-const dropIncompatibleTables = async () => {
-  for (const [table, column] of Object.entries(EXPECTED_COLUMNS)) {
-    const { rows } = await db.query<{ column_name: string }>(
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = $1`,
-      [table],
-    );
-    if (rows.length && !rows.some((r) => r.column_name === column)) {
-      logger.warn('Dropping incompatible live schema table', { table });
-      await db.query(`DROP TABLE ${table}`);
-    }
-  }
-};
 
 const ensureRole = async (
   role: string,
@@ -111,8 +92,6 @@ export const lambdaHandler = async () => {
   }
 
   try {
-    await dropIncompatibleTables();
-
     for (const statement of TABLE_DDL) {
       await db.query(statement);
     }
