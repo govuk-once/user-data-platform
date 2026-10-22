@@ -10,7 +10,6 @@ import {
   PerfStack,
   LiveSchemaStack,
 } from 'cdk/lib/stacks';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
 import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
@@ -52,6 +51,8 @@ const crossAccountPrincipals: string[] = (() => {
 
 // Setup
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
+const skipMonitoringStack =
+  app.node.tryGetContext('skipMonitoringStack') === 'true';
 
 // VPC Stack
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
@@ -142,39 +143,6 @@ if (!skipMainStack) {
 
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
-  const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
-    const lambda = l as unknown as lambda.IFunction & {
-      _givenPhysicalName: string;
-    };
-    return (
-      !lambda._givenPhysicalName.startsWith('startDsar') &&
-      !lambda._givenPhysicalName.startsWith('startSar') &&
-      !lambda._givenPhysicalName.startsWith('getSarStatus')
-    );
-  });
-
-  const monitoringStack = new MonitoringStack(
-    app,
-    `${stackPrefix}-monitoring`,
-    {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `Monitoring stack ${stackDescription}`,
-      table: mainStack.table,
-      api: mainStack.api,
-      lambdas: [
-        ...monLambdas,
-        ...(isStageOrProd ? [] : sarStack.lambdas),
-        ...liveSchemaStack.lambdas,
-      ],
-      notificationEmails: [],
-      kmsKey: mainStack.kmsKey,
-    },
-  );
-
-  monitoringStack.node.addDependency(sarStack);
 
   // Testing
   if (isNotProd) {
@@ -208,13 +176,24 @@ if (!skipMainStack) {
       e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
       sourceBucketName: e2eStack.sourceBucket.bucketName,
-      warningTopic: monitoringStack.warningTopic,
       identityTableName: mainStack.identityTable.tableName,
       dataTableName: mainStack.table.tableName,
     });
 
     perStack.node.addDependency(mainStack);
   }
+}
+
+// Monitoring
+if (!skipMonitoringStack) {
+  new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Monitoring stack ${stackDescription}`,
+    notificationEmails: [],
+  });
 }
 
 // Backup
