@@ -136,8 +136,8 @@ export class LiveSchemaStack extends Stack {
 
     const migration = new LambdaApiConstruct(this, 'LiveSchemaMigration', {
       ...commonLambdaProps,
-      functionName: 'LiveSchemaMigrationLambda',
-      sourcePath: 'LiveSchemaMigrationLambda',
+      functionName: 'liveSchemaMigrationLambda',
+      sourcePath: 'liveSchemaMigrationLambda',
       timeout: Duration.minutes(5),
       environmentVariables: {
         ...this.lambdaEnv(stackPrefix, 'liveSchemaMigration'),
@@ -145,7 +145,8 @@ export class LiveSchemaStack extends Stack {
       },
     });
 
-    this.grantDsql(schemaExtractor, 'dsql:DbConnectAdmin');
+    this.grantDsql(schemaExtractor, 'dsql:DbConnect');
+    this.grantDsql(migration, 'dsql:DbConnectAdmin');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
       queueName: `${namePrefix}live-schema-stream-failures-${environment}`,

@@ -35,33 +35,39 @@ export class DsqlConnection {
     ) => Promise<Client> = connect,
   ) {}
 
-  async query<R extends object = Record<string, unknown>>(
+  query<R extends object = Record<string, unknown>>(
     text: string,
     values?: unknown[],
   ): Promise<QueryResult<R>> {
-    for (let attempt = 1; ; attempt++) {
-      const client = await this.getClient();
-      try {
-        return await client.query<R>(text, values);
-      } catch (error) {
-        const code = (error as { code?: string }).code;
-        if (code === SERIALIZATION_FAILURE && attempt < MAX_ATTEMPTS) {
-          await sleep(Math.random() * 50 * 2 ** attempt);
-          continue;
-        }
-        if (!code) {
-          // Connection-level failure: drop the client so the next call reconnects.
-          await this.close();
-        }
-        throw error;
-      }
-    }
+    return this.attemptQuery<R>(text, values, 1);
   }
 
   async close(): Promise<void> {
     const client = this.client;
     this.client = undefined;
     await client?.end().catch(() => undefined);
+  }
+
+  private async attemptQuery<R extends object>(
+    text: string,
+    values: unknown[] | undefined,
+    attempt: number,
+  ): Promise<QueryResult<R>> {
+    const client = await this.getClient();
+    try {
+      return await client.query<R>(text, values);
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === SERIALIZATION_FAILURE && attempt < MAX_ATTEMPTS) {
+        await sleep(Math.random() * 50 * 2 ** attempt);
+        return this.attemptQuery<R>(text, values, attempt + 1);
+      }
+      if (!code) {
+        // Connection-level failure: drop the client so the next call reconnects.
+        await this.close();
+      }
+      throw error;
+    }
   }
 
   private async getClient(): Promise<Client> {

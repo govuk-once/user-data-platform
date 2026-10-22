@@ -114,7 +114,7 @@ jobs:
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
           DEVELOPER_ID: ${{ inputs.developer-id }}
-          DEPLOY_SCRIPT: ${{ inputs.deploy-target }}
+          DEPLOY_SCRIPT: ${{ inputs.deploy-script }}
         run: pnpm run "${DEPLOY_SCRIPT}"
 
       - name: Get Stack outputs
