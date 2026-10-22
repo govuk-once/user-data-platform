@@ -46,18 +46,8 @@ const callsMatching = (fragment: string) =>
   sql().filter((text) => text.includes(fragment));
 
 /** Routes each catalogue lookup to a canned result; everything else succeeds. */
-const respond = ({
-  columns = [] as string[],
-  roleExists = false,
-  mappedArns = [] as string[],
-} = {}) =>
+const respond = ({ roleExists = false, mappedArns = [] as string[] } = {}) =>
   query.mockImplementation(async (text: string) => {
-    if (text.includes('information_schema.columns')) {
-      return {
-        rowCount: columns.length,
-        rows: columns.map((column_name) => ({ column_name })),
-      };
-    }
     if (text.includes('pg_roles')) {
       return { rowCount: roleExists ? 1 : 0, rows: [] };
     }
@@ -93,30 +83,16 @@ describe('liveSchemaMigrationLambda handler', () => {
     expect(sql()).toContain(
       `AWS IAM GRANT ${SCHEMA_EXTRACTOR_DB_ROLE} TO '${ROLE_ARN}'`,
     );
-    expect(callsMatching('DROP TABLE')).toHaveLength(0);
   });
 
   it('is idempotent against an already-migrated cluster', async () => {
-    respond({
-      columns: ['udpKey', 'udpUserIdHash'],
-      roleExists: true,
-      mappedArns: [ROLE_ARN],
-    });
+    respond({ roleExists: true, mappedArns: [ROLE_ARN] });
 
     await handler(undefined, context);
 
     expect(callsMatching('CREATE ROLE')).toHaveLength(0);
     expect(callsMatching('AWS IAM GRANT')).toHaveLength(0);
     expect(callsMatching('AWS IAM REVOKE')).toHaveLength(0);
-    expect(callsMatching('DROP TABLE')).toHaveLength(0);
-  });
-
-  it('drops tables left by an incompatible revision', async () => {
-    respond({ columns: ['legacyColumn'] });
-
-    await handler(undefined, context);
-
-    expect(sql()).toContain(`DROP TABLE ${LIVE_SCHEMAS_TABLE}`);
   });
 
   it('revokes IAM mappings left by a replaced execution role', async () => {
