@@ -146,7 +146,7 @@ export class LiveSchemaStack extends Stack {
     });
 
     this.grantDsql(schemaExtractor, 'dsql:DbConnect');
-    this.grantDsql(migration, 'dsql:DbConnectAdmin');
+    this.grantDsql(migration.function, 'dsql:DbConnectAdmin');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
       queueName: `${namePrefix}live-schema-stream-failures-${environment}`,
@@ -173,7 +173,7 @@ export class LiveSchemaStack extends Stack {
     });
 
     new Trigger(this, 'MigrationTrigger', {
-      handler: migration,
+      handler: migration.function,
       timeout: Duration.minutes(5),
       executeAfter: dsqlEndpoint
         ? [this.cluster, dsqlEndpoint]
