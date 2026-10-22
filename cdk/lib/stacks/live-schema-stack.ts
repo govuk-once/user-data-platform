@@ -1,4 +1,4 @@
-import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
+import { Aws, CfnOutput, Duration, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import { CfnCluster } from 'aws-cdk-lib/aws-dsql';
 import { IFunction, StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { IQueue, Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
@@ -207,8 +207,16 @@ export class LiveSchemaStack extends Stack {
       STACK: stackPrefix,
       SERVICE_NAME: serviceName,
       POWERTOOLS_SERVICE_NAME: serviceName,
-      DSQL_ENDPOINT: this.cluster.attrEndpoint,
+      DSQL_ENDPOINT: this.privateLinkHostname(),
     };
+  }
+
+  private privateLinkHostname(): string {
+    const serviceIdentifier = Fn.select(
+      3,
+      Fn.split('.', this.cluster.attrVpcEndpointServiceName),
+    );
+    return `${this.cluster.attrIdentifier}.${serviceIdentifier}.${Aws.REGION}.on.aws`;
   }
 
   private grantDsql(fn: IFunction, action: string): void {

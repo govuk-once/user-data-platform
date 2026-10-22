@@ -56,7 +56,6 @@ const ensureRole = async (
   if (!existing.rowCount) {
     await db.query(`CREATE ROLE ${role} WITH LOGIN`);
   }
-  await db.query(`GRANT USAGE ON SCHEMA public TO ${role}`);
   await db.query(`GRANT ${privileges.join(', ')} ON ${table} TO ${role}`);
 };
 
