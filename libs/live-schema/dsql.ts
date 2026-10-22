@@ -59,7 +59,7 @@ export class DsqlConnection {
     } catch (error) {
       const code = (error as { code?: string }).code;
       if (code === SERIALIZATION_FAILURE && attempt < MAX_ATTEMPTS) {
-        await sleep(Math.random() * 50 * 2 ** attempt);
+        await sleep(Math.random() * 50 * 2 ** attempt); // NOSONAR - not security sensative
         return this.attemptQuery<R>(text, values, attempt + 1);
       }
       if (!code) {
