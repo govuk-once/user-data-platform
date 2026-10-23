@@ -1,11 +1,11 @@
-import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
+import { Aws, CfnOutput, Duration, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import { CfnCluster } from 'aws-cdk-lib/aws-dsql';
 import { IFunction, StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { IQueue, Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { GovUkOnceEnvironments } from '../macie';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { Key } from 'aws-cdk-lib/aws-kms';
+import { IKey, Key } from 'aws-cdk-lib/aws-kms';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import {
   InterfaceVpcEndpoint,
@@ -27,6 +27,8 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { GovUKTag } from '../gov-uk-tag';
+import { Trigger } from 'aws-cdk-lib/triggers';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 const DSQL_PORT = 5432;
 
@@ -37,12 +39,24 @@ export interface LiveSchemaStackProps extends StackProps {
   createDsqlVpcEndpoint?: boolean;
 }
 
+export type CommonProps = {
+  developerId?: string;
+  environment: string;
+  kmsKey: IKey;
+  vpc: IVpc;
+  vpcSubnets: SubnetSelection;
+  securityGroups: SecurityGroup[];
+  logRetentionDays: RetentionDays;
+};
+
 export class LiveSchemaStack extends Stack {
   public readonly schemaExtractorLambda: IFunction;
 
   public readonly lambdas: IFunction[];
   public readonly cluster: CfnCluster;
   public readonly failureQueue: IQueue;
+
+  public readonly commonLambdaProps: CommonProps;
 
   constructor(scope: Construct, id: string, props: LiveSchemaStackProps) {
     super(scope, id, props);
@@ -96,11 +110,11 @@ export class LiveSchemaStack extends Stack {
 
     this.cluster.applyRemovalPolicy(getRemovalPolicy(environment));
 
-    if (createDsqlVpcEndpoint) {
-      this.createDsqlEndpoint(vpc, isolatedSubnets, environment);
-    }
+    const dsqlEndpoint = createDsqlVpcEndpoint
+      ? this.createDsqlEndpoint(vpc, isolatedSubnets, environment)
+      : undefined;
 
-    const commonLambdaProps = {
+    this.commonLambdaProps = {
       developerId,
       environment,
       kmsKey,
@@ -114,7 +128,7 @@ export class LiveSchemaStack extends Stack {
       this,
       'LiveSchemaExtractor',
       {
-        ...commonLambdaProps,
+        ...this.commonLambdaProps,
         functionName: 'liveSchemaExtractorLambda',
         sourcePath: 'liveSchemaExtractorLambda',
         dbKmsKey,
@@ -133,7 +147,13 @@ export class LiveSchemaStack extends Stack {
 
     const schemaExtractor = schemaExtractorConstruct.function;
 
-    this.grantDsql(schemaExtractor, 'dsql:DbConnectAdmin');
+    this.setupMigration(
+      stackPrefix,
+      dsqlEndpoint,
+      schemaExtractor.role?.roleArn,
+    );
+
+    this.grantDsql(schemaExtractor, 'dsql:DbConnect');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
       queueName: `${namePrefix}live-schema-stream-failures-${environment}`,
@@ -181,8 +201,48 @@ export class LiveSchemaStack extends Stack {
       STACK: stackPrefix,
       SERVICE_NAME: serviceName,
       POWERTOOLS_SERVICE_NAME: serviceName,
-      DSQL_ENDPOINT: this.cluster.attrEndpoint,
+      DSQL_ENDPOINT: this.privateLinkHostname(),
     };
+  }
+
+  private setupMigration(
+    stackPrefix: string,
+    dsqlEndpoint?: InterfaceVpcEndpoint,
+    roleArn?: string,
+  ) {
+    const migration = new LambdaApiConstruct(this, 'LiveSchemaMigration', {
+      ...this.commonLambdaProps,
+      functionName: 'liveSchemaMigrationLambda',
+      sourcePath: 'liveSchemaMigrationLambda',
+      timeout: Duration.minutes(5),
+      environmentVariables: {
+        ...this.lambdaEnv(stackPrefix, 'liveSchemaMigration'),
+        ...(roleArn && { SCHEMA_EXTRACTOR_ROLE_ARN: roleArn }),
+      },
+    });
+
+    GovUKTag.of(migration)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
+    this.grantDsql(migration.function, 'dsql:DbConnectAdmin');
+
+    new Trigger(this, 'MigrationTrigger', {
+      handler: migration.function,
+      timeout: Duration.minutes(5),
+      executeAfter: dsqlEndpoint
+        ? [this.cluster, dsqlEndpoint]
+        : [this.cluster],
+    });
+  }
+
+  private privateLinkHostname(): string {
+    const serviceIdentifier = Fn.select(
+      3,
+      Fn.split('.', this.cluster.attrVpcEndpointServiceName),
+    );
+    return `${this.cluster.attrIdentifier}.${serviceIdentifier}.${Aws.REGION}.on.aws`;
   }
 
   private grantDsql(fn: IFunction, action: string): void {
