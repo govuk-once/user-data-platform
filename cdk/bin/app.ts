@@ -139,22 +139,6 @@ if (!skipMainStack) {
     liveSchemaStack.node.addDependency(mainStack);
   }
 
-  // Live schemas. Consumes main stack resources via SSM parameters, so this
-  // dependency only orders deployment - no exports.
-  const liveSchemaStack = new LiveSchemaStack(
-    app,
-    `${stackPrefix}-live-schema`,
-    {
-      developerId,
-      environment,
-      stackPrefix,
-      env: awsEnv,
-      description: `Live schema extraction stack ${stackDescription}`,
-    },
-  );
-
-  liveSchemaStack.addDependency(mainStack);
-
   const kmsKeyPrefix = developerId ? `${developerId}-` : '';
   const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
   const monLambdas: lambda.IFunction[] = mainStack.lambdas.filter((l) => {
