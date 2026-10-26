@@ -6,7 +6,7 @@ export const SCHEMA_EXTRACTOR_DB_ROLE = 'live_schema_extractor';
 export const TABLE_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS ${LIVE_SCHEMAS_TABLE} (
      "udpKey"     varchar(1024) NOT NULL,
-     "version"      numeric(10,0) NOT NULL,
+     "version"      numeric(10,1) NOT NULL,
      "dateSaved"  timestamptz   NOT NULL,
      "dcatSchema" jsonb         NOT NULL,
      PRIMARY KEY ("udpKey", version)
