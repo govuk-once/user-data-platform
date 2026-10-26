@@ -216,7 +216,7 @@ export class DynamoDbDataService {
           Key: { pk, sk },
           UpdateExpression: this.encryption
             ? 'SET #data = :data, #dataKey = :dataKey, #flag = :flag'
-            : 'SET #data = :data',
+            : 'SET #data = :data, #flag = :flag',
           ExpressionAttributeNames: {
             '#data': 'data',
             '#flag': SCHEMA_EVALUATION_FLAG,

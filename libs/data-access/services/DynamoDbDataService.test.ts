@@ -266,7 +266,7 @@ describe('DynamoDb Data Service', () => {
       expect(getCommandCall(UpdateCommand, 1)).toMatchObject({
         TableName: tableName,
         Key: { pk: mockIdentity.udpId, sk: mockResource },
-        UpdateExpression: 'SET #data = :data',
+        UpdateExpression: 'SET #data = :data, #flag = flag',
         ExpressionAttributeNames: {
           '#data': 'data',
           '#flag': 'schemaEvaluationRequired',
