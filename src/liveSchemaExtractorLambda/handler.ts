@@ -34,6 +34,7 @@ const {
   STACK: stack,
   SERVICE_NAME: serviceName = 'udpLiveSchemaExtractor',
   KMS_KEY_ID: kmsKeyId,
+  DYNAMODB_ENDPOINT: dynamoDbEndpoint,
 } = process.env;
 
 const tracer = getTracer({ serviceName });
@@ -55,7 +56,9 @@ const encryption = kmsKeyId
   : undefined;
 
 const dynamo = DynamoDBDocumentClient.from(
-  tracer.captureAWSv3Client(new DynamoDBClient({})),
+  tracer.captureAWSv3Client(
+    new DynamoDBClient(dynamoDbEndpoint ? { endpoint: dynamoDbEndpoint } : {}),
+  ),
 );
 
 interface StreamItem {

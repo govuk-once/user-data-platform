@@ -141,6 +141,7 @@ export class LiveSchemaStack extends Stack {
         environmentVariables: {
           ...this.lambdaEnv(stackPrefix, 'liveSchemaExtractor'),
           DATA_TABLE_NAME: dataTable.tableName,
+          DYNAMO_ENDPOINT: resolve(params.dynamoDbEndpointUrl),
         },
       },
     );
