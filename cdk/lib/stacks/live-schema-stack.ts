@@ -186,7 +186,7 @@ export class LiveSchemaStack extends Stack {
       onFailure: new SqsDlq(this.failureQueue),
       filters: [
         FilterCriteria.filter({
-          eventNames: FilterRule.or('INSERT', 'MODIFY'),
+          eventName: FilterRule.or('INSERT', 'MODIFY'),
           dynamodb: {
             NewImage: { schemaEvaluationRequired: { BOOL: [true] } },
           },
