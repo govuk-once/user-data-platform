@@ -17,6 +17,8 @@ import { decryptItem, encryptItem } from './crypto';
 
 const PAGE_SIZE = 100;
 
+export const SCHEMA_EVALUATION_FLAG = 'schemaEvaluationRequired';
+
 /**
  * Reads and writes user data records in DynamoDB.
  *
@@ -42,7 +44,10 @@ export class DynamoDbDataService {
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
-        Item: await encryptItem(entity, this.encryption),
+        Item: {
+          ...(await encryptItem(entity, this.encryption)),
+          [SCHEMA_EVALUATION_FLAG]: true,
+        },
       }),
     );
 
@@ -210,14 +215,16 @@ export class DynamoDbDataService {
           TableName: this.tableName,
           Key: { pk, sk },
           UpdateExpression: this.encryption
-            ? 'SET #data = :data, #dataKey = :dataKey'
+            ? 'SET #data = :data, #dataKey = :dataKey, #flag = :flag'
             : 'SET #data = :data',
           ExpressionAttributeNames: {
             '#data': 'data',
+            '#flag': SCHEMA_EVALUATION_FLAG,
             ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
           },
           ExpressionAttributeValues: {
             ':data': (stored as Record<string, unknown>).data,
+            ':flag': true,
             ...(this.encryption
               ? { ':dataKey': (stored as Record<string, unknown>).__dataKey }
               : {}),
