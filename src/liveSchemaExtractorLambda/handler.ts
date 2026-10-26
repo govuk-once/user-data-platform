@@ -34,7 +34,7 @@ const {
   STACK: stack,
   SERVICE_NAME: serviceName = 'udpLiveSchemaExtractor',
   KMS_KEY_ID: kmsKeyId,
-  DYNAMODB_ENDPOINT: dynamoDbEndpoint,
+  DYNAMO_ENDPOINT: dynamoDbEndpoint,
 } = process.env;
 
 const tracer = getTracer({ serviceName });
