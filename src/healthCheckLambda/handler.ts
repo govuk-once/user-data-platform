@@ -39,7 +39,7 @@ try {
   logger.error('Failed to initialise ServiceFactory', { error });
 }
 
-export const lambdaHandler = async () => {
+export const lambdaHandler = () => {
   if (!factory) {
     return {
       statusCode: 500,
@@ -74,7 +74,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })
