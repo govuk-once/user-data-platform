@@ -1,6 +1,11 @@
 import { Aws, CfnOutput, Duration, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import { CfnCluster } from 'aws-cdk-lib/aws-dsql';
-import { IFunction, StartingPosition } from 'aws-cdk-lib/aws-lambda';
+import {
+  FilterCriteria,
+  FilterRule,
+  IFunction,
+  StartingPosition,
+} from 'aws-cdk-lib/aws-lambda';
 import { IQueue, Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { GovUkOnceEnvironments } from '../macie';
@@ -177,6 +182,14 @@ export class LiveSchemaStack extends Stack {
       retryAttempts: 5,
       maxRecordAge: Duration.days(1),
       onFailure: new SqsDlq(this.failureQueue),
+      filters: [
+        FilterCriteria.filter({
+          eventNames: FilterRule.or('INSERT', 'MODIFY'),
+          dynamodb: {
+            NewImage: { schemaEvaluationRequired: { BOOL: [true] } },
+          },
+        }),
+      ],
     });
 
     this.schemaExtractorLambda = schemaExtractor;
