@@ -37,6 +37,9 @@ const typesOf = (schema: JsonSchema): JsonType[] => {
   return Array.isArray(schema.type) ? schema.type : [schema.type];
 };
 
+/** Pinned locale so canonical ordering doesn't vary with the runtime's default. */
+const byString = (a: string, b: string) => a.localeCompare(b, 'en');
+
 /** Collapses a type list to its canonical form: sorted, de-duplicated. */
 const normaliseTypes = (
   types: JsonType[],
@@ -46,7 +49,7 @@ const normaliseTypes = (
   const widened = unique.includes('number')
     ? unique.filter((t) => t !== 'integer')
     : unique;
-  widened.sort();
+  widened.sort(byString);
   if (widened.length === 0) return undefined;
   return widened.length === 1 ? widened[0] : widened;
 };
@@ -90,6 +93,53 @@ export const inferSchema = (value: unknown): JsonSchema => {
   }
 };
 
+/** A string `format` survives only if both sides agree, or the other side can't be a string. */
+const mergeFormat = (a: JsonSchema, b: JsonSchema): string | undefined => {
+  if (a.format && a.format === b.format) return a.format;
+  if (a.format && !typesOf(b).includes('string')) return a.format;
+  if (b.format && !typesOf(a).includes('string')) return b.format;
+  return undefined;
+};
+
+/** Merges two optional sub-schemas; a one-sided one is carried over canonicalised. */
+const mergeOptional = (
+  left?: JsonSchema,
+  right?: JsonSchema,
+): JsonSchema | undefined => {
+  if (left && right) return mergeSchemas(left, right);
+  const only = left ?? right;
+  return only && canonicalise(only);
+};
+
+const mergeProperties = (
+  a: JsonSchema,
+  b: JsonSchema,
+): Record<string, JsonSchema> => {
+  const keys = new Set([
+    ...Object.keys(a.properties ?? {}),
+    ...Object.keys(b.properties ?? {}),
+  ]);
+  return Object.fromEntries(
+    [...keys].map((key) => [
+      key,
+      mergeOptional(a.properties?.[key], b.properties?.[key])!,
+    ]),
+  );
+};
+
+/**
+ * A key is only required if every object seen so far carried it. An
+ * object-less side (e.g. `null`) contributes no keys, so leaves it intact.
+ */
+const mergeRequired = (a: JsonSchema, b: JsonSchema): string[] => {
+  const isObject = (s: JsonSchema) => s.properties !== undefined;
+  const required =
+    isObject(a) && isObject(b)
+      ? (a.required ?? []).filter((k) => (b.required ?? []).includes(k))
+      : [...((isObject(a) ? a.required : b.required) ?? [])];
+  return [...new Set(required)].sort(byString);
+};
+
 /**
  * Widens `a` to also describe everything `b` describes. Properties are
  * unioned, `required` becomes the keys present in both, conflicting types
@@ -102,41 +152,16 @@ export const mergeSchemas = (a: JsonSchema, b: JsonSchema): JsonSchema => {
   const type = normaliseTypes([...typesOf(a), ...typesOf(b)]);
   if (type !== undefined) merged.type = type;
 
-  if (a.format && a.format === b.format) merged.format = a.format;
-  else if (a.format && !typesOf(b).includes('string')) merged.format = a.format;
-  else if (b.format && !typesOf(a).includes('string')) merged.format = b.format;
+  const format = mergeFormat(a, b);
+  if (format) merged.format = format;
 
   if (a.properties || b.properties) {
-    const keys = new Set([
-      ...Object.keys(a.properties ?? {}),
-      ...Object.keys(b.properties ?? {}),
-    ]);
-    merged.properties = {};
-    for (const key of keys) {
-      const left = a.properties?.[key];
-      const right = b.properties?.[key];
-      merged.properties[key] =
-        left && right
-          ? mergeSchemas(left, right)
-          : canonicalise(left ?? right!);
-    }
-
-    // A key is only required if every object seen so far carried it. An
-    // object-less side (e.g. `null`) contributes no keys, so leaves it intact.
-    const isObject = (s: JsonSchema) => s.properties !== undefined;
-    const required =
-      isObject(a) && isObject(b)
-        ? (a.required ?? []).filter((k) => (b.required ?? []).includes(k))
-        : [...((isObject(a) ? a.required : b.required) ?? [])];
-    merged.required = [...new Set(required)].sort();
+    merged.properties = mergeProperties(a, b);
+    merged.required = mergeRequired(a, b);
   }
 
-  if (a.items || b.items) {
-    merged.items =
-      a.items && b.items
-        ? mergeSchemas(a.items, b.items)
-        : canonicalise((a.items ?? b.items)!);
-  }
+  const items = mergeOptional(a.items, b.items);
+  if (items) merged.items = items;
 
   return merged;
 };
@@ -149,7 +174,7 @@ const stableStringify = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
   if (value && typeof value === 'object') {
     const entries = Object.keys(value)
-      .sort()
+      .sort(byString)
       .map(
         (k) =>
           `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`,
