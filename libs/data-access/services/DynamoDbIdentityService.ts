@@ -4,7 +4,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { DescribeTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import {
   IdentityLinkingInvalidIdentitesError,
   IdentityRecordNotFoundError,
@@ -277,11 +277,7 @@ export class DynamoDBIdentityService {
 
   public async checkHealth(): Promise<boolean> {
     try {
-      // DynamoDBDocumentClient wraps the low-level client in client configuration or middleware
-      // Calling send directly via the raw client:
-      const response = await (
-        this.client as unknown as { config: { client: DynamoDBClient } }
-      ).config.client.send(
+      const response = await this.client.send(
         new DescribeTableCommand({ TableName: this.tableName }),
       );
 
