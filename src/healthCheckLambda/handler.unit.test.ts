@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 
+const mockCheckHealthData = vi.fn();
+const mockCheckHealthIdentity = vi.fn();
 const mockGetService = vi.hoisted(() => vi.fn());
 
 vi.hoisted(() => {
@@ -35,6 +37,20 @@ describe('healthCheckLambda handler', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock implementations: both health checks return true
+    mockCheckHealthData.mockResolvedValue(true);
+    mockCheckHealthIdentity.mockResolvedValue(true);
+
+    mockGetService.mockImplementation((serviceName: string) => {
+      if (serviceName === 'data') {
+        return { checkHealth: mockCheckHealthData };
+      }
+      if (serviceName === 'identity') {
+        return { checkHealth: mockCheckHealthIdentity };
+      }
+      return undefined;
+    });
   });
 
   const createEvent = (): APIGatewayProxyEventV2 => ({
@@ -48,7 +64,7 @@ describe('healthCheckLambda handler', () => {
   });
 
   describe('successful operations', () => {
-    it('should return 200 when ServiceFactory initialises and services are created', async () => {
+    it('should return 200 when ServiceFactory initialises and services are healthy', async () => {
       const response = await handler(createEvent(), mockContext);
 
       expect(response.statusCode).toEqual(200);
@@ -57,6 +73,8 @@ describe('healthCheckLambda handler', () => {
       });
       expect(mockGetService).toHaveBeenCalledWith('data');
       expect(mockGetService).toHaveBeenCalledWith('identity');
+      expect(mockCheckHealthData).toHaveBeenCalled();
+      expect(mockCheckHealthIdentity).toHaveBeenCalled();
     });
   });
 
@@ -64,6 +82,7 @@ describe('healthCheckLambda handler', () => {
     it('should return 500 when getService throws for data service', async () => {
       mockGetService.mockImplementation((name: string) => {
         if (name === 'data') throw new Error('DynamoDB table not found');
+        return { checkHealth: mockCheckHealthIdentity };
       });
 
       const response = await handler(createEvent(), mockContext);
@@ -78,6 +97,7 @@ describe('healthCheckLambda handler', () => {
     it('should return 500 when getService throws for identity service', async () => {
       mockGetService.mockImplementation((name: string) => {
         if (name === 'identity') throw new Error('Identity table not found');
+        return { checkHealth: mockCheckHealthData };
       });
 
       const response = await handler(createEvent(), mockContext);
@@ -86,6 +106,36 @@ describe('healthCheckLambda handler', () => {
       expect(JSON.parse(response.body)).toMatchObject({
         status: 'unhealthy',
         error: 'Service creation failed',
+      });
+    });
+
+    it('should return 500 when data table health check returns false', async () => {
+      mockCheckHealthData.mockResolvedValue(false);
+
+      const response = await handler(createEvent(), mockContext);
+
+      expect(response.statusCode).toEqual(500);
+      expect(JSON.parse(response.body)).toMatchObject({
+        status: 'unhealthy',
+        details: {
+          dataTable: 'unhealthy',
+          identityTable: 'healthy',
+        },
+      });
+    });
+
+    it('should return 500 when identity table health check returns false', async () => {
+      mockCheckHealthIdentity.mockResolvedValue(false);
+
+      const response = await handler(createEvent(), mockContext);
+
+      expect(response.statusCode).toEqual(500);
+      expect(JSON.parse(response.body)).toMatchObject({
+        status: 'unhealthy',
+        details: {
+          dataTable: 'healthy',
+          identityTable: 'unhealthy',
+        },
       });
     });
   });
