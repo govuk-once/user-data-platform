@@ -17,6 +17,7 @@ import {
 } from '@libs/utils';
 import {
   DsqlConnection,
+  JsonSchema,
   LiveSchemaRepository,
   SCHEMA_EXTRACTOR_DB_ROLE,
   inferSchema,
@@ -154,7 +155,7 @@ const stamp = async (item: StreamItem, version: string) => {
 const processKey = async (udpKey: string, items: StreamItem[]) => {
   const observed = items
     .map((item) => inferSchema(item.data))
-    .reduce((acc, schema) => mergeSchemas(acc, schema));
+    .reduce<JsonSchema>((acc, schema) => mergeSchemas(acc, schema), {});
 
   const { version, created } = await repository.evolve(udpKey, observed);
   if (created) {
