@@ -20,39 +20,46 @@ const logger = getLogger({
   environment: stack,
 });
 
-const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
-  'TABLE_NAME',
-  'IDENTITY_TABLE_NAME',
-);
+let factory: ServiceFactory | undefined;
 
-let factory: ServiceFactory;
-try {
-  factory = new ServiceFactory({
-    tableName: TABLE_NAME,
-    identityTableName: IDENTITY_TABLE_NAME,
-    kmsKeyId: process.env.KMS_KEY_ID,
-    dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
-    tracer,
-    logger,
-  });
-} catch (error) {
-  logger.error('Failed to initialise ServiceFactory', { error });
+function getFactory(): ServiceFactory {
+  if (!factory) {
+    const { TABLE_NAME, IDENTITY_TABLE_NAME } = requireEnvVars(
+      'TABLE_NAME',
+      'IDENTITY_TABLE_NAME',
+    );
+
+    factory = new ServiceFactory({
+      tableName: TABLE_NAME,
+      identityTableName: IDENTITY_TABLE_NAME,
+      kmsKeyId: process.env.KMS_KEY_ID,
+      dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
+      tracer,
+      logger,
+    });
+  }
+  return factory;
 }
 
-export const lambdaHandler = () => {
-  if (!factory) {
+export const lambdaHandler = async () => {
+  let instance: ServiceFactory;
+  try {
+    instance = getFactory();
+  } catch (error) {
+    logger.error('Failed to initialize ServiceFactory', { error });
     return {
       statusCode: 500,
       body: {
         status: 'unhealthy',
-        error: 'ServiceFactory failed to initialise',
+        error: 'Service configuration or factory initialization failed',
       },
     };
   }
 
+  let dataTableService, identityTableService;
   try {
-    factory.getService('data');
-    factory.getService('identity');
+    dataTableService = instance.getService('data');
+    identityTableService = instance.getService('identity');
   } catch (error) {
     logger.error('Health check service creation failed', { error });
     return {
@@ -60,6 +67,32 @@ export const lambdaHandler = () => {
       body: {
         status: 'unhealthy',
         error: 'Service creation failed',
+      },
+    };
+  }
+
+  // Execute health checks concurrently to minimize latency
+  const [dataTableActive, identityTableActive] = await Promise.all([
+    dataTableService.checkHealth(),
+    identityTableService.checkHealth(),
+  ]);
+
+  const isHealthy = dataTableActive && identityTableActive;
+
+  if (!isHealthy) {
+    logger.warn('Health check failed for one or more services', {
+      dataTableActive,
+      identityTableActive,
+    });
+
+    return {
+      statusCode: 500,
+      body: {
+        status: 'unhealthy',
+        details: {
+          dataTable: dataTableActive ? 'healthy' : 'unhealthy',
+          identityTable: identityTableActive ? 'healthy' : 'unhealthy',
+        },
       },
     };
   }
@@ -75,7 +108,7 @@ export const handler = middy()
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
     before: () => {
-      tracer.putAnnotation('stack', stack);
+      tracer.putAnnotation('stack', stack ?? 'unknown');
     },
   })
   .use(
