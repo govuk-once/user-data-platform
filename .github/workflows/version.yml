@@ -7,6 +7,10 @@ on:
         required: true
       GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY:
         required: true
+      DEPLOYMENT_ROLE:
+        required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
     outputs:
       version:
         description: 'The new semantic version number'
@@ -16,6 +20,7 @@ on:
         value: ${{ jobs.version.outputs.type }}
 
 permissions:
+  id-token: write
   contents: write
   issues: write
   pull-requests: write
@@ -40,8 +45,16 @@ jobs:
           app-id: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
           private-key: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          aws-region: eu-west-2
+
       - name: Setup Node & pnpm
         uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Run semantic release
         id: release
