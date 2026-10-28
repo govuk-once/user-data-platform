@@ -25,13 +25,15 @@ runs:
     - name: Authenticate to AWS CodeArtifact
       if: inputs.codeartifact-account != ''
       shell: bash
+      env:
+        CODEARTIFACT_ACCOUNT: ${{ inputs.codeartifact-account }}
       run: |
         aws codeartifact login \
           --tool npm \
           --namespace govuk-connect \
           --repository registry-prod-repo \
           --domain registry-prod \
-          --domain-owner ${{ inputs.codeartifact-account }} \
+          --domain-owner "$CODEARTIFACT_ACCOUNT" \
           --region eu-west-2
 
     - name: Install dependencies
