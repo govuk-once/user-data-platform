@@ -135,6 +135,7 @@ export class LiveSchemaStack extends Stack {
       keyUsage: KeyUsage.GENERATE_VERIFY_MAC,
       alias: `${namePrefix}live-user-id-hmac-${environment}`,
       removalPolicy: getRemovalPolicy(environment),
+      enableKeyRotation: true,
     });
 
     GovUKTag.of(userIdHmacKey).DataClassification.OFFICIAL_SENSITIVE();
