@@ -4,6 +4,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import {
   IdentityLinkingInvalidIdentitesError,
   IdentityRecordNotFoundError,
@@ -272,5 +273,18 @@ export class DynamoDBIdentityService {
 
   private getCurrentTTL() {
     return Math.floor(Date.now() / 1000);
+  }
+
+  public async checkHealth(): Promise<boolean> {
+    try {
+      const response = await this.client.send(
+        new DescribeTableCommand({ TableName: this.tableName }),
+      );
+
+      return response.Table?.TableStatus === 'ACTIVE';
+    } catch (error) {
+      this.logger?.error('DynamoDB health check failed', { error });
+      return false;
+    }
   }
 }

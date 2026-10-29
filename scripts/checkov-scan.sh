@@ -56,5 +56,7 @@ if [ "${FAILED:-0}" -gt 0 ]; then
   exit 1
 fi
 
+git checkout -- cdk/cdk.context.json 2>/dev/null || true
+
 echo -e "${GREEN}[checkov-scan]${NC} Checkov passed"
 exit 0

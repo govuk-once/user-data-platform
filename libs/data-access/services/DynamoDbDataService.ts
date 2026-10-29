@@ -6,6 +6,7 @@ import {
   QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { DataRecordNotFoundError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
 import {
   DataInput,
@@ -269,6 +270,19 @@ export class DynamoDbDataService {
       identity.serviceId,
       resourcePath,
     );
+  }
+
+  public async checkHealth(): Promise<boolean> {
+    try {
+      const response = await this.client.send(
+        new DescribeTableCommand({ TableName: this.tableName }),
+      );
+
+      return response.Table?.TableStatus === 'ACTIVE';
+    } catch (error) {
+      this.logger?.error('DynamoDB health check failed', { error });
+      return false;
+    }
   }
 }
 
