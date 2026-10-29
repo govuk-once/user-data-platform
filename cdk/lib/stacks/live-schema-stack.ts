@@ -34,6 +34,7 @@ import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { GovUKTag } from '@govuk-connect/tag';
 import { Trigger } from 'aws-cdk-lib/triggers';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Checkov } from '../checkov/checkov';
 
 const DSQL_PORT = 5432;
 
@@ -135,10 +136,10 @@ export class LiveSchemaStack extends Stack {
       keyUsage: KeyUsage.GENERATE_VERIFY_MAC,
       alias: `${namePrefix}live-user-id-hmac-${environment}`,
       removalPolicy: getRemovalPolicy(environment),
-      enableKeyRotation: true,
     });
 
     GovUKTag.of(userIdHmacKey).DataClassification.OFFICIAL_SENSITIVE();
+    Checkov.suppressKmsKeyRotation(userIdHmacKey);
 
     const schemaExtractorConstruct = new LambdaApiConstruct(
       this,
