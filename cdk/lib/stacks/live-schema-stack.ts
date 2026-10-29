@@ -173,6 +173,7 @@ export class LiveSchemaStack extends Stack {
     );
 
     this.grantDsql(schemaExtractor, 'dsql:DbConnect');
+    userIdHmacKey.grant(schemaExtractor, 'kms:GenerateMac');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
       queueName: `${namePrefix}live-schema-stream-failures-${environment}`,
