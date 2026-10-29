@@ -67,6 +67,7 @@ describe('DynamoDb Data Service', () => {
           pk: mockIdentity.udpId,
           sk: mockResource,
           data: input.data,
+          schemaEvaluationRequired: true,
         },
       });
       expect(response).toMatchObject({
@@ -265,9 +266,12 @@ describe('DynamoDb Data Service', () => {
       expect(getCommandCall(UpdateCommand, 1)).toMatchObject({
         TableName: tableName,
         Key: { pk: mockIdentity.udpId, sk: mockResource },
-        UpdateExpression: 'SET #data = :data',
-        ExpressionAttributeNames: { '#data': 'data' },
-        ExpressionAttributeValues: { ':data': merged },
+        UpdateExpression: 'SET #data = :data, #flag = :flag',
+        ExpressionAttributeNames: {
+          '#data': 'data',
+          '#flag': 'schemaEvaluationRequired',
+        },
+        ExpressionAttributeValues: { ':data': merged, ':flag': true },
         ConditionExpression: 'attribute_exists(pk)',
         ReturnValues: 'ALL_NEW',
       });

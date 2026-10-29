@@ -48,24 +48,30 @@ if [ ${#SHAS[@]} -eq 0 ]; then
   SHAS+=("$(git rev-parse HEAD)")
 fi
 
+has_signature() {
+  local sha="$1"
+
+  git cat-file -p "$sha" |
+    awk '
+      /^$/ { exit }
+      /^gpgsig / { found = 1 }
+      END { exit !found }
+    '
+}
+
 UNSIGNED=()
 
 for sha in "${SHAS[@]}"; do
-  while IFS='|' read -r hash sig subject; do
+  while IFS='|' read -r hash subject; do
     [ -z "$hash" ] && continue
 
-    # %G? returns N when the commit has no signature.
-    #
-    # Other statuses can indicate that a signature exists but cannot be fully
-    # verified using the developer's local key/trust configuration. For example:
-    # U - good signature with unknown validity
-    # E - signature cannot be checked locally
-    #
-    # These are not treated as unsigned by this local guardrail.
-    if [ "$sig" = "N" ]; then
-      UNSIGNED+=("$hash $subject")
+    # Checks for the presence of a gpgsig header in the raw commit object.
+    # This detects both GPG and SSH signatures without requiring local key
+    # configuration to verify them.
+    if ! has_signature "$hash"; then
+      UNSIGNED+=("${hash:0:7} $subject")
     fi
-  done < <(git log "origin/main..$sha" --format='%h|%G?|%s')
+  done < <(git log "origin/main..$sha" --format='%H|%s')
 done
 
 if [ ${#UNSIGNED[@]} -eq 0 ]; then

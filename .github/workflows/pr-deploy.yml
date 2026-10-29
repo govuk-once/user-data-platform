@@ -26,6 +26,7 @@ jobs:
       ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-monitoring:
     needs: deploy
@@ -51,6 +52,7 @@ jobs:
       ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test:
     name: Performance Tests
@@ -62,3 +64,4 @@ jobs:
       perf-target: smoke
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

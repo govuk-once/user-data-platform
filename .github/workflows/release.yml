@@ -23,6 +23,8 @@ jobs:
     secrets:
       GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
       GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   sonar-scan:
     name: Run SonarQube Scan
@@ -30,6 +32,8 @@ jobs:
     secrets:
       SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
       SONAR_URL: ${{ secrets.SONAR_URL }}
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-dev:
     name: Deploy to dev
@@ -44,6 +48,7 @@ jobs:
       prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-monitoring-dev:
     name: Deploy monitoring to dev
@@ -66,6 +71,7 @@ jobs:
       source-path: ${{ needs.deploy-dev.outputs.source-path }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test-dev:
     name: 'Performance Tests'
@@ -78,6 +84,7 @@ jobs:
       perf-target: 'smoke'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-staging:
     name: Deploy to staging
@@ -91,6 +98,7 @@ jobs:
       prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-monitoring-staging:
     name: Deploy monitoring to staging
@@ -112,6 +120,7 @@ jobs:
       source-path: ${{ needs.deploy-staging.outputs.source-path }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test-staging:
     name: 'Performance Tests'
@@ -124,6 +133,7 @@ jobs:
       perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-prod:
     name: Deploy to production
@@ -137,6 +147,7 @@ jobs:
       expose-outputs: false
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-monitoring-prod:
     name: Deploy monitoring to production
@@ -159,3 +170,4 @@ jobs:
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
       RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

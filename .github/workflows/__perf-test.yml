@@ -28,6 +28,8 @@ on:
     secrets:
       DEPLOYMENT_ROLE:
         required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
 
 permissions:
   id-token: write
@@ -45,16 +47,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Node & pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          node-version: ${{ inputs.node-version }}
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
           aws-region: ${{ inputs.aws-region }}
+
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ inputs.node-version }}
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Get Perf CodeBuild project name
         id: get-perf-project

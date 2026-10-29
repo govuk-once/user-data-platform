@@ -4,5 +4,6 @@ export const mainStackParameterNames = (stackPrefix: string) => {
     dataTableStreamArn: `${base}/data-table-stream-arn`,
     kmsKeyArn: `${base}/kms-key-arn`,
     dbKmsKeyArn: `${base}/db-kms-key-arn`,
+    dynamoDbEndpointUrl: `${base}/dynamodb-endpoint-url`,
   };
 };

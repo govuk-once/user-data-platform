@@ -27,8 +27,17 @@ jobs:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
           persist-credentials: false
 
+      - name: Configure AWS Credentials
+        id: aws-creds
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup Node & pnpm
         uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Install security tooling
         run: python3 -m pip install semgrep pre-commit checkov
@@ -110,13 +119,6 @@ jobs:
       - name: Unit Tests
         run: pnpm test:all
 
-      - name: Configure AWS Credentials
-        id: aws-creds
-        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
-        with:
-          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Checkov Security Scan
         run: |
           rm -rf cdk/cdk.out
@@ -133,3 +135,5 @@ jobs:
     secrets:
       SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
       SONAR_URL: ${{ secrets.SONAR_URL }}
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

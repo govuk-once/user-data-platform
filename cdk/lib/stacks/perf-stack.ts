@@ -6,7 +6,7 @@ import { CodeBuildPerfConstruct } from '../constructs/codebuild-perf-construct';
 import { Construct } from 'constructs';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { SnsTopic } from 'aws-cdk-lib/aws-events-targets';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface PerfStackProps extends StackProps {
   readonly developerId?: string;

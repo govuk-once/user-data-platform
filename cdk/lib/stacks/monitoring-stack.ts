@@ -14,7 +14,7 @@ import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 import { NFR } from 'cdk/constants/nfr';
 import { MonitoringInventory } from '../utils/discover-monitored-resources';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface MonitorStackProps extends StackProps {
   readonly developerId?: string;
