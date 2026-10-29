@@ -67,7 +67,7 @@ export class LiveUserSchemaRepository {
 
   async mergeTopics(udpUserIdHash: string, topics: UserSchema): Promise<void> {
     await this.db.query(
-      `INSERT INTO ${LIVE_USER_SCHEMAS_TABLE} ("udpUserIdhash", "lastUpdated", "userSchema")
+      `INSERT INTO ${LIVE_USER_SCHEMAS_TABLE} ("udpUserIdHash", "lastUpdated", "userSchema")
        VALUES ($1, $2, $3::jsonb)
       ON CONFLICT ("udpUserIdHash") DO UPDATE SET
         "userSchema" = ${LIVE_USER_SCHEMAS_TABLE}."userSchema" || EXCLUDED."userSchema",
