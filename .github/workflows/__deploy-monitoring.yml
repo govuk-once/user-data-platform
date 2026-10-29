@@ -28,6 +28,8 @@ on:
     secrets:
       DEPLOYMENT_ROLE:
         required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
 
 permissions:
   id-token: write
@@ -53,6 +55,7 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ inputs.node-version }}
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Install security tooling
         run: python3 -m pip install checkov

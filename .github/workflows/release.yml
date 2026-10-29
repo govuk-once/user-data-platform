@@ -60,6 +60,7 @@ jobs:
       deploy-script: cdk:deploy:monitoring:dev
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   e2e-dev:
     name: E2E tests on dev
@@ -109,6 +110,7 @@ jobs:
       deploy-script: cdk:deploy:monitoring:stag
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   e2e-staging:
     name: E2E tests on staging
@@ -158,6 +160,7 @@ jobs:
       deploy-script: cdk:deploy:monitoring:prod
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   send-release-notification:
     if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
