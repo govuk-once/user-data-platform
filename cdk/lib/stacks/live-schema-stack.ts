@@ -138,10 +138,11 @@ export class LiveSchemaStack extends Stack {
         sourcePath: 'liveSchemaExtractorLambda',
         dbKmsKey,
         timeout: Duration.seconds(60),
-        environmentVariables: this.lambdaEnv(
-          stackPrefix,
-          'liveSchemaExtractor',
-        ),
+        environmentVariables: {
+          ...this.lambdaEnv(stackPrefix, 'liveSchemaExtractor'),
+          DATA_TABLE_NAME: dataTable.tableName,
+          DYNAMO_ENDPOINT: resolve(params.dynamoDbEndpointUrl),
+        },
       },
     );
 
@@ -173,18 +174,20 @@ export class LiveSchemaStack extends Stack {
       .Exposure.INTERNAL();
 
     dataTable.grantStreamRead(schemaExtractor);
+    dataTable.grant(schemaExtractor, 'dynamodb:UpdateItem');
     schemaExtractor.addEventSourceMapping('DataTableStream', {
       eventSourceArn: dataTable.tableStreamArn,
       startingPosition: StartingPosition.LATEST,
       batchSize: 100,
       maxBatchingWindow: Duration.seconds(5),
       bisectBatchOnError: true,
+      reportBatchItemFailures: true,
       retryAttempts: 5,
       maxRecordAge: Duration.days(1),
       onFailure: new SqsDlq(this.failureQueue),
       filters: [
         FilterCriteria.filter({
-          eventNames: FilterRule.or('INSERT', 'MODIFY'),
+          eventName: FilterRule.or('INSERT', 'MODIFY'),
           dynamodb: {
             NewImage: { schemaEvaluationRequired: { BOOL: [true] } },
           },

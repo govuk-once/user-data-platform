@@ -314,7 +314,7 @@ export class MainStack extends Stack {
       this.createReleaseNotifications(environment);
     }
 
-    this.publishSharedParameters(stackPrefix);
+    this.publishSharedParameters(stackPrefix, dynamoDbEndpointUrl);
 
     this.createCfnOutputs(id, [
       {
@@ -519,15 +519,20 @@ export class MainStack extends Stack {
    * Publishes values downstream stacks need via SSM rather than CFN exports,
    * so consumers (e.g. LiveSchemaStack) never pin these resources in place.
    */
-  private publishSharedParameters(stackPrefix: string): void {
+  private publishSharedParameters(
+    stackPrefix: string,
+    dynamoDbEndpointUrl?: string,
+  ): void {
     const names = mainStackParameterNames(stackPrefix);
     const values: Record<keyof typeof names, string> = {
       dataTableStreamArn: this.table.tableStreamArn!,
       kmsKeyArn: this.kmsKey.keyArn,
       dbKmsKeyArn: this.dbKmsKey.keyArn,
+      ...(dynamoDbEndpointUrl && { dynamoDbEndpointUrl }),
     };
 
     for (const [key, value] of Object.entries(values)) {
+      if (!value) continue;
       const param = new StringParameter(this, `SharedParam-${key}`, {
         parameterName: names[key as keyof typeof names],
         stringValue: value,
