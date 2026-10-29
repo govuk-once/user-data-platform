@@ -3,7 +3,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Duration, Stack } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface KmsConstructProps {
   readonly developerId?: string;

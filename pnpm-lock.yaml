@@ -65,6 +65,9 @@ importers:
       '@cucumber/cucumber':
         specifier: ^12.3.0
         version: 12.3.0
+      '@govuk-connect/tag':
+        specifier: ^1.0.0
+        version: 1.0.0(aws-cdk-lib@2.268.0(constructs@10.6.0))(constructs@10.6.0)
       '@middy/core':
         specifier: ^6.4.5
         version: 6.4.5
@@ -1627,6 +1630,13 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@govuk-connect/tag@1.0.0':
+    resolution: {integrity: sha512-KTjxSUTt/OW34FgwggDK2CWrDPHOtknDqlXGaphRkoqg9t0vEIce71gm5RC8mdSx3oy+5dWmi/QCnLv/68YXBA==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      aws-cdk-lib: 2.254.0
+      constructs: 10.0.0
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -8224,6 +8234,11 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@govuk-connect/tag@1.0.0(aws-cdk-lib@2.268.0(constructs@10.6.0))(constructs@10.6.0)':
+    dependencies:
+      aws-cdk-lib: 2.268.0(constructs@10.6.0)
+      constructs: 10.6.0
 
   '@humanfs/core@0.19.1': {}
 

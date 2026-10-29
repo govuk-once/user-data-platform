@@ -13,7 +13,7 @@ import {
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
-import { GovUKTag } from '../../cdk/lib/gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 import { Macie } from 'cdk/lib/macie';
 
 // App
