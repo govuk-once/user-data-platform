@@ -13,13 +13,14 @@ import { Construct } from 'constructs';
 
 import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Checkov } from 'cdk/lib/checkov/checkov';
+import { GovUKTag } from '@govuk-connect/tag';
 
-export type ConsumerReconcilerMode = 'dry-run' | 'apply';
+export type Mode = 'dry-run' | 'apply';
 
-export interface ConsumerReconcilerConstructProps {
+export interface ConstructProps {
   readonly developerId?: string;
   readonly environment: string;
-  readonly mode: ConsumerReconcilerMode;
+  readonly mode: Mode;
   readonly api: apigateway.RestApi;
   /**
    * Passed as a literal rather than read from `api.deploymentStage`: the
@@ -41,17 +42,13 @@ export interface ConsumerReconcilerConstructProps {
 /**
  * Provisions external API consumers from SSM at runtime, so onboarding or
  * changing a consumer in the params repo does not need a deploy of this repo.
- * See src/consumerReconcilerLambda/handler.ts and docs/external-consumers.md.
+ * See src/Lambda/handler.ts and docs/external-consumers.md.
  */
-export class ConsumerReconcilerConstruct extends Construct {
+export class Construct extends Construct {
   public readonly function: lambda.Function;
   public readonly permissionsBoundary: iam.ManagedPolicy;
 
-  constructor(
-    scope: Construct,
-    id: string,
-    props: ConsumerReconcilerConstructProps,
-  ) {
+  constructor(scope: Construct, id: string, props: ConstructProps) {
     super(scope, id);
 
     const {
@@ -124,7 +121,7 @@ export class ConsumerReconcilerConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(
-        path.resolve(process.cwd(), '..', 'build', 'consumerReconcilerLambda'),
+        path.resolve(process.cwd(), '..', 'build', 'Lambda'),
       ),
       timeout: Duration.minutes(5),
       memorySize: 256,
@@ -158,6 +155,17 @@ export class ConsumerReconcilerConstruct extends Construct {
     });
     Checkov.suppress(this.function, 'CKV_AWS_117');
 
+    GovUKTag.of(logGroup).DataClassification.OFFICIAL_SENSITIVE().PII.FALSE();
+    GovUKTag.of(deadLetterQueue)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
+    GovUKTag.of(this.function)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
+    GovUKTag.of(this.function.role!).DataClassification.OFFICIAL_SENSITIVE();
+
     this.grantPermissions({
       paramPath,
       consumerRoleArns,
@@ -169,7 +177,7 @@ export class ConsumerReconcilerConstruct extends Construct {
       account,
     });
 
-    new events.Rule(this, 'ParamChangeRule', {
+    const paramChangeRule = new events.Rule(this, 'ParamChangeRule', {
       ruleName: `${functionName}-param-change`,
       description: `Reconcile external consumers when ${paramPath}/* changes`,
       eventPattern: {
@@ -187,6 +195,10 @@ export class ConsumerReconcilerConstruct extends Construct {
         }),
       ],
     });
+
+    GovUKTag.of(paramChangeRule)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE();
 
     // Runs on every deploy (RELEASE_VERSION changes the function each release).
     //
