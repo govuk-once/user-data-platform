@@ -269,6 +269,11 @@ export class MainStack extends Stack {
           },
         },
       );
+
+      GovUKTag.of(this.consumerReconciler)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.FALSE()
+        .Exposure.INTERNAL();
     }
 
     this.waf = new WafConstruct(this, 'waf', {
