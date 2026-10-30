@@ -64,8 +64,13 @@ if [ "$DEBUG_SYNTH" = true ]; then
   exit $?
 fi
 
+EXTRA_CONTEXT=""
+if [ "${SKIP_MONITORING_STACK:-false}" = "true" ]; then
+  EXTRA_CONTEXT="-c skipMonitoringStack=true"
+fi
+
 if ! CDK_DEBUG=true CDK_DEFAULT_REGION=eu-west-2 \
-  ../node_modules/.bin/cdk synth --quiet "$@" > /tmp/cdk-synth.log 2>&1; then
+  ../node_modules/.bin/cdk synth --quiet "$@" $EXTRA_CONTEXT > /tmp/cdk-synth.log 2>&1; then
   echo -e "${RED}[synth]${NC} cdk synth failed:"
   cat /tmp/cdk-synth.log
   exit 1

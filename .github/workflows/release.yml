@@ -50,6 +50,18 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
+  deploy-monitoring-dev:
+    name: Deploy monitoring to dev
+    needs: [deploy-dev]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      deploy-script: cdk:deploy:monitoring:dev
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
   e2e-dev:
     name: E2E tests on dev
     needs: deploy-dev
@@ -85,6 +97,17 @@ jobs:
       deploy-script: cdk:deploy:stag
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+  deploy-monitoring-staging:
+    name: Deploy monitoring to staging
+    needs: [deploy-staging]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: stag
+      deploy-script: cdk:deploy:monitoring:stag
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
@@ -128,10 +151,21 @@ jobs:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
+  deploy-monitoring-prod:
+    name: Deploy monitoring to production
+    needs: [deploy-prod]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: prod
+      deploy-script: cdk:deploy:monitoring:prod
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
   send-release-notification:
     if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
     name: Send Release Notification
-    needs: [version, deploy-prod]
+    needs: [version, deploy-monitoring-prod]
     uses: ./.github/workflows/slack-release-notification.yml
     with:
       version: ${{ needs.version.outputs.version }}

@@ -1,4 +1,12 @@
-import { Aws, CfnOutput, Duration, Fn, Stack, StackProps } from 'aws-cdk-lib';
+import {
+  Aws,
+  CfnOutput,
+  Duration,
+  Fn,
+  Stack,
+  StackProps,
+  Tags,
+} from 'aws-cdk-lib';
 import { CfnCluster } from 'aws-cdk-lib/aws-dsql';
 import {
   FilterCriteria,
@@ -166,6 +174,8 @@ export class LiveSchemaStack extends Stack {
 
     const schemaExtractor = schemaExtractorConstruct.function;
 
+    Tags.of(schemaExtractor).add('Monitor', 'true');
+
     this.setupMigration(
       stackPrefix,
       dsqlEndpoint,
@@ -255,6 +265,8 @@ export class LiveSchemaStack extends Stack {
       .DataClassification.OFFICIAL_SENSITIVE()
       .PII.TRUE()
       .Exposure.INTERNAL();
+
+    Tags.of(migration).add('Monitor', 'true');
 
     this.grantDsql(migration.function, 'dsql:DbConnectAdmin');
 
