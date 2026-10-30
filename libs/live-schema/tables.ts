@@ -1,5 +1,5 @@
 export const LIVE_SCHEMAS_TABLE = 'live_schemas';
-export const LIVE_USER_SCHEMAS_TABLE = 'live_user_scheams';
+export const LIVE_USER_SCHEMAS_TABLE = 'live_user_schemas';
 
 export const SCHEMA_EXTRACTOR_DB_ROLE = 'live_schema_extractor';
 
@@ -30,5 +30,10 @@ export const DB_ROLE_GRANTS: DbRoleGrant[] = [
     role: SCHEMA_EXTRACTOR_DB_ROLE,
     table: LIVE_SCHEMAS_TABLE,
     privileges: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  },
+  {
+    role: SCHEMA_EXTRACTOR_DB_ROLE,
+    table: LIVE_USER_SCHEMAS_TABLE,
+    privileges: ['SELECT', 'INSERT', 'UPDATE'],
   },
 ];

@@ -10,7 +10,7 @@ import { IQueue, Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { GovUkOnceEnvironments } from '../macie';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { IKey, Key } from 'aws-cdk-lib/aws-kms';
+import { IKey, Key, KeySpec, KeyUsage } from 'aws-cdk-lib/aws-kms';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import {
   InterfaceVpcEndpoint,
@@ -34,6 +34,7 @@ import { SqsDlq } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { GovUKTag } from '@govuk-connect/tag';
 import { Trigger } from 'aws-cdk-lib/triggers';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Checkov } from '../checkov/checkov';
 
 const DSQL_PORT = 5432;
 
@@ -129,6 +130,17 @@ export class LiveSchemaStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     };
 
+    const userIdHmacKey = new Key(this, 'UserIdHmacKey', {
+      description: `${namePrefix}live-user-id-hmac-${environment} udpUserId key`,
+      keySpec: KeySpec.HMAC_256,
+      keyUsage: KeyUsage.GENERATE_VERIFY_MAC,
+      alias: `${namePrefix}live-user-id-hmac-${environment}`,
+      removalPolicy: getRemovalPolicy(environment),
+    });
+
+    GovUKTag.of(userIdHmacKey).DataClassification.OFFICIAL_SENSITIVE();
+    Checkov.suppressKmsKeyRotation(userIdHmacKey);
+
     const schemaExtractorConstruct = new LambdaApiConstruct(
       this,
       'LiveSchemaExtractor',
@@ -142,6 +154,7 @@ export class LiveSchemaStack extends Stack {
           ...this.lambdaEnv(stackPrefix, 'liveSchemaExtractor'),
           DATA_TABLE_NAME: dataTable.tableName,
           DYNAMO_ENDPOINT: resolve(params.dynamoDbEndpointUrl),
+          USER_ID_HMAC_KEY_ID: userIdHmacKey.keyArn,
         },
       },
     );
@@ -160,6 +173,7 @@ export class LiveSchemaStack extends Stack {
     );
 
     this.grantDsql(schemaExtractor, 'dsql:DbConnect');
+    userIdHmacKey.grant(schemaExtractor, 'kms:GenerateMac');
 
     this.failureQueue = new Queue(this, 'StreamFailurQueue', {
       queueName: `${namePrefix}live-schema-stream-failures-${environment}`,
