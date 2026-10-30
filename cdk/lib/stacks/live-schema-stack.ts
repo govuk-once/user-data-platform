@@ -222,6 +222,9 @@ export class LiveSchemaStack extends Stack {
     this.schemaExtractorLambda = schemaExtractor;
     this.lambdas = [schemaExtractor];
 
+    /// Temporary retain export while downstream stacks remove their imports.
+    this.exportValue(schemaExtractor.functionName);
+
     new CfnOutput(this, 'DsqlClusterEndpoint', {
       value: this.cluster.attrEndpoint,
       description: 'Aurora DSQL cluster endpoint for live schmeas',
