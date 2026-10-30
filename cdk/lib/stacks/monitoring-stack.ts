@@ -21,7 +21,7 @@ export interface MonitorStackProps extends StackProps {
   readonly environment: string;
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
-  readonly consumerReconciler: lambda.IFunction;
+  readonly consumerReconciler?: lambda.IFunction;
 }
 
 const mapEnvironments = {
