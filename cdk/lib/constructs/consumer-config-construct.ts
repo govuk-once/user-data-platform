@@ -1,12 +1,12 @@
-import { CfnOutput, SecretValue } from 'aws-cdk-lib';
+import { CfnOutput, RemovalPolicy, SecretValue } from 'aws-cdk-lib';
 import {
   AccountPrincipal,
   Effect,
   PolicyStatement,
   Role,
 } from 'aws-cdk-lib/aws-iam';
-import { Key } from 'aws-cdk-lib/aws-kms';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Alias, Key } from 'aws-cdk-lib/aws-kms';
+import { ResourcePolicy, Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { GovUKTag } from '@govuk-connect/tag';
 
@@ -28,6 +28,8 @@ export interface ConsumerConfigProps {
   readonly externalConsumers: Record<string, ExternalConsumerConfig>;
   readonly apiUrl: string;
   readonly apiKeyValues?: Map<string, string>;
+
+  readonly retainOnRemoval?: boolean;
 }
 
 export class ConsumerConfigConstruct extends Construct {
@@ -45,6 +47,7 @@ export class ConsumerConfigConstruct extends Construct {
       externalConsumers,
       apiUrl,
       apiKeyValues,
+      retainOnRemoval = false,
     } = props;
 
     const secretPathPrefix = developerId
@@ -56,6 +59,13 @@ export class ConsumerConfigConstruct extends Construct {
       enableKeyRotation: true,
     });
     GovUKTag.of(key).DataClassification.OFFICIAL_SENSITIVE();
+
+    if (retainOnRemoval) {
+      key.applyRemovalPolicy(RemovalPolicy.RETAIN);
+      (key.node.tryFindChild('Alias') as Alias | undefined)?.applyRemovalPolicy(
+        RemovalPolicy.RETAIN,
+      );
+    }
 
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
@@ -111,6 +121,13 @@ export class ConsumerConfigConstruct extends Construct {
           resources: ['*'],
         }),
       );
+
+      if (retainOnRemoval) {
+        secret.applyRemovalPolicy(RemovalPolicy.RETAIN);
+        (
+          secret.node.tryFindChild('Policy') as ResourcePolicy | undefined
+        )?.applyRemovalPolicy(RemovalPolicy.RETAIN);
+      }
 
       this.consumerSecrets.set(consumerName, secret);
 

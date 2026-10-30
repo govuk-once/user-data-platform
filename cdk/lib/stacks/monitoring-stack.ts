@@ -21,6 +21,7 @@ export interface MonitorStackProps extends StackProps {
   readonly environment: string;
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
+  readonly consumerReconciler?: lambda.IFunction;
 }
 
 const mapEnvironments = {
@@ -44,6 +45,7 @@ export class MonitoringStack extends Stack {
       environment,
       notificationEmails = [],
       stackPrefix,
+      consumerReconciler,
     } = props;
 
     const inventory = this.loadMonitoringInventory();
@@ -179,6 +181,22 @@ export class MonitoringStack extends Stack {
       this.createLambdaAlarms(fn);
     });
     this.addLambdaWidgets(lambdas);
+
+    if (consumerReconciler) {
+      new cloudwatch.Alarm(this, 'ConsumerReconcilerErrors', {
+        alarmName: `${resourcePrefix}-consumer-reconcailer-errors`,
+        alarmDescription:
+          'Consumer reconciler failed: an external consumer changed in params repo has not been applied',
+        metric: consumerReconciler.metricErrors({
+          period: Duration.minutes(5),
+        }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }).addAlarmAction({
+        bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
+      });
+    }
 
     this.performanceDashboard = this.createPerformanceDashboard(
       resourcePrefix,
