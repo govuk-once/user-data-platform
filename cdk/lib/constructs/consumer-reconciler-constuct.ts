@@ -15,12 +15,12 @@ import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Checkov } from 'cdk/lib/checkov/checkov';
 import { GovUKTag } from '@govuk-connect/tag';
 
-export type Mode = 'dry-run' | 'apply';
+export type ConsumerReconcilerMode = 'dry-run' | 'apply';
 
-export interface ConstructProps {
+export interface ConsumerReconcilerConstructProps {
   readonly developerId?: string;
   readonly environment: string;
-  readonly mode: Mode;
+  readonly mode: ConsumerReconcilerMode;
   readonly api: apigateway.RestApi;
   /**
    * Passed as a literal rather than read from `api.deploymentStage`: the
@@ -44,11 +44,15 @@ export interface ConstructProps {
  * changing a consumer in the params repo does not need a deploy of this repo.
  * See src/Lambda/handler.ts and docs/external-consumers.md.
  */
-export class Construct extends Construct {
+export class ConsumerReconcilerConstruct extends Construct {
   public readonly function: lambda.Function;
   public readonly permissionsBoundary: iam.ManagedPolicy;
 
-  constructor(scope: Construct, id: string, props: ConstructProps) {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: ConsumerReconcilerConstructProps,
+  ) {
     super(scope, id);
 
     const {

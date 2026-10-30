@@ -6,7 +6,7 @@ import {
   Role,
 } from 'aws-cdk-lib/aws-iam';
 import { Alias, Key } from 'aws-cdk-lib/aws-kms';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { ResourcePolicy, Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { GovUKTag } from '@govuk-connect/tag';
 
@@ -62,8 +62,8 @@ export class ConsumerConfigConstruct extends Construct {
 
     if (retainOnRemoval) {
       key.applyRemovalPolicy(RemovalPolicy.RETAIN);
-      (key.node.tryFindChild('Alias') as Alias).applyRemovalPolicy(
-        getRemovalPolicy.RETAIN,
+      (key.node.tryFindChild('Alias') as Alias | undefined)?.applyRemovalPolicy(
+        RemovalPolicy.RETAIN,
       );
     }
 
@@ -125,8 +125,8 @@ export class ConsumerConfigConstruct extends Construct {
       if (retainOnRemoval) {
         secret.applyRemovalPolicy(RemovalPolicy.RETAIN);
         (
-          secret.node.tryFindChild('Policy') as RemovalPolicy
-        ).applyRemovalPolicy(RemovalPolicy.RETAIN);
+          secret.node.tryFindChild('Policy') as ResourcePolicy | undefined
+        )?.applyRemovalPolicy(RemovalPolicy.RETAIN);
       }
 
       this.consumerSecrets.set(consumerName, secret);
