@@ -125,7 +125,7 @@ export class ConsumerReconcilerConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(
-        path.resolve(process.cwd(), '..', 'build', 'Lambda'),
+        path.resolve(process.cwd(), '..', 'build', 'consumerReconcilerLambda'),
       ),
       timeout: Duration.minutes(5),
       memorySize: 256,
