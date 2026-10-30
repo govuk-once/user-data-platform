@@ -21,6 +21,7 @@ export interface MonitorStackProps extends StackProps {
   readonly environment: string;
   readonly notificationEmails?: string[];
   readonly stackPrefix: string;
+  readonly consumerReconciler: lambda.IFunction;
 }
 
 const mapEnvironments = {
@@ -44,6 +45,7 @@ export class MonitoringStack extends Stack {
       environment,
       notificationEmails = [],
       stackPrefix,
+      consumerReconciler,
     } = props;
 
     const inventory = this.loadMonitoringInventory();
