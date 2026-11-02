@@ -36,35 +36,4 @@ jobs:
           "$HOME/.local/bin/oasdiff" --version
 
       - name: Check for breaking changes
-        run: |
-          if ! git show origin/main:docs/openapi.yml > /tmp/openapi-latest.yml 2>/dev/null; then
-            echo "No docs/openapi.yml found on main, skipping check."
-            exit 0
-          fi
-
-          BREAKING=$(oasdiff breaking /tmp/openapi-latest.yml docs/openapi.yml --format json || true)
-
-          if [ -z "$BREAKING" ]; then
-            echo "✅ No breaking changes detected."
-            exit 0
-          fi
-
-          ERRORS=$(echo "$BREAKING" | jq '[.[] | select(.level >= 3)]')
-          COUNT=$(echo "$ERRORS" | jq 'length')
-
-          if [ "$COUNT" -eq 0 ]; then
-            echo "✅ No breaking changes detected."
-            exit 0
-          fi
-
-          echo "Breaking changes found:"
-          echo "$ERRORS" | jq -r \
-            '.[] | "  - `\(.id)`\(if .operation then " (\(.operation)\(if .path then " \(.path)" else "" end))" else "" end): \(.text)"'
-
-          if [ "$OVERRIDE" = "true" ]; then
-            echo ""
-            echo "⚠️ Breaking changes were accepted via the 'breaking-change-accepted' label."
-            exit 0
-          fi
-
-          exit 1
+        run: bash scripts/check-openapi-breaking.sh
