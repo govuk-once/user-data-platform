@@ -389,7 +389,6 @@ paths:
                   example: flex
               required:
                 - appId
-                - expiresAt
       responses:
         '200':
           description: OK

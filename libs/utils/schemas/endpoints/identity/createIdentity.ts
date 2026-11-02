@@ -15,7 +15,7 @@ export const createIdentityRequestSchema = z.object({
     description: 'The Users Identifier for the GOVUK App',
     example: '8538bc99-3596-4eb3-8101-263e70519315',
   }),
-  expiresAt: z.number().int().gt(getCurrentTime).openapi({
+  expiresAt: z.number().int().gt(getCurrentTime).optional().openapi({
     description:
       'The expiry time for the identity in EPOCH Timestamp no milliseconds, must be future dated',
     example: 1738671000,
