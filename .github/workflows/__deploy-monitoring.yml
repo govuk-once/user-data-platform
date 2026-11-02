@@ -8,6 +8,10 @@ on:
         required: false
         type: string
         default: ''
+      stack-prefix:
+        description: 'CFN stack prefix (e.g. dev, stag, pr-123-dev)'
+        required: true
+        type: string
       deploy-script:
         description: 'package.json script that builds and deploys the environment'
         required: true
@@ -41,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     concurrency:
-      group: deploy-monitoring-${{ inputs.developer-id }}-${{ inputs.environment }}
+      group: deploy-monitoring-${{ inputs.developer-id }}-${{ inputs.stack-prefix }}
       cancel-in-progress: false
 
     steps:
@@ -70,7 +74,7 @@ jobs:
 
       - name: Discover monitored resources
         env:
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.stack-prefix }}
           AWS_REGION: ${{ inputs.aws-region }}
           DEVELOPER_ID: ${{ inputs.developer-id }}
           AWS_ACCESS_KEY_ID: ${{ steps.aws-creds.outputs.aws-access-key-id }}
@@ -81,7 +85,7 @@ jobs:
       - name: Set Monitoring Stack Name and SSM Param
         env:
           DEVELOPER_ID: ${{ inputs.developer-id }}
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.stack-prefix }}
         run: |
           if [ -n "$DEVELOPER_ID" ]; then
             STACK_NAME="${DEVELOPER_ID}-${ENVIRONMENT}-monitoring"
@@ -89,12 +93,12 @@ jobs:
             STACK_NAME="${ENVIRONMENT}-monitoring"
           fi
           echo "STACK_NAME=$STACK_NAME" >> "$GITHUB_ENV"
-          echo "SSM_PARAM=/upd/${STACK_NAME}/template-hash" >> "$GITHUB_ENV"
+          echo "SSM_PARAM=/udp/${STACK_NAME}/template-hash" >> "$GITHUB_ENV"
 
       - name: Synthesize Monitoring Stack
         env:
           DEVELOPER_ID: ${{ inputs.developer-id }}
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.stack-prefix }}
         run: |
           rm -rf cdk/cdk.out
           (cd cdk && npx cdk synth "${STACK_NAME}" -c env="${ENVIRONMENT}" -c skipMainStack=true --quiet)
