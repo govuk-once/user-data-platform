@@ -234,7 +234,6 @@ paths:
                 required:
                   - serviceId
                   - serviceName
-                  - accessToken
         '400':
           description: Bad Request
           content:
@@ -390,6 +389,7 @@ paths:
                   example: flex
               required:
                 - appId
+                - expiresAt
       responses:
         '200':
           description: OK
@@ -523,7 +523,6 @@ paths:
                 required:
                   - serviceId
                   - serviceName
-                  - accessToken
         '400':
           description: Bad Request
           content:

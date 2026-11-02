@@ -17,7 +17,7 @@ export const readIdentityResponseSchema = z.object({
     description: 'The service name for the identity record',
     example: 'DVLA',
   }),
-  accessToken: z.string().openapi({
+  accessToken: z.string().optional().openapi({
     description: 'The access token for the service from one login',
     example: 'flex',
   }),
