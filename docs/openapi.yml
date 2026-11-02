@@ -231,6 +231,10 @@ paths:
                     type: string
                     description: The idToken for the service from one login
                     example: flex
+                  createdAt:
+                    type: integer
+                    description: The EPOCH timestamp (seconds) when the identity record was created
+                    example: 1738671000
                 required:
                   - serviceId
                   - serviceName
@@ -519,6 +523,10 @@ paths:
                     type: string
                     description: The idToken for the service from one login
                     example: flex
+                  createdAt:
+                    type: integer
+                    description: The EPOCH timestamp (seconds) when the identity record was created
+                    example: 1738671000
                 required:
                   - serviceId
                   - serviceName
