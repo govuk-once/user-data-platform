@@ -44,10 +44,37 @@ import {
   patchDataRequestSchema,
   patchDataResponseSchema,
 } from '../endpoints/data/patchData';
+import { healthCheckResponseSchema } from '../endpoints/health/healthCheck';
 
 export * from './types';
 
 export const routes: Record<string, RouteConfig> = {
+  healthCheck: {
+    name: 'healthCheck',
+    dynamoDbActions: ['dynamodb:DescribeTable'],
+    identityTableActions: ['dynamodb:DescribeTable'],
+    authorizationScopes: [],
+    method: 'GET',
+    path: '/v1/_health',
+    summary: 'Health Check',
+    description:
+      'Returns the health status of the service and DynamoDB connectivity',
+    tags: ['health'],
+    successResponses: [
+      {
+        status: 200,
+        description: 'OK',
+        schema: healthCheckResponseSchema,
+      },
+    ],
+    errorResponses: [
+      {
+        status: 500,
+        description: 'Internal Server Error',
+        schema: internalServerErrorResponseSchema,
+      },
+    ],
+  },
   createUser: {
     name: 'createUser',
     dynamoDbActions: [
