@@ -234,6 +234,7 @@ paths:
                 required:
                   - serviceId
                   - serviceName
+                  - accessToken
         '400':
           description: Bad Request
           content:
@@ -522,6 +523,7 @@ paths:
                 required:
                   - serviceId
                   - serviceName
+                  - accessToken
         '400':
           description: Bad Request
           content:
