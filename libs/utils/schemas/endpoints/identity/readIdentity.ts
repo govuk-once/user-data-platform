@@ -29,11 +29,6 @@ export const readIdentityResponseSchema = z.object({
     description: 'The idToken for the service from one login',
     example: 'flex',
   }),
-  createdAt: z.number().int().optional().openapi({
-    description:
-      'The EPOCH timestamp (seconds) when the identity record was created',
-    example: 1738671000,
-  }),
 });
 
 export type ReadIdentityResponse = z.infer<typeof readIdentityResponseSchema>;
