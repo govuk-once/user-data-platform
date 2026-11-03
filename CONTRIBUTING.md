@@ -98,6 +98,12 @@ Your commits are validated locally by a git hook. If your commit message doesn't
 
 All commits in a pull request are validated during CI. At least one commit must follow the conventional commit format for the PR to pass.
 
+### OpenAPI Breaking Change Check
+
+Every PR runs an automated check that diffs `docs/openapi.yml` against `main` using `oasdiff`. The check fails if any breaking changes are detected (e.g. removing a required field, making a request property required).
+
+If the breaking change is intentional, apply the `breaking-change-accepted` label to the PR. This re-triggers the workflow and allows it to pass, with the breaking changes still logged for visibility.
+
 ## How Versioning Works
 
 Based on your commit messages, the version is automatically bumped:
