@@ -831,7 +831,8 @@ export class MonitoringStack extends Stack {
     );
 
     if (!fs.existsSync(inventoryPath)) {
-      throw new Error(`Monitoring inventory not found: ${inventoryPath}`);
+      // Add failback to resolve the inventory is not generated during cdk destroy
+      return { lambdaNames: [], tableNames: [] };
     }
 
     return JSON.parse(
