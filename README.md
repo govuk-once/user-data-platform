@@ -254,6 +254,12 @@ if you would like to run and see them locally you can generate and serve them wi
 
 ``pnpm openapi`
 
+#### OpenAPI Breaking Change Check
+
+Every PR automatically checks `docs/openapi.yml` for breaking changes against `main` (e.g. removing a required field, making a request property required). The PR is blocked if any are found.
+
+To accept an intentional breaking change, apply the `breaking-change-accepted` label to the PR — the check will re-run and pass, with the changes logged for visibility. See [CONTRIBUTING.md](CONTRIBUTING.md) for more detail.
+
 ### Connecting from an External Account
 
 External consumers authenticate using **IAM (SigV4)** and call the API Gateway endpoint directly. There are no Cognito or OAuth credentials involved — access is controlled via cross-account IAM roles.
