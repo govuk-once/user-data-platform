@@ -3,7 +3,7 @@ import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { getRemovalPolicy } from 'cdk/constants/environment';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface RateLimitingConfig {
   readonly enabled?: boolean;

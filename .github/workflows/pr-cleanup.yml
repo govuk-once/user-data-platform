@@ -23,9 +23,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Node & pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
       - name: Configure AWS credentials
         id: aws-creds
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
@@ -33,6 +30,11 @@ jobs:
           role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
           output-credentials: true
+
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Destroy CDK stacks
         env:

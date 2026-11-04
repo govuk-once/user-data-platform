@@ -33,6 +33,8 @@ jobs:
     secrets:
       SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
       SONAR_URL: ${{ secrets.SONAR_URL }}
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-dev:
     name: Deploy to dev
@@ -47,6 +49,20 @@ jobs:
       prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+  deploy-monitoring-dev:
+    name: Deploy monitoring to dev
+    needs: [deploy-dev]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      stack-prefix: dev
+      deploy-script: cdk:deploy:monitoring:dev
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   e2e-dev:
     name: E2E tests on dev
@@ -58,6 +74,7 @@ jobs:
       source-path: ${{ needs.deploy-dev.outputs.source-path }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test-dev:
     name: 'Performance Tests'
@@ -70,6 +87,7 @@ jobs:
       perf-target: 'smoke'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-staging:
     name: Deploy to staging
@@ -83,6 +101,19 @@ jobs:
       prerelease-tag: rc
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+  deploy-monitoring-staging:
+    name: Deploy monitoring to staging
+    needs: [deploy-staging]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: staging
+      stack-prefix: stag
+      deploy-script: cdk:deploy:monitoring:stag
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   e2e-staging:
     name: E2E tests on staging
@@ -94,6 +125,7 @@ jobs:
       source-path: ${{ needs.deploy-staging.outputs.source-path }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test-staging:
     name: 'Performance Tests'
@@ -106,6 +138,7 @@ jobs:
       perf-target: 'baseline'
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   deploy-prod:
     name: Deploy to production
@@ -119,6 +152,19 @@ jobs:
       expose-outputs: false
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+  deploy-monitoring-prod:
+    name: Deploy monitoring to production
+    needs: [deploy-prod]
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: production
+      stack-prefix: prod
+      deploy-script: cdk:deploy:monitoring:prod
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   send-release-notification:
     name: Notify Production Release Slack channel

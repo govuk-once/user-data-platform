@@ -1,12 +1,12 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IRole } from 'aws-cdk-lib/aws-iam';
-import { ITopic } from 'aws-cdk-lib/aws-sns';
+import * as sns from 'aws-cdk-lib/aws-sns';
 import { CodeBuildPerfConstruct } from '../constructs/codebuild-perf-construct';
 import { Construct } from 'constructs';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { SnsTopic } from 'aws-cdk-lib/aws-events-targets';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface PerfStackProps extends StackProps {
   readonly developerId?: string;
@@ -18,7 +18,6 @@ export interface PerfStackProps extends StackProps {
   readonly e2eTestConsumerRole?: IRole;
   readonly e2eTestConsumerApiKeyValue?: string;
   readonly sourceBucketName: string;
-  readonly warningTopic: ITopic;
   readonly identityTableName: string;
   readonly dataTableName: string;
 }
@@ -39,7 +38,6 @@ export class PerfStack extends Stack {
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,
       sourceBucketName,
-      warningTopic,
       identityTableName,
       dataTableName,
     } = props;
@@ -62,6 +60,12 @@ export class PerfStack extends Stack {
       identityTableName,
       dataTableName,
     });
+
+    const warningTopic = sns.Topic.fromTopicArn(
+      this,
+      'WarningTopic',
+      `arn:aws:sns:${this.region}:${this.account}:${resourcePrefix}-warning-alarms`,
+    );
 
     const perfTestFailureRule = new Rule(this, `PerfTestFailureRule`, {
       ruleName: `${resourcePrefix}-perf-test-failure`,

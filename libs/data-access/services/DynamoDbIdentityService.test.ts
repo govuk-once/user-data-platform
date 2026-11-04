@@ -13,6 +13,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { ServiceFactory } from '../factory/ServiceFactory';
 import {
   BaseUDPError,
@@ -624,6 +625,43 @@ describe('Identity Service', () => {
       await expect(
         service.getAllLinkedServices(serviceName, serviceId),
       ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('checkHealth', () => {
+    it('should return true when table status is ACTIVE', async () => {
+      dynamoMock.on(DescribeTableCommand).resolves({
+        Table: { TableStatus: 'ACTIVE' },
+      });
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(true);
+      expect(
+        dynamoMock.commandCalls(DescribeTableCommand)[0].args[0].input,
+      ).toEqual({
+        TableName: identityTableName,
+      });
+    });
+
+    it('should return false when table status is not ACTIVE', async () => {
+      dynamoMock.on(DescribeTableCommand).resolves({
+        Table: { TableStatus: 'UPDATING' },
+      });
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when DescribeTableCommand throws an error', async () => {
+      dynamoMock
+        .on(DescribeTableCommand)
+        .rejects(new Error('ResourceNotFoundException'));
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(false);
     });
   });
 });

@@ -12,6 +12,7 @@ export type {
 export { DynamoDbDataService } from './services/DynamoDbDataService';
 export { DynamoDBIdentityService } from './services/DynamoDbIdentityService';
 export { SarService } from './services/SarService';
+export { EncryptionService } from './services/EncryptionService';
 
 // Factories
 export * from './factory/ServiceFactory';

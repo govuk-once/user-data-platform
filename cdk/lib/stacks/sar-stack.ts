@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IKey } from 'aws-cdk-lib/aws-kms';
@@ -12,7 +12,7 @@ import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
 import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -285,6 +285,11 @@ export class SarStack extends Stack {
 
     this.lambdas.push(generateSarPresignedUrlLambda.function);
 
+    for (const fn of this.lambdas) {
+      Tags.of(fn).add('Monitor', 'true');
+      /// Temporary Retain export while downstream stacks remove their imports.
+      this.exportValue(fn.functionName);
+    }
     GovUKTag.buriedOf(this, `${environment}-sar/BucketNotificationsHandler`)
       .DataClassification.OFFICIAL()
       .PII.TRUE()

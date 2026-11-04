@@ -23,7 +23,7 @@ import {
   getRemovalPolicy,
 } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface CodeBuildPerfConstructProps {
   readonly developerId?: string;

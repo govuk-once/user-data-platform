@@ -25,3 +25,4 @@ checkov-results.xml
 
 # CDK
 cdk.out/
+cdk/.generated/

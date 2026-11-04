@@ -8,7 +8,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cr from 'aws-cdk-lib/custom-resources';
 
 import { MacieAccess } from './macie-access';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 const cache = new Map<string, boolean>();
 

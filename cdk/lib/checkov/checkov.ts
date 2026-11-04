@@ -5,6 +5,8 @@ import { RestApi } from 'aws-cdk-lib/aws-apigateway';
 
 export class Checkov {
   private static readonly COMMENTS: Record<string, string> = {
+    CKV_AWS_7: `HMAC Key - KMS Support for automatic rotation for symmetric encryption keys only`,
+    CUSTOM_KMS_001: `HMAC Key - KMS Support for automatic rotation for symmetric encryption keys only`,
     CKV_AWS_18: 'Access logging not required for this bucket',
     CKV_AWS_21: 'Versioning not required for this bucket',
     CKV_AWS_111:
@@ -136,6 +138,14 @@ export class Checkov {
     }
 
     Checkov.suppress(scope, 'CKV_AWS_117');
+  }
+
+  static suppressKmsKeyRotation(scope: IConstruct, disabled = false): void {
+    if (disabled) {
+      return;
+    }
+
+    Checkov.suppress(scope, ['CKV_AWS_7', 'CUSTOM_KMS_001']);
   }
 
   /** CKV_AWS_120 — API Gateway stage does not have caching enabled.

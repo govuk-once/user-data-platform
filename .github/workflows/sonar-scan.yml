@@ -7,6 +7,14 @@ on:
         required: true
       SONAR_URL:
         required: true
+      DEPLOYMENT_ROLE:
+        required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   sonar:
@@ -18,8 +26,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          aws-region: eu-west-2
+
       - name: Setup Node & pnpm
         uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       - name: Run tests
         run: pnpm test:all

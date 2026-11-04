@@ -118,16 +118,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Node & pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ inputs.environment == 'staging' && secrets.STAGING_DEPLOYMENT_ROLE || secrets.PRODUCTION_DEPLOYMENT_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
       # ── DynamoDB Restores ──────────────────────────────────────────────
 

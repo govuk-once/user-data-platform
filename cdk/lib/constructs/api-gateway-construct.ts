@@ -11,7 +11,7 @@ import {
   getRemovalPolicy,
 } from 'cdk/constants/environment';
 import { Checkov } from 'cdk/lib/checkov/checkov';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;

@@ -10,7 +10,7 @@ import {
   environmentLongNames,
   getLogRetentionPeriod,
 } from 'cdk/constants/environment';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface DvlaPilotStackProps extends StackProps {
   developerId?: string;

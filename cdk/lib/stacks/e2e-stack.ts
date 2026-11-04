@@ -15,7 +15,7 @@ import {
 } from 'cdk/constants/environment';
 import { CodeBuildE2EConstruct } from '../constructs/codebuild-e2e-construct';
 import { Checkov } from 'cdk/lib/checkov/checkov';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface E2EStackProps extends StackProps {
   readonly developerId?: string;

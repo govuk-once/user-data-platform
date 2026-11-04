@@ -23,7 +23,7 @@ import { Topic } from 'aws-cdk-lib/aws-sns';
 import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface BackupStackProps extends StackProps {
   readonly developerId?: string;

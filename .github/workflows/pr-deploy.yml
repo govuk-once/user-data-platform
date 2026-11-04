@@ -26,6 +26,19 @@ jobs:
       ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+  deploy-monitoring:
+    needs: deploy
+    name: Deploy monitoring stack to PR environment
+    uses: ./.github/workflows/__deploy-monitoring.yml
+    with:
+      environment: dev
+      developer-id: pr-${{ github.event.pull_request.number }}
+      deploy-script: cdk:deploy:monitoring
+    secrets:
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   e2e-tests:
     name: Run E2E Tests
@@ -40,6 +53,7 @@ jobs:
       ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   perf-test:
     name: Performance Tests
@@ -51,3 +65,4 @@ jobs:
       perf-target: smoke
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

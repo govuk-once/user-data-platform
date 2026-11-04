@@ -22,3 +22,4 @@ jobs:
       perf-target: ${{ inputs.perf-target }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

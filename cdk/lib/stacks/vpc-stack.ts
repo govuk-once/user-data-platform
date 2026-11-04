@@ -3,7 +3,7 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
-import { GovUKTag } from '../gov-uk-tag';
+import { GovUKTag } from '@govuk-connect/tag';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 
 export interface VpcStackProps extends StackProps {
