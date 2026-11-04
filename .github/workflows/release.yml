@@ -18,13 +18,14 @@ permissions:
 
 jobs:
   version:
-    name: Version
-    uses: ./.github/workflows/version.yml
-    secrets:
-      GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_APP_ID }}
-      GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY: ${{ secrets.GH_UDPTAGRELEASE_GOVUK_ONCE_PRIVATE_KEY }}
-      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
-      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+    name: Create Release
+    uses: govuk-once/platform-shared-ci-cd/.github/workflows/semantic-release.yml@v1.1.2
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      node-version: ${{ vars.NODE_VERSION }}
 
   sonar-scan:
     name: Run SonarQube Scan
@@ -166,14 +167,17 @@ jobs:
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
 
   send-release-notification:
-    if: needs.version.outputs.type == 'major' || needs.version.outputs.type == 'minor'
-    name: Send Release Notification
-    needs: [version, deploy-monitoring-prod]
-    uses: ./.github/workflows/slack-release-notification.yml
+    name: Notify Production Release Slack channel
+    needs: [version, deploy-prod]
+    if: needs.version.outputs.released == 'true'
+    uses: govuk-once/platform-shared-ci-cd/.github/workflows/release-notification.yml@v1.1.2
+    permissions:
+      contents: read
+      id-token: write
     with:
+      application: 'UDP'
       version: ${{ needs.version.outputs.version }}
       type: ${{ needs.version.outputs.type }}
+      slack-channel: ${{ vars.SLACK_RELEASE_CHANNEL }}
     secrets:
-      DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
-      RELEASE_NOTIFICATIONS_TOPIC_ARN: ${{ secrets.RELEASE_NOTIFICATIONS_TOPIC_ARN }}
-      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+      deployment-role: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
