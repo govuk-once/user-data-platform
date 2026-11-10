@@ -100,7 +100,7 @@ const dryRun = process.env.DRY_RUN !== 'false';
 const maxTickets = 5;
 
 const jiraEnvironment = 'Staging';
-const stakeholderName = 'Ashley Toole';
+const stakeholderName = 'Richard Dunn';
 
 const stakeholderAccountIdOverride =
   process.env.JIRA_STAKEHOLDER_ACCOUNT_ID?.trim();
