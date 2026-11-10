@@ -161,6 +161,9 @@ export class MacieStack extends Stack {
         }),
       },
     );
+    // The bucket is account-scoped and shared across per environments,
+    // retain the policy so PR stacks can be destroyed without affecting other environments' Macie configurations.
+    resultsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
 
     const exportCall: cr.AwsSdkCall = {
       service: 'macie2',
