@@ -63,8 +63,7 @@ jobs:
             always() &&
             !cancelled() &&
             github.event_name == 'push' &&
-            github.ref == 'refs/heads/main' &&
-            steps.sonar_scan.outcome != 'success'
+            github.ref == 'refs/heads/main'
           }}
         env:
           SONAR_URL: ${{ secrets.SONAR_URL }}
