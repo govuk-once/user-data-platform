@@ -137,3 +137,6 @@ jobs:
       SONAR_URL: ${{ secrets.SONAR_URL }}
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+      JIRA_URL: ${{ secrets.JIRA_URL }}
+      JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
