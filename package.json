@@ -88,6 +88,7 @@
     "@aws-sdk/s3-request-presigner": "^3.993.0",
     "@aws-sdk/util-dynamodb": "^3.996.9",
     "@cucumber/cucumber": "^13.3.0",
+    "@govuk-connect/tag": "^1.0.0",
     "@middy/core": "^6.4.5",
     "@middy/http-json-body-parser": "^6.4.5",
     "@middy/http-response-serializer": "^6.4.5",
@@ -95,7 +96,6 @@
     "@smithy/signature-v4": "^5.3.8",
     "@smithy/types": "^4.14.1",
     "@types/pg": "^8.23.1",
-    "@govuk-connect/tag": "^1.0.0",
     "aws-cdk-lib": "^2.256.1",
     "aws-lambda": "^1.0.7",
     "cdk-nag": "^2.38.2",
@@ -104,9 +104,9 @@
     "dotenv": "^17.2.3",
     "pg": "^8.23.1",
     "tsx": "^4.21.0",
-    "uuid": "^14.0.0",
+    "uuid": "^14.0.3",
     "yaml": "^2.8.3",
-    "zod": "^4.2.1"
+    "zod": "^4.6.7"
   },
   "workspaces": [
     "libs/*",
