@@ -183,4 +183,4 @@ jobs:
       type: ${{ needs.version.outputs.type }}
       slack-channel: ${{ vars.SLACK_RELEASE_CHANNEL }}
     secrets:
-      deployment-role: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+      deployment-role: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
