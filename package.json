@@ -87,7 +87,7 @@
     "@aws-sdk/lib-dynamodb": "^3.1161.0",
     "@aws-sdk/s3-request-presigner": "^3.993.0",
     "@aws-sdk/util-dynamodb": "^3.996.9",
-    "@cucumber/cucumber": "^12.3.0",
+    "@cucumber/cucumber": "^13.3.0",
     "@middy/core": "^6.4.5",
     "@middy/http-json-body-parser": "^6.4.5",
     "@middy/http-response-serializer": "^6.4.5",
