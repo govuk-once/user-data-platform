@@ -12,11 +12,11 @@ on:
       CODEARTIFACT_ACCOUNT:
         required: true
       JIRA_URL:
-        required: true
+        required: false
       JIRA_EMAIL:
-        required: true
+        required: false
       JIRA_API_TOKEN:
-        required: true
+        required: false
 
 permissions:
   id-token: write
@@ -62,15 +62,9 @@ jobs:
           ${{
             always() &&
             !cancelled() &&
-            steps.sonar_scan.outcome != 'skipped' &&
-            (
-              (github.event_name == 'push' &&
-               github.ref == 'refs/heads/main') ||
-              (github.event_name == 'pull_request' &&
-               github.head_ref == 'GUOIT-203' &&
-               github.base_ref == 'main' &&
-               github.event.pull_request.head.repo.full_name == github.repository)
-            )
+            github.event_name == 'push' &&
+            github.ref == 'refs/heads/main' &&
+            steps.sonar_scan.outcome != 'skipped'
           }}
         env:
           SONAR_URL: ${{ secrets.SONAR_URL }}
@@ -78,6 +72,6 @@ jobs:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          DRY_RUN: 'true'
+          DRY_RUN: 'false'
         run: |
           pnpm exec tsx scripts/sonarToJira.ts

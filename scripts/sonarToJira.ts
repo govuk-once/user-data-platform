@@ -187,28 +187,6 @@ function calculateDueDate(
   return due.toISOString().slice(0, 10);
 }
 
-function validateExecution(): void {
-  if (process.env.GITHUB_ACTIONS !== 'true') {
-    return;
-  }
-
-  const isMainPush =
-    process.env.GITHUB_EVENT_NAME === 'push' &&
-    process.env.GITHUB_REF === 'refs/heads/main';
-
-  const isTestPr =
-    dryRun &&
-    process.env.GITHUB_EVENT_NAME === 'pull_request' &&
-    process.env.GITHUB_HEAD_REF === 'GUOIT-203' &&
-    process.env.GITHUB_BASE_REF === 'main';
-
-  if (!isMainPush && !isTestPr) {
-    throw new Error(
-      'Jira integration must run on a push to main or the GUOIT-203 dry-run PR',
-    );
-  }
-}
-
 async function sonarGet<T>(
   path: string,
   params: Record<string, string>,
@@ -789,6 +767,20 @@ async function runProduction(): Promise<void> {
   }
 
   console.log(`Created ${String(created)} Jira tickets`);
+}
+
+function validateExecution(): void {
+  if (process.env.GITHUB_ACTIONS !== 'true') {
+    return;
+  }
+
+  const isMainPush =
+    process.env.GITHUB_EVENT_NAME === 'push' &&
+    process.env.GITHUB_REF === 'refs/heads/main';
+
+  if (!isMainPush) {
+    throw new Error('Jira integration must run on a push to main');
+  }
 }
 
 async function main(): Promise<void> {
