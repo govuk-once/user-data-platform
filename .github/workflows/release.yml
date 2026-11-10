@@ -19,13 +19,16 @@ permissions:
 jobs:
   version:
     name: Create Release
-    uses: govuk-once/platform-shared-ci-cd/.github/workflows/semantic-release.yml@v1.1.2
+    uses: govuk-once/platform-shared-ci-cd/.github/workflows/semantic-release.yml@v1.1.6
     permissions:
+      id-token: write
       contents: write
       issues: write
       pull-requests: write
     with:
       node-version: ${{ vars.NODE_VERSION }}
+    secrets:
+      deployment-role: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
 
   sonar-scan:
     name: Run SonarQube Scan
@@ -170,7 +173,7 @@ jobs:
     name: Notify Production Release Slack channel
     needs: [version, deploy-prod]
     if: needs.version.outputs.released == 'true'
-    uses: govuk-once/platform-shared-ci-cd/.github/workflows/release-notification.yml@v1.1.2
+    uses: govuk-once/platform-shared-ci-cd/.github/workflows/release-notification.yml@v1.1.6
     permissions:
       contents: read
       id-token: write
