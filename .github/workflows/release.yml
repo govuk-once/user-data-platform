@@ -28,7 +28,7 @@ jobs:
     with:
       node-version: ${{ vars.NODE_VERSION }}
     secrets:
-      deployment-role: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+      deployment-role: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
 
   sonar-scan:
     name: Run SonarQube Scan
