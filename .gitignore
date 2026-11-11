@@ -26,4 +26,3 @@ checkov-results.xml
 # CDK
 cdk.out/
 cdk/.generated/
-cdk/cdk.context.json
