@@ -1,12 +1,14 @@
 import { Construct } from 'constructs';
 import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { Checkov } from '../checkov/checkov';
 
 import {
-  getLogRetentionPeriod,
+  getS3ObjectLockDefaultRetentionPeriod,
   getRemovalPolicy,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
@@ -47,6 +49,7 @@ export class VpcConstruct extends Construct {
   public stsEndpoint!: ec2.InterfaceVpcEndpoint;
   public nacl!: ec2.NetworkAcl;
   public flowLogGroup!: logs.LogGroup;
+  public flowLogBucket!: s3.Bucket;
   private readonly stack: Stack;
   private readonly environment: string;
   private readonly maxAzs: number | undefined;
@@ -95,10 +98,10 @@ export class VpcConstruct extends Construct {
     this.setupPrivateIsolatedNacl();
 
     /**
-     * CloudWatch log group for VPC flow logs with environment-scoped
-     * retention, removal policy, and KMS encryption.
+     * S3 for VPC flow logs with environment-scoped removal policy
+     * and KMS encryption.
      */
-    this.setupLogGroup();
+    this.setupLogS3Bucket();
 
     /**
      * Outputs
@@ -458,18 +461,30 @@ export class VpcConstruct extends Construct {
     });
   }
 
-  private setupLogGroup() {
-    this.flowLogGroup = new logs.LogGroup(this, 'FlowLogGroup', {
-      logGroupName: `/aws/vpc/flow-logs-${this.environment}`,
-      retention: getLogRetentionPeriod(this.environment),
+  private setupLogS3Bucket() {
+    this.flowLogBucket = new s3.Bucket(this, 'VpcFlowLogsBucket', {
+      bucketName: `udp-vpc-flow-logs-${this.environment}-${this.stack.account}`,
+      encryption: s3.BucketEncryption.KMS,
+      encryptionKey: this.kmsKey, // SSE-KMS using stack KMS key
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL, // No public access
+      enforceSSL: true,
+      versioned: true, // Required for ObjectLock
+      objectLockEnabled: true, // Immutable logs
+      objectLockDefaultRetention: getS3ObjectLockDefaultRetentionPeriod(
+        this.environment,
+      ),
       removalPolicy: getRemovalPolicy(this.environment),
-      encryptionKey: this.kmsKey,
     });
 
-    this.vpc.addFlowLog('FlowLog', {
-      destination: ec2.FlowLogDestination.toCloudWatchLogs(this.flowLogGroup),
+    this.vpc.addFlowLog('FlowLogS3', {
+      destination: ec2.FlowLogDestination.toS3(
+        this.flowLogBucket,
+        'vpc-flow-logs/',
+      ),
       trafficType: ec2.FlowLogTrafficType.ALL,
     });
+
+    Checkov.suppressAWS18(this.flowLogBucket);
   }
 
   private emitOutputs() {
