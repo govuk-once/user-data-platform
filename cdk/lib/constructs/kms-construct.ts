@@ -51,7 +51,10 @@ export class KmsConstruct extends Construct {
       new iam.PolicyStatement({
         sid: 'AllowIAMPolicies',
         effect: iam.Effect.ALLOW,
-        principals: [new iam.AccountRootPrincipal()],
+        principals: [
+          new iam.AccountRootPrincipal(),
+          new iam.ServicePrincipal('delivery.logs.amazonaws.com'),
+        ],
         actions: [
           'kms:Encrypt',
           'kms:Decrypt',
