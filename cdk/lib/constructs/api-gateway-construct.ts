@@ -180,6 +180,13 @@ export class ApiGatewayConstruct extends Construct {
       disableExecuteApiEndpoint: false,
     });
     this.api.node.addDependency(account);
+
+    new logs.LogRetention(this, 'ExecutionLogsRetention', {
+      logGroupName: `API-Gateway-Execution-Logs_${this.api.restApiId}/${environment}`,
+      retention: getLogRetentionPeriod(environment),
+      removalPolicy: getRemovalPolicy(environment),
+    });
+
     GovUKTag.of(this.api)
       .DataClassification.OFFICIAL_SENSITIVE()
       .PII.TRUE()
