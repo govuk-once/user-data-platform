@@ -372,6 +372,11 @@ export class MainStack extends Stack {
       .DataClassification.OFFICIAL()
       .PII.FALSE()
       .Exposure.ISOLATED();
+
+    GovUKTag.buriedOf(this, 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a')
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
   }
 
   private createEventQueues(
