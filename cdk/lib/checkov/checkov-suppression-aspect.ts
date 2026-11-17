@@ -74,6 +74,15 @@ export class CheckovSuppressionAspect implements IAspect {
           : [];
 
       case 'AWS::IAM::Policy':
+        if (internal) {
+          return [
+            {
+              id: 'CKV_AWS_111',
+              comment:
+                'CDK-internal provider policy — resource wildcards required for log group operations',
+            },
+          ];
+        }
         if (node.node.path.includes('CodeBuild')) {
           return [
             {
