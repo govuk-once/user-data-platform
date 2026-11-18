@@ -486,7 +486,6 @@ export class MainStack extends Stack {
       }
 
       lambdaApiConstructsList.push(lambdaConstruct);
-
       // Retain export while downstream stacks remove their imports.
       this.exportValue(lambdaConstruct.function.functionName);
     }
