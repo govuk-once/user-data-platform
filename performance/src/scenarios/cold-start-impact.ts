@@ -1,8 +1,8 @@
 import { Options } from 'k6/options';
 import { Trend } from 'k6/metrics';
-import { nfr } from '../config';
-import { createScenarioRunner } from '../helpers/scenario-runner';
-import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
+import { nfr } from '../config.js';
+import { createScenarioRunner } from '../helpers/scenario-runner.js';
+import { textSummary } from '../vendor/k6-summary-0.1.0.js';
 
 /**
  * Custom metric capturing itteration durations during inisial cold start
