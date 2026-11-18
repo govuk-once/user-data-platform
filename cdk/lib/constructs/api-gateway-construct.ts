@@ -181,10 +181,24 @@ export class ApiGatewayConstruct extends Construct {
     });
     this.api.node.addDependency(account);
 
+    const logRetentionRole = new iam.Role(this, 'ExecutionLogsRetentionRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'service-role/AWSLambdaBasicExecutionRole',
+        ),
+      ],
+    });
+    GovUKTag.of(logRetentionRole)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
+
     new logs.LogRetention(this, 'ExecutionLogsRetention', {
       logGroupName: `API-Gateway-Execution-Logs_${this.api.restApiId}/${environment}`,
       retention: getLogRetentionPeriod(environment),
       removalPolicy: getRemovalPolicy(environment),
+      role: logRetentionRole,
     });
 
     GovUKTag.of(this.api)
