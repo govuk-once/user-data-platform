@@ -83,6 +83,15 @@ export class CheckovSuppressionAspect implements IAspect {
             },
           ];
         }
+        if (node.node.path.includes('ExecutionLogsRetentionRole')) {
+          return [
+            {
+              id: 'CKV_AWS_111',
+              comment:
+                'LogRetention provider unconditionally adds wildcard resource to any supplied role — cannot be scoped further',
+            },
+          ];
+        }
         if (node.node.path.includes('CodeBuild')) {
           return [
             {
