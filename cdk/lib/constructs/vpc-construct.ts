@@ -459,6 +459,38 @@ export class VpcConstruct extends Construct {
         },
       );
     });
+
+    this.setupUnusedSubnetsDenyAllNacl();
+  }
+
+  /**
+   * The public and private-egres subnets are kept only to reserve their CIDR
+   * ranges (removing them would shift the isolated subnet CIDRs and force
+   * replacement). Nothing is deployed into them, so they are associated with
+   * a custom NACL that has no entries: only the implicit "*" DENY rules apply,
+   * blocking all ingress and egress instead of the default NACL's allow-all.
+   */
+  private setupUnusedSubnetsDenyAllNacl() {
+    const denyAllNacl = new ec2.NetworkAcl(this, 'DenyAllNacl', {
+      vpc: this.vpc,
+      networkAclName: `udp-deny-all-nacl-${this.environment}`,
+    });
+
+    this.vpc.publicSubnets.forEach((subnet, index) => {
+      new ec2.SubnetNetworkAclAssociation(
+        this,
+        `PublicSubnetDenyAllNaclAssoc${index}`,
+        { subnet, networkAcl: denyAllNacl },
+      );
+    });
+
+    this.vpc.privateSubnets.forEach((subnet, index) => {
+      new ec2.SubnetNetworkAclAssociation(
+        this,
+        `PrivateEgressSubnetDenyAllNaclAssoc${index}`,
+        { subnet, networkAcl: denyAllNacl },
+      );
+    });
   }
 
   private setupLogS3Bucket() {
