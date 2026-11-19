@@ -4,6 +4,7 @@ import { Construct, type IConstruct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as sns from 'aws-cdk-lib/aws-sns';
@@ -240,6 +241,24 @@ export class MainStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
+    const signingProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
+
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.ENFORCE,
+      },
+    );
+
     const eventQueues = this.createEventQueues(
       developerId,
       environment,
@@ -262,6 +281,7 @@ export class MainStack extends Stack {
       cachingEnabled,
       dynamoDbEndpointUrl,
       routes,
+      codeSigningConfig,
     });
     this.lambdas = this.lambdaApiConstructs.map(
       (lambdaApiConstruct) => lambdaApiConstruct.function,
@@ -422,6 +442,7 @@ export class MainStack extends Stack {
     cachingEnabled: boolean;
     dynamoDbEndpointUrl?: string;
     routes: RoutesConfig;
+    codeSigningConfig: lambda.CodeSigningConfig;
   }): LambdaApiConstruct[] {
     const {
       developerId,
@@ -438,6 +459,7 @@ export class MainStack extends Stack {
       cachingEnabled,
       dynamoDbEndpointUrl,
       routes,
+      codeSigningConfig,
     } = params;
 
     const lambdaApiConstructsList = [];
@@ -479,6 +501,7 @@ export class MainStack extends Stack {
         securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
         cachingEnabled,
         logRetentionDays: getLogRetentionPeriod(environment),
+        codeSigningConfig,
       });
 
       if (!route.disableRoute) {

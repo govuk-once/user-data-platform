@@ -40,6 +40,7 @@ export interface LambdaApiConstructProps {
   readonly checkovSuppressAWS116?: boolean;
   readonly cachingEnabled?: boolean;
   readonly disableRoute?: boolean;
+  readonly codeSigningConfig?: lambda.CodeSigningConfig;
 }
 
 interface LambdaApiConstructPropsWithDefaults extends LambdaApiConstructProps {
@@ -249,6 +250,7 @@ export class LambdaApiConstruct extends Construct {
         : undefined,
       securityGroups: vpc ? securityGroups : undefined,
       reservedConcurrentExecutions,
+      codeSigningConfig: this.props.codeSigningConfig,
     });
   }
 

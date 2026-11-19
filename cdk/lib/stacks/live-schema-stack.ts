@@ -8,12 +8,14 @@ import {
   Tags,
 } from 'aws-cdk-lib';
 import { CfnCluster } from 'aws-cdk-lib/aws-dsql';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import {
   FilterCriteria,
   FilterRule,
   IFunction,
   StartingPosition,
 } from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import { IQueue, Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { GovUkOnceEnvironments } from '../macie';
@@ -61,6 +63,7 @@ export type CommonProps = {
   vpcSubnets: SubnetSelection;
   securityGroups: SecurityGroup[];
   logRetentionDays: RetentionDays;
+  codeSigningConfig: lambda.CodeSigningConfig;
 };
 
 export class LiveSchemaStack extends Stack {
@@ -128,6 +131,24 @@ export class LiveSchemaStack extends Stack {
       ? this.createDsqlEndpoint(vpc, isolatedSubnets, environment)
       : undefined;
 
+    const signingProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
+
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.ENFORCE,
+      },
+    );
+
     this.commonLambdaProps = {
       developerId,
       environment,
@@ -136,6 +157,7 @@ export class LiveSchemaStack extends Stack {
       vpcSubnets: isolatedSubnets,
       securityGroups: [lambdaSecurityGroup],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     };
 
     const userIdHmacKey = new Key(this, 'UserIdHmacKey', {

@@ -3,6 +3,8 @@ import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IKey } from 'aws-cdk-lib/aws-kms';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import { Construct } from 'constructs';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
@@ -40,6 +42,24 @@ export class DvlaPilotStack extends Stack {
       dynamoDbEndpointUrl,
     } = props;
 
+    const signingProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
+
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.ENFORCE,
+      },
+    );
+
     const purgeKeySecret = Secret.fromSecretNameV2(
       this,
       'DvlaPilotPurgeKeySecret',
@@ -69,6 +89,7 @@ export class DvlaPilotStack extends Stack {
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
         logRetentionDays: getLogRetentionPeriod(environment),
+        codeSigningConfig,
       },
     );
     GovUKTag.of(dvlaPilotPurgeLambda)

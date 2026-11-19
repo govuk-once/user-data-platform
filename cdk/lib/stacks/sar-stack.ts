@@ -9,6 +9,8 @@ import { Function } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
 import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
@@ -57,6 +59,24 @@ export class SarStack extends Stack {
       ? `${developerId}-sar-${environment}`
       : `sar-${environment}`;
 
+    const signingProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
+
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.ENFORCE,
+      },
+    );
+
     const dsarDeleteDLQueue = new Queue(this, 'dsarDeleteDLQueue', {
       queueName: `${sarName}-delete-dl-queue`,
       encryption: QueueEncryption.KMS,
@@ -104,6 +124,7 @@ export class SarStack extends Stack {
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
     GovUKTag.of(dsarRequestLambda)
       // dsarRequestLambda/Function
@@ -146,6 +167,7 @@ export class SarStack extends Stack {
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
     GovUKTag.of(dsarDeleteLambda)
       // dsarDeleteLambda/Function
@@ -218,6 +240,7 @@ export class SarStack extends Stack {
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
     GovUKTag.of(createSarFileLambda)
       // createSarFile/Function
@@ -264,6 +287,7 @@ export class SarStack extends Stack {
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
         logRetentionDays: getLogRetentionPeriod(environment),
+        codeSigningConfig,
       },
     );
     GovUKTag.of(generateSarPresignedUrlLambda)
