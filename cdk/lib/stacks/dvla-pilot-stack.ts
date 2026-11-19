@@ -24,6 +24,7 @@ export interface DvlaPilotStackProps extends StackProps {
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   dynamoDbEndpointUrl?: string;
+  signingProfile: signer.SigningProfile;
 }
 
 export class DvlaPilotStack extends Stack {
@@ -40,15 +41,8 @@ export class DvlaPilotStack extends Stack {
       vpc,
       lambdaSecurityGroups,
       dynamoDbEndpointUrl,
+      signingProfile,
     } = props;
-
-    const signingProfile = new signer.SigningProfile(
-      this,
-      'LambdaSigningProfile',
-      {
-        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
-      },
-    );
 
     const codeSigningConfig = new lambda.CodeSigningConfig(
       this,

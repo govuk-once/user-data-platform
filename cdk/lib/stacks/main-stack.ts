@@ -63,6 +63,7 @@ export interface MainStackProps extends StackProps {
   codebuildSecurityGroup?: ec2.ISecurityGroup;
   availabilityZones?: string[];
   dynamoDbEndpointUrl?: string;
+  signingProfile: signer.SigningProfile;
 }
 
 export class MainStack extends Stack {
@@ -98,6 +99,7 @@ export class MainStack extends Stack {
       vpc,
       lambdaSecurityGroup,
       dynamoDbEndpointUrl,
+      signingProfile,
     } = props;
 
     // Filter out SAR / DSAR routes based on env !== prod
@@ -240,14 +242,6 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
       logRetentionDays: getLogRetentionPeriod(environment),
     });
-
-    const signingProfile = new signer.SigningProfile(
-      this,
-      'LambdaSigningProfile',
-      {
-        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
-      },
-    );
 
     const codeSigningConfig = new lambda.CodeSigningConfig(
       this,

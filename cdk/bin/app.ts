@@ -83,6 +83,7 @@ if (!skipMainStack) {
     crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
     ...repoMetaData,
   });
 
@@ -105,6 +106,7 @@ if (!skipMainStack) {
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
   });
 
   sarStack.node.addDependency(mainStack);
@@ -121,6 +123,7 @@ if (!skipMainStack) {
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
   });
 
   dvlaPilotStack.node.addDependency(mainStack);
@@ -135,6 +138,7 @@ if (!skipMainStack) {
       stackPrefix,
       env: awsEnv,
       description: `Live schema extraction stack ${stackDescription}`,
+      signingProfile: vpcStack.lambdaSigningProfile,
     });
 
     liveSchemaStack.node.addDependency(mainStack);

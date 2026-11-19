@@ -30,6 +30,7 @@ export interface SarStackProps extends StackProps {
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
   dynamoDbEndpointUrl?: string;
+  signingProfile: signer.SigningProfile;
 }
 
 export class SarStack extends Stack {
@@ -53,19 +54,12 @@ export class SarStack extends Stack {
       lambdaSecurityGroups,
       deploymentRoleArn,
       dynamoDbEndpointUrl,
+      signingProfile,
     } = props;
 
     const sarName = developerId
       ? `${developerId}-sar-${environment}`
       : `sar-${environment}`;
-
-    const signingProfile = new signer.SigningProfile(
-      this,
-      'LambdaSigningProfile',
-      {
-        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
-      },
-    );
 
     const codeSigningConfig = new lambda.CodeSigningConfig(
       this,

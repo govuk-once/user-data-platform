@@ -53,6 +53,7 @@ export interface LiveSchemaStackProps extends StackProps {
   environment: string;
   stackPrefix: string;
   createDsqlVpcEndpoint?: boolean;
+  signingProfile: signer.SigningProfile;
 }
 
 export type CommonProps = {
@@ -83,6 +84,7 @@ export class LiveSchemaStack extends Stack {
       environment,
       stackPrefix,
       createDsqlVpcEndpoint = !developerId,
+      signingProfile,
     } = props;
 
     const isStageOrProd =
@@ -130,14 +132,6 @@ export class LiveSchemaStack extends Stack {
     const dsqlEndpoint = createDsqlVpcEndpoint
       ? this.createDsqlEndpoint(vpc, isolatedSubnets, environment)
       : undefined;
-
-    const signingProfile = new signer.SigningProfile(
-      this,
-      'LambdaSigningProfile',
-      {
-        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
-      },
-    );
 
     const codeSigningConfig = new lambda.CodeSigningConfig(
       this,

@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
 import { GovUKTag } from '@govuk-connect/tag';
@@ -21,6 +22,7 @@ export class VpcStack extends Stack {
   public readonly executeApiEndpointId: string;
   public readonly codeBuildSecurityGroup: ec2.SecurityGroup;
   public readonly dynamoDbEndpointUrl: string;
+  public readonly lambdaSigningProfile: signer.SigningProfile;
 
   constructor(scope: Construct, id: string, props: VpcStackProps) {
     super(scope, id, props);
@@ -56,6 +58,14 @@ export class VpcStack extends Stack {
     this.executeApiEndpointId = vpcConstuct.executeApiEndpoint.vpcEndpointId;
     this.codeBuildSecurityGroup = vpcConstuct.codebuildSecurityGroup;
     this.dynamoDbEndpointUrl = vpcConstuct.dynamoDbEndpointUrl;
+
+    this.lambdaSigningProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
 
     // Temporary migration safeguard: the currently deployed prod-sar stack
     // still imports this CDK-generated VPC ID export.
