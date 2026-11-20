@@ -9,6 +9,10 @@ inputs:
     description: 'Optional space-separated environment variable overrides, e.g. "name=E2E_TARGET,value=pr,type=PLAINTEXT"'
     required: false
     default: ''
+  source-location:
+    description: 'Optional S3 source location override as "bucket/key" (e.g. to run against a different source.zip)'
+    required: false
+    default: ''
   wait:
     description: 'Wait for the build to complete ("true"/"false")'
     required: false
@@ -36,6 +40,7 @@ runs:
       env:
         PROJECT: ${{ inputs.project }}
         ENV_OVERRIDES: ${{ inputs.env-overrides }}
+        SOURCE_LOCATION: ${{ inputs.source-location }}
         AWS_REGION: ${{ inputs.aws-region }}
       run: |
         echo "Starting CodeBuild project: ${PROJECT}"
@@ -44,6 +49,10 @@ runs:
         if [ -n "${ENV_OVERRIDES}" ]; then
           read -ra overrides <<< "${ENV_OVERRIDES}"
           args+=(--environment-variables-override "${overrides[@]}")
+        fi
+        if [ -n "${SOURCE_LOCATION}" ]; then
+          echo "Using source location override: ${SOURCE_LOCATION}"
+          args+=(--source-type-override S3 --source-location-override "${SOURCE_LOCATION}")
         fi
 
         BUILD_ID=$(aws codebuild start-build "${args[@]}")

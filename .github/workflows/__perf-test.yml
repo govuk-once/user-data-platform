@@ -74,16 +74,44 @@ jobs:
         with:
           stack-name: ${{ inputs.stack-prefix }}-e2e
 
+      - name: Resolve perf source path
+        # The e2e workflow runs in parallel and uploads to the same source.zip
+        # key; if its upload lands last, the perf build gets a bundle without
+        # k6. Upload perf's bundle to its own key and override the build source.
+        id: perf-source
+        env:
+          SOURCE_PATH: ${{ steps.get-source.outputs.source-path }}
+        run: |
+          PERF_SOURCE_PATH="$(dirname "${SOURCE_PATH}")/perf-source.zip"
+          echo "path=${PERF_SOURCE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "Perf source path: ${PERF_SOURCE_PATH}"
+
+      - name: Download k6 for CodeBuild
+        # The perf CodeBuild project runs in isolated subnets with no internet
+        # access, so k6 is fetched here and shipped inside source.zip.
+        env:
+          K6_VERSION: v0.55.0
+          K6_SHA256: 47a43a8dbb4c1f5d5bd7b8ed6a1b8c83b35546acf989b78400b4e6ce3adaf628 # pragma: allowlist secret -- release tarball checksum, not a secret
+        run: |
+          curl -fsSL --retry 3 --retry-connrefused --connect-timeout 15 --max-time 300 \
+            -o k6.tar.gz "https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz"
+          echo "${K6_SHA256}  k6.tar.gz" | sha256sum -c -
+          mkdir -p performance/.bin
+          tar xzf k6.tar.gz --strip-components=1 -C performance/.bin "k6-${K6_VERSION}-linux-amd64/k6"
+          rm k6.tar.gz
+          performance/.bin/k6 version
+
       - name: Upload source to S3
         uses: ./.github/actions/upload-source
         with:
           bucket: ${{ steps.get-source.outputs.source-bucket }}
-          path: ${{ steps.get-source.outputs.source-path }}
+          path: ${{ steps.perf-source.outputs.path }}
 
       - name: Start performance tests (fire-and-forget)
         uses: ./.github/actions/run-codebuild
         with:
           project: ${{ steps.get-perf-project.outputs.perf-project }}
           env-overrides: name=PERF_TARGET,value=${{ inputs.perf-target }},type=PLAINTEXT
+          source-location: ${{ steps.get-source.outputs.source-bucket }}/${{ steps.perf-source.outputs.path }}
           wait: 'false'
           aws-region: ${{ inputs.aws-region }}

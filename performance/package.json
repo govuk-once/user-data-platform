@@ -1,6 +1,18 @@
 {
   "name": "@test/performance",
   "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "seed": "tsx scripts/seed-perf-data.ts",
+    "smoke": "npm run build && k6 run dist/smoke-test.js",
+    "baseline": "npm run build && k6 run dist/scenarios/baseline.js",
+    "read-heavy-spike": "npm run build && k6 run dist/scenarios/read-heavy-spike.js",
+    "stress-reads": "npm run build && npm run seed && k6 run dist/scenarios/stress-reads.js",
+    "stress-writes": "npm run build && npm run seed && k6 run dist/scenarios/stress-writes.js",
+    "stress-deletes": "npm run build && k6 run dist/scenarios/stress-deletes.js",
+    "cold-start-impact": "npm run build && k6 run dist/scenarios/cold-start-impact.js",
+    "write-heavy-burst": "npm run build && k6 run dist/scenarios/write-heavy-burst.js"
+  },
   "devDependencies": {
     "@types/k6": "^0.54.0"
   },

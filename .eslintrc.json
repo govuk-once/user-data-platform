@@ -6,7 +6,8 @@
     "coverage",
     "build",
     "cdk.out",
-    "release.config.js"
+    "release.config.js",
+    "performance/src/vendor/*.js"
   ],
   "plugins": ["@typescript-eslint", "prettier"],
   "extends": [
