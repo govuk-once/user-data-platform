@@ -537,6 +537,7 @@ export class MainStack extends Stack {
       IamConsumerConfigs[consumerName] = {
         permissions: consumerConfig.permissions,
         accountId: consumerConfig.accountId,
+        principalArns: consumerConfig.principalArns,
         externalId: consumerConfig.externalId,
         description: consumerConfig.description,
       };
