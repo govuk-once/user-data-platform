@@ -50,7 +50,7 @@ export class DvlaPilotStack extends Stack {
       {
         signingProfiles: [signingProfile],
         untrustedArtifactOnDeployment:
-          lambda.UntrustedArtifactOnDeployment.ENFORCE,
+          lambda.UntrustedArtifactOnDeployment.WARN,
       },
     );
 
