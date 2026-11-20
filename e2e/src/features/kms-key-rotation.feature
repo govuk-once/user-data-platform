@@ -8,6 +8,7 @@ Feature: KMS Key Rotation
         Given I am authenticated
         And I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'kms-test-user'
+        And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
 
     Scenario: Data remains accessible after KMS key rotation
         # Store data
