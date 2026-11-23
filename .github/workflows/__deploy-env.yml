@@ -114,9 +114,10 @@ jobs:
           npm version "${FINAL_VERSION}" --no-git-tag-version
 
       - name: Resolve Lambda signing profile
+        env:
+          STACK_PREFIX: ${{ inputs.stack-prefix }}
         run: |
-          # Derive environment from stack-prefix (e.g. "pr-123-dev" → "dev", "stag" → "stag")
-          VPC_ENV=$(echo "${{ inputs.stack-prefix }}" | sed 's/^pr-[0-9]*-//')
+          VPC_ENV=$(echo "$STACK_PREFIX" | sed 's/^pr-[0-9]*-//')
           PROFILE=$(aws cloudformation describe-stacks \
             --stack-name "${VPC_ENV}-vpc" \
             --query 'Stacks[0].Outputs[?OutputKey==`LambdaSigningProfileName`].OutputValue' \
