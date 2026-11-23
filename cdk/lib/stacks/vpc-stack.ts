@@ -74,6 +74,13 @@ export class VpcStack extends Stack {
       this.exportValue(this.vpc.vpcId);
     }
 
+    new CfnOutput(this, 'LambdaSigningProfileName', {
+      value: this.lambdaSigningProfile.signingProfileName,
+      exportName: `${id}-LambdaSigningProfileName`,
+      description:
+        'AWS Signer profile name used to sign Lambda deployment packages',
+    });
+
     new CfnOutput(this, 'VpcIdOutput', {
       value: this.vpc.vpcId,
       exportName: `${id}-vpcId`,

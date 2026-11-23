@@ -113,6 +113,18 @@ jobs:
           echo "Set local package.json version to ${FINAL_VERSION}"
           npm version "${FINAL_VERSION}" --no-git-tag-version
 
+      - name: Resolve Lambda signing profile
+        run: |
+          # Derive environment from stack-prefix (e.g. "pr-123-dev" → "dev", "stag" → "stag")
+          VPC_ENV=$(echo "${{ inputs.stack-prefix }}" | sed 's/^pr-[0-9]*-//')
+          PROFILE=$(aws cloudformation describe-stacks \
+            --stack-name "${VPC_ENV}-vpc" \
+            --query 'Stacks[0].Outputs[?OutputKey==`LambdaSigningProfileName`].OutputValue' \
+            --output text 2>/dev/null || true)
+          if [ -n "$PROFILE" ] && [ "$PROFILE" != "None" ]; then
+            echo "SIGNING_PROFILE_NAME=${PROFILE}" >> "$GITHUB_ENV"
+          fi
+
       - name: Deploy CDK stack
         env:
           CDK_DEPLOYMENT_ROLE_ARN: ${{ steps.aws-creds.outputs.authenticated-arn }}
