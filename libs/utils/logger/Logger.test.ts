@@ -143,8 +143,6 @@ describe('Logger', () => {
         functionVersion: '42',
         functionName: 'my-function',
         memoryLimitInMB: '128',
-        functionArn:
-          'arn:aws:lambda:eu-west-2:123456789012:function:my-function',
         awsRequestId: 'req-id',
         invokedFunctionArn:
           'arn:aws:lambda:eu-west-2:123456789012:function:my-function',
