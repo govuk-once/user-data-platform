@@ -8,6 +8,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Duration } from 'aws-cdk-lib';
 import * as path from 'node:path';
+import { existsSync } from 'node:fs';
 import { getRemovalPolicy } from 'cdk/constants/environment';
 import { Checkov } from 'cdk/lib/checkov/checkov';
 
@@ -222,12 +223,16 @@ export class LambdaApiConstruct extends Construct {
     // Sanitize sourcePath to prevent path traversal by using only the basename
     const sanitizedSourcePath = path.basename(this.props.sourcePath);
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const codePath = path.resolve(
+    const buildDir = path.resolve(
       process.cwd(),
       '..',
       'build',
       sanitizedSourcePath,
     );
+    // Use the signed zip produced by `pnpm sign:lambdas` when present (CI),
+    // otherwise fall back to the directory for local CDK synth without signing.
+    const signedZip = `${buildDir}.zip`;
+    const codePath = existsSync(signedZip) ? signedZip : buildDir;
     const envVars: Record<string, string> = this.buildEnvironmentVariables(
       this.props,
     );
