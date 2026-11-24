@@ -64,7 +64,7 @@ export function envValidator<TEvent = unknown, TResult = unknown>(
   }
 
   return {
-    before: async (request) => {
+    before: (request) => {
       const missingVaraiables: string[] = [];
       const validatedValues: Record<string, string> = {};
 
@@ -143,7 +143,7 @@ export function createEnvValidator<
   const middleware = envValidator({
     ...rest,
     required: [...required] as string[],
-    optional: optional as OptionalEnvConfig,
+    optional: optional,
   });
 
   const origialBefore = middleware.before!;

@@ -1,0 +1,76 @@
+name: SonarQube Scanner
+
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN_UDP:
+        required: true
+      SONAR_URL:
+        required: true
+      DEPLOYMENT_ROLE:
+        required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
+      JIRA_URL:
+        required: false
+      JIRA_EMAIL:
+        required: false
+      JIRA_API_TOKEN:
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sonar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          aws-region: eu-west-2
+
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+      - name: Run tests
+        run: pnpm test:all
+
+      - name: Run SonarQube Scan and Quality Gate
+        id: sonar_scan
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=120
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_UDP }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+
+      - name: SonarCloud Security Findings to Jira
+        if: >-
+          ${{
+            always() &&
+            !cancelled() &&
+            github.event_name == 'push' &&
+            github.ref == 'refs/heads/main'
+          }}
+        env:
+          SONAR_URL: ${{ secrets.SONAR_URL }}
+          SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          DRY_RUN: 'false'
+        run: |
+          pnpm exec tsx scripts/sonarToJira.ts

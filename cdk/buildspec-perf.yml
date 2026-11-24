@@ -2,27 +2,30 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      nodejs: 20
+    # No runtime-versions: the project runs in isolated subnets, and a
+    # runtime-versions entry makes CodeBuild download Node from nodejs.org.
+    # The image's preinstalled Node is used instead.
+    # k6 is downloaded and checksum-verified by the GitHub workflow
+    # (__perf-test.yml) and shipped in source.zip at performance/.bin/k6.
     commands:
-      - curl -sL https://github.com/grafana/k6/releases/download/v0.55.0/K6-v0.55.0-linux-amd64.tar.gz | tar xz
-      - mv k6-v0.55.0-linux-amd64/k6 /usr/local/bin
+      - node --version
+      - install -m 0755 performance/.bin/k6 /usr/local/bin/k6
       - k6 version
 
   pre_build:
     commands:
       - echo "Setting up performance tests"
       - rm -rf performance/dist
-      - set +x && eval "$(node performance/scripts/resolve-credentials.mjs)" > /dev/null 2>&1 && set -x
+      - set +x && eval "$(aws configure export-credentials --format env)" > /dev/null 2>&1 && set -x
       - echo "AWS credentials resolved"
 
   build:
     commands:
       - echo "Running Performance tests"
-      - NX_DAEMON=false NX_PLUGIN_NO_TIMEOUTS=true ./node_modules/.bin/nx run @test/performance:${PERF_TARGET:-smoke} --verbose
+      - npm --prefix performance run "${PERF_TARGET:-smoke}"
       - echo "Performance tests completed"
 
   post_build:
     commands:
       - chmod +x performance/scripts/publish-metrics.sh
-      - performance/scripts/publish-metrics.sh
+      - PERF_TEST="${PERF_TARGET:-smoke}" performance/scripts/publish-metrics.sh

@@ -1,6 +1,16 @@
 import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import { Construct, type IConstruct } from 'constructs';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as kms from 'aws-cdk-lib/aws-kms';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
 
 import { KmsConstruct } from '../constructs/kms-construct';
 import { DynamoDBConstruct } from '../constructs/dynamodb-construct';
@@ -8,21 +18,17 @@ import { ApiGatewayConstruct } from '../constructs/api-gateway-construct';
 import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { AppConfigConstruct } from '../constructs/appconfig-construct';
 import { featureFlagsByEnvironment } from '../../constants/appconfig-feature-flags';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as kms from 'aws-cdk-lib/aws-kms';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { WafConstruct } from '../constructs/waf-construct';
-import { routes } from '@libs/utils';
+import { MacieAccess } from '../macie/macie-access';
 
+import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import type { IRole } from 'aws-cdk-lib/aws-iam';
+
+import { routes as _routes, type RouteConfig } from '@libs/utils';
 import {
   ConsumerConfigConstruct,
   ExternalConsumerConfig,
 } from '../constructs/consumer-config-construct';
-import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
-import { IRole } from 'aws-cdk-lib/aws-iam';
 import {
   IamConsumerConfig,
   IamConsumerConstruct,
@@ -33,10 +39,14 @@ import {
   getLogRetentionPeriod,
   GovUkOnceEnvironments,
 } from 'cdk/constants/environment';
+import { mainStackParameterNames } from 'cdk/constants/shared-parameters';
 import {
   ConsumerThrottleConfig,
   ConsumerUsagePlanConstruct,
 } from '../constructs/consumer-usage-plan-construct';
+import { GovUKTag } from '@govuk-connect/tag';
+
+type RoutesConfig = Record<string, RouteConfig>;
 
 export interface MainStackProps extends StackProps {
   developerId?: string;
@@ -52,6 +62,8 @@ export interface MainStackProps extends StackProps {
   lambdaSecurityGroup?: ec2.ISecurityGroup;
   codebuildSecurityGroup?: ec2.ISecurityGroup;
   availabilityZones?: string[];
+  dynamoDbEndpointUrl?: string;
+  signingProfile: signer.SigningProfile;
 }
 
 export class MainStack extends Stack {
@@ -59,16 +71,18 @@ export class MainStack extends Stack {
   public readonly identityTable: dynamodb.Table;
   public readonly api: apigateway.RestApi;
   public readonly lambdas: lambda.Function[];
+  public readonly lambdaApiConstructs: LambdaApiConstruct[];
   public readonly kmsKey: kms.IKey;
   public readonly dbKmsKey: kms.IKey;
-  public readonly dsarQueue: sqs.Queue;
-  public readonly sarQueue: sqs.Queue;
+  public readonly dsarQueue?: sqs.Queue;
+  public readonly sarQueue?: sqs.Queue;
   public readonly appConfigApplicationId: string;
   public readonly appConfigEnvironmentId: string;
   public readonly appConfigProfileId: string;
   public readonly e2eTestConsumerSecret?: ISecret;
   public readonly e2eTestConsumerRole?: IRole;
   public readonly e2eTestConsumerApiKeyValue?: string;
+  public readonly waf: WafConstruct;
 
   constructor(scope: Construct, id: string, props: MainStackProps) {
     super(scope, id, props);
@@ -84,8 +98,12 @@ export class MainStack extends Stack {
       crossAccountPrincipals = [],
       vpc,
       lambdaSecurityGroup,
+      dynamoDbEndpointUrl,
+      signingProfile,
     } = props;
 
+    // Filter out SAR / DSAR routes based on env !== prod
+    const routes = this.setRoutes(environment);
     const ssmPath = `/${environmentLongNames[environment]}/udp-param/udp/externalConsumers`;
     const ssmValue = StringParameter.valueFromLookup(this, ssmPath, '{}');
 
@@ -95,7 +113,11 @@ export class MainStack extends Stack {
     > = {};
     try {
       externalConsumers = JSON.parse(ssmValue);
-    } catch {}
+    } catch {
+      console.log(
+        'JSON.parse(externalConsumers) error externalConsumers in MainStack',
+      );
+    }
 
     const consumerVpcEndpointIds: string[] = Object.values(externalConsumers)
       .map((c) => c.vpcEndpointId)
@@ -116,6 +138,19 @@ export class MainStack extends Stack {
       namePrefix: 'encryption',
     });
     this.kmsKey = kmsConstruct.key;
+    MacieAccess.markKMSKeyForAccess(this.kmsKey);
+    GovUKTag.of(this.kmsKey).DataClassification.OFFICIAL_SENSITIVE();
+
+    // This grant was previously auto-generated by CDK when the monitoring stack held a cross-stack reference;
+    // adding it explicitly here keeps the key policy stable after that reference was removed.
+    kmsConstruct.key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ServicePrincipal('events.amazonaws.com')],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
+        resources: ['*'],
+      }),
+    );
 
     const dbKms = new KmsConstruct(this, 'dbKms', {
       developerId,
@@ -123,6 +158,7 @@ export class MainStack extends Stack {
       namePrefix: 'db-kms-encryption',
     });
     this.dbKmsKey = dbKms.key;
+    GovUKTag.of(this.dbKmsKey).DataClassification.OFFICIAL_SENSITIVE();
 
     const db = new DynamoDBConstruct(this, 'DynamoDb', {
       developerId,
@@ -130,9 +166,17 @@ export class MainStack extends Stack {
       tableName: 'udp-data',
       kmsKey: kmsConstruct.key,
       ttlAttributeName: 'ttl',
+      // Feeds the live schema extractors; keys are always included on REMOVE.
+      stream: dynamodb.StreamViewType.NEW_IMAGE,
     });
 
     this.table = db.table;
+    GovUKTag.of(this.table)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
+    cdk.Tags.of(this.table).add('Monitor', 'true');
 
     const identityDb = new DynamoDBConstruct(this, 'IdentityDynamoDb', {
       developerId,
@@ -150,6 +194,10 @@ export class MainStack extends Stack {
     });
 
     this.identityTable = identityDb.table;
+    GovUKTag.of(this.identityTable)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
     const featureFlags =
       featureFlagsByEnvironment[environment] ?? featureFlagsByEnvironment.dev;
@@ -160,6 +208,10 @@ export class MainStack extends Stack {
       applicationName: `${serviceName}-appconfig`,
       featureFlags,
     });
+    GovUKTag.of(appConfig)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.INTERNAL();
 
     this.appConfigApplicationId = appConfig.application.ref;
     this.appConfigEnvironmentId = appConfig.environment.ref;
@@ -177,118 +229,77 @@ export class MainStack extends Stack {
       kmsKey: kmsConstruct.key,
       cachingEnabled,
     });
-
     this.api = apiGateway.api;
 
-    new WafConstruct(this, 'waf', {
+    this.waf = new WafConstruct(this, 'waf', {
       developerId,
       environment,
       namePrefix: 'api',
       apiGatewayStageArn: apiGateway.stageArn,
-      rateLimiting: { enabled: true, limit: 50000 },
+      rateLimiting: { enabled: true, limit: 300000 },
       sqlInjectionRule: { enabled: true, action: 'block' },
       commonRuleSet: { enabled: true, action: 'block' },
       kmsKey: kmsConstruct.key,
       logRetentionDays: getLogRetentionPeriod(environment),
     });
 
-    const eventQueueNames = [
-      ...new Set(
-        Object.values(routes)
-          .map((r) => r.queueName)
-          .filter((q): q is string => !!q),
-      ),
-    ];
-
-    const eventQueues = new Map<string, sqs.Queue>();
-    for (const eventQueueName of eventQueueNames) {
-      const fullQueueName = developerId
-        ? `${developerId}-${eventQueueName}-queue-${environment}`
-        : `${eventQueueName}-queue-${environment}`;
-
-      const constructId = `${eventQueueName.replace(/-/g, '')}Queue`;
-      const queue = new sqs.Queue(this, constructId, {
-        queueName: fullQueueName,
-        encryption: sqs.QueueEncryption.KMS,
-        encryptionMasterKey: kmsConstruct.key,
-      });
-      eventQueues.set(eventQueueName, queue);
-    }
-
-    let lambdasList = [];
-    for (const route of Object.values(routes)) {
-      const routeQueue = route.queueName
-        ? eventQueues.get(route.queueName)
-        : undefined;
-
-      const lambda = new LambdaApiConstruct(this, route.name, {
-        developerId,
-        environment,
-        functionName: `${route.name}Lambda`,
-        sourcePath: `${route.name}Lambda`,
-        kmsKey: kmsConstruct.key,
-        dbKmsKey: dbKms.key,
-        dynamoDBtable: db.table,
-        identityDbTable: identityDb.table,
-        identityDbActions: route.identityTableActions
-          ? route.identityTableActions
-          : ['dynamodb:GetItem'],
-        dynamoDbActions: route.dynamoDbActions
-          ? route.dynamoDbActions
-          : ['dynamodb:GetItem'],
-        api: apiGateway.api,
-        httpMethod: route.method,
-        routePath: route.path,
-        environmentVariables: {
-          STACK: stackPrefix,
-          SERVICE_NAME: route.name,
-        },
-        ...(routeQueue
-          ? {
-              sqsQueueUrl: routeQueue.queueUrl,
-              sqsQueueArn: routeQueue.queueArn,
-            }
-          : {}),
-        vpc,
-        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
-        cachingEnabled,
-        logRetentionDays: getLogRetentionPeriod(environment),
-      });
-
-      lambdasList.push(lambda.function);
-    }
-
-    this.lambdas = lambdasList;
-
-    this.dsarQueue = eventQueues.get('dsarQueue')!;
-    this.sarQueue = eventQueues.get('sarQueue')!;
-
-    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
-      test: {
-        permissions: ['read', 'write', 'delete'],
-        description: 'Internal E2E test consumer {codebuild}',
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.WARN,
       },
-    };
+    );
 
-    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
-      test: { rateLimit: 100, burstLimit: 200 },
-    };
+    const eventQueues = this.createEventQueues(
+      developerId,
+      environment,
+      kmsConstruct.key,
+      routes,
+    );
 
-    for (const [consumerName, consumerConfig] of Object.entries(
-      externalConsumers,
-    )) {
-      IamConsumerConfigs[consumerName] = {
-        permissions: consumerConfig.permissions,
-        accountId: consumerConfig.accountId,
-        externalId: consumerConfig.externalId,
-        description: consumerConfig.description,
-      };
+    this.lambdaApiConstructs = this.createLambdaFunctions({
+      developerId,
+      environment,
+      stackPrefix,
+      kmsKey: kmsConstruct.key,
+      dbKmsKey: dbKms.key,
+      db,
+      identityDb,
+      api: apiGateway.api,
+      eventQueues,
+      vpc,
+      lambdaSecurityGroup,
+      cachingEnabled,
+      dynamoDbEndpointUrl,
+      routes,
+      codeSigningConfig,
+    });
+    this.lambdas = this.lambdaApiConstructs.map(
+      (lambdaApiConstruct) => lambdaApiConstruct.function,
+    );
+    this.lambdaGovUKTagging();
 
-      consumerthrottleConfigs[consumerName] = {
-        rateLimit: consumerConfig.rateLimit,
-        burstLimit: consumerConfig.burstLimit,
-      };
+    this.dsarQueue = eventQueues.get('dsarQueue');
+    if (this.dsarQueue) {
+      GovUKTag.of(this.dsarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
     }
+
+    this.sarQueue = eventQueues.get('sarQueue');
+    if (this.sarQueue) {
+      GovUKTag.of(this.sarQueue as IConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.INTERNAL();
+    }
+
+    const { IamConsumerConfigs, consumerthrottleConfigs } =
+      this.buildConsumerConfigs(externalConsumers);
 
     const iamConsumers = new IamConsumerConstruct(this, 'IamConsumers', {
       developerId,
@@ -326,52 +337,339 @@ export class MainStack extends Stack {
       this.e2eTestConsumerSecret = consumerConfig.consumerSecrets.get('flex');
     }
 
-    new CfnOutput(this, 'ApiEndpoint', {
-      value: this.api.url,
-      description: 'Api Endpoint url',
-      exportName: `${id}-ApiEndpoint`,
-    });
+    if (!developerId?.startsWith('pr')) {
+      this.createReleaseNotifications(environment);
+    }
 
-    new CfnOutput(this, 'TableName', {
-      value: db.table.tableName,
-      description: 'DynamoTableName',
-      exportName: `${id}-TableName`,
-    });
+    this.publishSharedParameters(stackPrefix, dynamoDbEndpointUrl);
 
-    new CfnOutput(this, 'IdentityTableName', {
-      value: identityDb.table.tableName,
-      description: 'Identity DynamoTableName',
-      exportName: `${id}-IdentityTableName`,
-    });
+    this.createCfnOutputs(id, [
+      {
+        outputId: 'ApiEndpoint',
+        value: this.api.url,
+        description: 'Api Endpoint url',
+      },
+      {
+        outputId: 'TableName',
+        value: db.table.tableName,
+        description: 'DynamoTableName',
+      },
+      {
+        outputId: 'IdentityTableName',
+        value: identityDb.table.tableName,
+        description: 'Identity DynamoTableName',
+      },
+      { outputId: 'AwsRegion', value: this.region, description: 'Aws Region' },
+      {
+        outputId: 'AppConfigApplicationId',
+        value: this.appConfigApplicationId,
+        description: 'AppConfig Application ID',
+      },
+      {
+        outputId: 'AppConfigEnvironmentId',
+        value: this.appConfigEnvironmentId,
+        description: 'AppConfig Environment ID',
+      },
+      {
+        outputId: 'AppConfigProfileId',
+        value: this.appConfigProfileId,
+        description: 'AppConfig Configuration Profile ID',
+      },
+      {
+        outputId: 'KmsKeyArn',
+        value: this.kmsKey.keyArn,
+        description: 'KMS Key ARN',
+      },
+    ]);
 
-    new CfnOutput(this, 'AwsRegion', {
-      value: this.region,
-      description: 'Aws Region',
-      exportName: `${id}-AwsRegion`,
-    });
+    GovUKTag.buriedOf(this, 'AWS679f53fac')
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
+  }
 
-    new CfnOutput(this, 'AppConfigApplicationId', {
-      value: this.appConfigApplicationId,
-      description: 'AppConfig Application ID',
-      exportName: `${id}-AppConfigApplicationId`,
-    });
+  private createEventQueues(
+    developerId: string | undefined,
+    environment: string,
+    kmsKey: kms.IKey,
+    routes: RoutesConfig,
+  ): Map<string, sqs.Queue> {
+    const eventQueueNames = [
+      ...new Set(
+        Object.values(routes)
+          .map((r) => r.queueName)
+          .filter((q): q is string => !!q),
+      ),
+    ];
 
-    new CfnOutput(this, 'AppConfigEnvironmentId', {
-      value: this.appConfigEnvironmentId,
-      description: 'AppConfig Environment ID',
-      exportName: `${id}-AppConfigEnvironmentId`,
-    });
+    const eventQueues = new Map<string, sqs.Queue>();
+    for (const eventQueueName of eventQueueNames) {
+      const fullQueueName = developerId
+        ? `${developerId}-${eventQueueName}-queue-${environment}`
+        : `${eventQueueName}-queue-${environment}`;
 
-    new CfnOutput(this, 'AppConfigProfileId', {
-      value: this.appConfigProfileId,
-      description: 'AppConfig Configuration Profile ID',
-      exportName: `${id}-AppConfigProfileId`,
-    });
+      const constructId = `${eventQueueName.replaceAll('-', '')}Queue`;
+      const queue = new sqs.Queue(this, constructId, {
+        queueName: fullQueueName,
+        encryption: sqs.QueueEncryption.KMS,
+        encryptionMasterKey: kmsKey,
+      });
+      eventQueues.set(eventQueueName, queue);
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(queue.queueArn);
+    }
+    return eventQueues;
+  }
 
-    new CfnOutput(this, 'KmsKeyArn', {
-      value: this.kmsKey.keyArn,
-      description: 'KMS Key ARN',
-      exportName: `${id}-kmsKeyArn`,
+  private createLambdaFunctions(params: {
+    developerId: string | undefined;
+    environment: string;
+    stackPrefix: string;
+    kmsKey: kms.IKey;
+    dbKmsKey: kms.IKey;
+    db: DynamoDBConstruct;
+    identityDb: DynamoDBConstruct;
+    api: apigateway.RestApi;
+    eventQueues: Map<string, sqs.Queue>;
+    vpc: ec2.IVpc | undefined;
+    lambdaSecurityGroup: ec2.ISecurityGroup | undefined;
+    cachingEnabled: boolean;
+    dynamoDbEndpointUrl?: string;
+    routes: RoutesConfig;
+    codeSigningConfig: lambda.CodeSigningConfig;
+  }): LambdaApiConstruct[] {
+    const {
+      developerId,
+      environment,
+      stackPrefix,
+      kmsKey,
+      dbKmsKey,
+      db,
+      identityDb,
+      api,
+      eventQueues,
+      vpc,
+      lambdaSecurityGroup,
+      cachingEnabled,
+      dynamoDbEndpointUrl,
+      routes,
+      codeSigningConfig,
+    } = params;
+
+    const lambdaApiConstructsList = [];
+    for (const route of Object.values(routes)) {
+      const routeQueue = route.queueName
+        ? eventQueues.get(route.queueName)
+        : undefined;
+
+      const lambdaConstruct = new LambdaApiConstruct(this, route.name, {
+        developerId,
+        environment,
+        functionName: `${route.name}Lambda`,
+        sourcePath: `${route.name}Lambda`,
+        kmsKey,
+        dbKmsKey,
+        dynamoDBtable: db.table,
+        identityDbTable: identityDb.table,
+        identityDbActions: route.identityTableActions ?? ['dynamodb:GetItem'],
+        dynamoDbActions: route.dynamoDbActions ?? ['dynamodb:GetItem'],
+        api,
+        disableRoute: route.disableRoute ?? false,
+        httpMethod: route.method,
+        routePath: route.path,
+        environmentVariables: {
+          STACK: stackPrefix,
+          SERVICE_NAME: route.name,
+          POWERTOOLS_SERVICE_NAME: route.name,
+          ...(dynamoDbEndpointUrl
+            ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+            : {}),
+        },
+        ...(routeQueue
+          ? {
+              sqsQueueUrl: routeQueue.queueUrl,
+              sqsQueueArn: routeQueue.queueArn,
+            }
+          : {}),
+        vpc,
+        securityGroups: lambdaSecurityGroup ? [lambdaSecurityGroup] : [],
+        cachingEnabled,
+        logRetentionDays: getLogRetentionPeriod(environment),
+        codeSigningConfig,
+      });
+
+      if (!route.disableRoute) {
+        cdk.Tags.of(lambdaConstruct.function).add('Monitor', 'true');
+      }
+
+      lambdaApiConstructsList.push(lambdaConstruct);
+
+      // Retain export while downstream stacks remove their imports.
+      this.exportValue(lambdaConstruct.function.functionName);
+    }
+
+    return lambdaApiConstructsList;
+  }
+
+  private buildConsumerConfigs(
+    externalConsumers: Record<
+      string,
+      ExternalConsumerConfig & { vpcEndpointId?: string }
+    >,
+  ): {
+    IamConsumerConfigs: Record<string, IamConsumerConfig>;
+    consumerthrottleConfigs: Record<string, ConsumerThrottleConfig>;
+  } {
+    const IamConsumerConfigs: Record<string, IamConsumerConfig> = {
+      test: {
+        permissions: ['read', 'write', 'delete'],
+        description: 'Internal E2E test consumer {codebuild}',
+      },
+    };
+
+    const consumerthrottleConfigs: Record<string, ConsumerThrottleConfig> = {
+      test: { rateLimit: 500, burstLimit: 1000 },
+    };
+
+    for (const [consumerName, consumerConfig] of Object.entries(
+      externalConsumers,
+    )) {
+      IamConsumerConfigs[consumerName] = {
+        permissions: consumerConfig.permissions,
+        accountId: consumerConfig.accountId,
+        principalArns: consumerConfig.principalArns,
+        externalId: consumerConfig.externalId,
+        description: consumerConfig.description,
+      };
+
+      consumerthrottleConfigs[consumerName] = {
+        rateLimit: consumerConfig.rateLimit,
+        burstLimit: consumerConfig.burstLimit,
+      };
+    }
+
+    return { IamConsumerConfigs, consumerthrottleConfigs };
+  }
+
+  /**
+   * Publishes values downstream stacks need via SSM rather than CFN exports,
+   * so consumers (e.g. LiveSchemaStack) never pin these resources in place.
+   */
+  private publishSharedParameters(
+    stackPrefix: string,
+    dynamoDbEndpointUrl?: string,
+  ): void {
+    const names = mainStackParameterNames(stackPrefix);
+    const values: Record<keyof typeof names, string> = {
+      dataTableStreamArn: this.table.tableStreamArn!,
+      kmsKeyArn: this.kmsKey.keyArn,
+      dbKmsKeyArn: this.dbKmsKey.keyArn,
+      ...(dynamoDbEndpointUrl && { dynamoDbEndpointUrl }),
+    };
+
+    for (const [key, value] of Object.entries(values)) {
+      if (!value) continue;
+      const param = new StringParameter(this, `SharedParam-${key}`, {
+        parameterName: names[key as keyof typeof names],
+        stringValue: value,
+      });
+
+      GovUKTag.of(param).DataClassification.OFFICIAL().PII.FALSE();
+    }
+  }
+
+  private createCfnOutputs(
+    id: string,
+    outputs: { outputId: string; value: string; description: string }[],
+  ): void {
+    for (const { value, description, outputId } of outputs) {
+      new CfnOutput(this, outputId, {
+        value,
+        description,
+        exportName: `${id}-${outputId}`,
+      });
+    }
+  }
+
+  private createReleaseNotifications(environment: string): void {
+    const releaseTopic = new sns.Topic(this, 'ReleaseTopic', {
+      topicName: `${environment}-release-notifications`,
+      displayName: `${environment}-release-notifications`,
+      masterKey: this.kmsKey,
     });
+    GovUKTag.of(releaseTopic)
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNET_FACING()
+      .PII.FALSE();
+
+    const param = `/${environmentLongNames[environment]}/udp-param/udp/release`;
+    const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
+
+    let releaseConfig: {
+      workspaceId?: string;
+      channelId?: string;
+    } = {};
+    try {
+      releaseConfig = JSON.parse(ssmValue);
+    } catch {
+      console.log('JSON.parse(releaseConfig) error in MainStack');
+    }
+
+    if (releaseConfig.workspaceId && releaseConfig.channelId) {
+      const slack = new SlackChannelConfiguration(this, `ReleaseSlackChannel`, {
+        slackChannelConfigurationName: `${environment}-release-notifications`,
+        slackWorkspaceId: releaseConfig.workspaceId,
+        slackChannelId: releaseConfig.channelId,
+        notificationTopics: [releaseTopic],
+        guardrailPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+        ],
+      });
+      GovUKTag.of(slack)
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
+      GovUKTag.buriedOf(slack, 'ReleaseSlackChannel/ConfigurationRole/Resource')
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNET_FACING()
+        .PII.FALSE();
+
+      slack.role?.addToPrincipalPolicy(
+        new iam.PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [this.kmsKey.keyArn],
+        }),
+      );
+    }
+  }
+
+  private lambdaGovUKTagging() {
+    for (const lambdaApiConstruct of this.lambdaApiConstructs) {
+      GovUKTag.of(lambdaApiConstruct)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .PII.TRUE()
+        .Exposure.ISOLATED();
+    }
+  }
+
+  /**
+   * Filter routes based on environment. If the environment is stage or prod,
+   * filter out any routes that have disableRoute set to true.
+   * @param environment string
+   * @returns RoutesConfig
+   */
+  private setRoutes(environment: string): RoutesConfig {
+    let routes: RoutesConfig = _routes;
+    const isStageOrProd =
+      environment === GovUkOnceEnvironments.Prod ||
+      environment === GovUkOnceEnvironments.Stag;
+
+    if (isStageOrProd) {
+      routes = Object.fromEntries(
+        Object.entries(_routes).filter(([, route]) => !route?.disableRoute),
+      );
+    }
+
+    return routes;
   }
 }

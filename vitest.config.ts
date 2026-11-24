@@ -9,10 +9,10 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.ts'],
     coverage: {
-      enabled: false,
+      enabled: true,
       provider: 'v8',
-      reportsDirectory: './coverage',
-      reporter: ['text'],
+      reportsDirectory: process.env.VITEST_COVERAGE_DIR ?? './coverage',
+      reporter: ['text', 'lcov'],
     },
   },
   resolve: {
@@ -22,6 +22,10 @@ export default defineConfig({
         './libs/data-access/index.ts',
       ),
       '@libs/utils': path.resolve(__dirname, './libs/utils/index.ts'),
+      '@libs/live-schema': path.resolve(
+        __dirname,
+        './libs/live-schema/index.ts',
+      ),
     },
   },
 });

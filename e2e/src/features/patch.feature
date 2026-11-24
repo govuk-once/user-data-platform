@@ -56,6 +56,13 @@ Feature: Patch data
         Then the response body should contain '"key"'
         Then the response body should contain '"key2"'
 
+    Scenario: Patch without requested-at header succeeds without concurrency check
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to 'patch-e2e-user-1'
+        When I send a patch to '/v1/patch-test' with the body '{"data": { "no-header":"patched" }}'
+        Then I should receive a successful response
+        Then the response body should contain '"no-header"'
+
     Scenario: Successfully delete data
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to 'patch-e2e-user-1'

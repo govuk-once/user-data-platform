@@ -33,7 +33,7 @@ A quick sanity check running 1 virtual user for 1 iteration. Used to verify the 
 
 ```bash
 
-nx run @test/performance:smoke
+pnpm perf smoke
 
 ```
 
@@ -43,7 +43,7 @@ Constant load at the target RPS (100 req/s) for 15 minutes. Validates NFRs under
 
 ```bash
 
-nx run @test/performance:baseline
+pnpm perf baseline
 
 ```
 
@@ -55,7 +55,7 @@ Measures Lambda cold-start latency by jumping from 0 to 100 RPS with no warm-up 
 
 ```bash
 
-nx run @test/performance:cold-start-impact
+pnpm perf cold-start-impact
 
 ```
 
@@ -67,7 +67,7 @@ Simulates a sudden spike in read traffic with a mix of 80% read operations. Ramp
 
 ```bash
 
-nx run @test/performance:read-heavy-spike
+pnpm perf read-heavy-spike
 
 ```
 
@@ -77,7 +77,7 @@ Validates that write-heavy traffic doesn't cause DynamoDB throttling or KMS bott
 
 ```bash
 
-nx run @test/performance:write-heavy-burst
+pnpm perf write-heavy-burst
 
 ```
 
@@ -89,7 +89,7 @@ Read-only stress test that ramps from 10 to 300 RPS in 1-minute increments (30 s
 
 ```bash
 
-nx run @test/performance:stress-reads
+pnpm perf stress-reads
 
 ```
 
@@ -99,7 +99,7 @@ Write-only stress test ramping from 10 to 300 RPS. Same structure as stress read
 
 ```bash
 
-nx run @test/performance:stress-writes
+pnpm perf stress-writes
 
 ```
 
@@ -109,7 +109,7 @@ Delete-only stress test ramping from 10 to 300 RPS. Same structure as other stre
 
 ```bash
 
-nx run @test/performance:stress-deletes
+pnpm perf stress-deletes
 
 ```
 
@@ -133,7 +133,7 @@ cd performance && pnpm i
 ### Run a test
 
 ```bash
-nx run @test/performance:<scenario-name>
+pnpm perf <scenario-name>
 ```
 
 Replace `<scenario-name>` with one of: `smoke`, `baseline`, `cold-start-impact`, `read-heavy-spike`, `write-heavy-burst`, `stress-reads`, `stress-writes`, `stress-deletes`.

@@ -23,6 +23,7 @@ import {
   getRemovalPolicy,
 } from 'cdk/constants/environment';
 import { Construct } from 'constructs';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface CodeBuildPerfConstructProps {
   readonly developerId?: string;
@@ -36,6 +37,8 @@ export interface CodeBuildPerfConstructProps {
   readonly apiId: string;
   readonly e2eTestConsumerRole?: IRole;
   readonly e2eTestConsumerApiKeyValue?: string;
+  readonly identityTableName: string;
+  readonly dataTableName: string;
 }
 
 export class CodeBuildPerfConstruct extends Construct {
@@ -61,6 +64,8 @@ export class CodeBuildPerfConstruct extends Construct {
       apiId,
       e2eTestConsumerRole,
       e2eTestConsumerApiKeyValue,
+      identityTableName,
+      dataTableName,
     } = props;
 
     const stack = Stack.of(this);
@@ -73,11 +78,13 @@ export class CodeBuildPerfConstruct extends Construct {
       retention: getLogRetentionPeriod(environment),
       removalPolicy: getRemovalPolicy(environment),
     });
+    GovUKTag.of(this.logGroup).PII.FALSE().DataClassification.OFFICIAL();
 
     const codeBuildRole = new Role(this, 'CodeBuildRole', {
       assumedBy: new ServicePrincipal('codebuild.amazonaws.com'),
       description: `IAM role for Performance Test Codebuild Project - ${resourcePrefix}`,
     });
+    GovUKTag.of(codeBuildRole).DataClassification.OFFICIAL();
 
     codeBuildRole.addToPolicy(
       new PolicyStatement({
@@ -202,6 +209,21 @@ export class CodeBuildPerfConstruct extends Construct {
       }),
     );
 
+    codeBuildRole.addToPolicy(
+      new PolicyStatement({
+        sid: 'DynamoDBSeedWrite',
+        actions: [
+          'dynamodb:BatchWriteItem',
+          'dynamodb:PutItem',
+          'dynamodb:DescribeTable',
+        ],
+        resources: [
+          `arn:aws:dynamodb:${awsRegion}:${stack.account}:table/${identityTableName}`,
+          `arn:aws:dynamodb:${awsRegion}:${stack.account}:table/${dataTableName}`,
+        ],
+      }),
+    );
+
     const source = Source.s3({
       bucket: Bucket.fromBucketName(this, 'SourceBucket', sourceBucket),
       path: `${resourcePrefix}/source.zip`,
@@ -215,6 +237,8 @@ export class CodeBuildPerfConstruct extends Construct {
       AWS_REGION: { value: awsRegion },
       PERF_TARGET: { value: 'smoke' },
       ENVIRONMENT: { value: environment },
+      IDENTITY_TABLE_NAME: { value: identityTableName },
+      DYNAMODB_TABLE_NAME: { value: dataTableName },
     };
 
     if (e2eTestConsumerApiKeyValue) {
@@ -234,7 +258,7 @@ export class CodeBuildPerfConstruct extends Construct {
         environmentVariables,
       },
       vpc,
-      subnetSelection: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
+      subnetSelection: { subnetType: SubnetType.PRIVATE_ISOLATED },
       securityGroups,
       buildSpec: BuildSpec.fromSourceFilename('cdk/buildspec-perf.yml'),
       logging: {

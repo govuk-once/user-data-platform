@@ -1,8 +1,9 @@
 import { Construct } from 'constructs';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface KmsConstructProps {
   readonly developerId?: string;
@@ -44,12 +45,16 @@ export class KmsConstruct extends Construct {
       removalPolicy: getRemovalPolicy(environment),
       alias: `${resourcePrefix}-${environment}`,
     });
+    GovUKTag.of(this.key).DataClassification.OFFICIAL_SENSITIVE();
 
     this.key.addToResourcePolicy(
       new iam.PolicyStatement({
         sid: 'AllowIAMPolicies',
         effect: iam.Effect.ALLOW,
-        principals: [new iam.AccountRootPrincipal()],
+        principals: [
+          new iam.AccountRootPrincipal(),
+          new iam.ServicePrincipal('delivery.logs.amazonaws.com'),
+        ],
         actions: [
           'kms:Encrypt',
           'kms:Decrypt',
@@ -81,7 +86,7 @@ export class KmsConstruct extends Construct {
           'kms:Decrypt*',
           'kms:ReEncrypt*',
           'kms:GenerateDataKey*',
-          'kma:Describe*',
+          'kms:Describe*',
         ],
         resources: ['*'],
         conditions: {
@@ -97,7 +102,7 @@ export class KmsConstruct extends Construct {
         sid: 'AllowCloudwatchAlarms',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('cloudwatch.amazonaws.com')],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );
@@ -107,7 +112,7 @@ export class KmsConstruct extends Construct {
         sid: 'AllowSNSService',
         effect: iam.Effect.ALLOW,
         principals: [new iam.ServicePrincipal('sns.amazonaws.com')],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKeys'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey*'],
         resources: ['*'],
       }),
     );

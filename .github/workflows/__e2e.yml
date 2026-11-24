@@ -1,0 +1,106 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      codebuild-project:
+        description: 'CodeBuild project name to run e2e tests'
+        required: true
+        type: string
+      source-bucket:
+        description: 'S3 bucket for source upload'
+        required: true
+        type: string
+      source-path:
+        description: 'S3 path/key for source upload'
+        required: true
+        type: string
+      e2e-target:
+        description: 'Optional E2E_TARGET override passed to CodeBuild (e.g. pr)'
+        required: false
+        type: string
+        default: ''
+      post-pr-comment:
+        description: 'Post the result as a comment on the triggering pull request'
+        required: false
+        type: boolean
+        default: false
+      ref:
+        description: 'Git ref to test. Defaults to github.ref_name.'
+        required: false
+        type: string
+        default: ''
+      aws-region:
+        required: false
+        type: string
+        default: 'eu-west-2'
+      node-version:
+        required: false
+        type: string
+        default: '24'
+    secrets:
+      DEPLOYMENT_ROLE:
+        required: true
+      CODEARTIFACT_ACCOUNT:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
+          persist-credentials: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
+        with:
+          role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ inputs.node-version }}
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+      - name: Upload source to S3
+        uses: ./.github/actions/upload-source
+        with:
+          bucket: ${{ inputs.source-bucket }}
+          path: ${{ inputs.source-path }}
+
+      - name: Run E2E tests in CodeBuild
+        id: codebuild
+        uses: ./.github/actions/run-codebuild
+        with:
+          project: ${{ inputs.codebuild-project }}
+          env-overrides: ${{ inputs.e2e-target && format('name=E2E_TARGET,value={0},type=PLAINTEXT', inputs.e2e-target) || '' }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Post test results to PR
+        if: always() && inputs.post-pr-comment && github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          BUILD_ID: ${{ steps.codebuild.outputs.build-id }}
+          LOGS_URL: ${{ steps.codebuild.outputs.logs-url }}
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const { BUILD_ID, LOGS_URL, JOB_STATUS } = process.env;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## E2E tests results\n\n**Status:** ${JOB_STATUS}\n**Build ID:** \`${BUILD_ID}\`\n\n[Build logs](${LOGS_URL})`,
+            });

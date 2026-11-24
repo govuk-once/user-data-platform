@@ -1,45 +1,38 @@
 # Data Access Library
 
-TypeScript library for DynamoDB operations with validation, error handling, and logging.
+TypeScript library for the platform's DynamoDB operations, with field-level KMS
+encryption, error handling, and logging.
+
+Each entity has its own focused service (`data`, `identity`, `sar`). A service
+owns the DynamoDB queries it needs and nothing more — there is no generic
+repository layer to wire up. The `ServiceFactory` builds and caches the
+services, sharing a single DynamoDB document client.
 
 ## Quick Start
 
 ```typescript
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import {
-  DynamoDbDataService,
-  DynamoDBRepository,
-  DynamoDBEntity,
-} from '@libs/data-access';
+import { ServiceFactory } from '@libs/data-access';
 
-// Create DynamoDB Document Client outside the handler (connection pooling)
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-
-const repository = new DynamoDBRepository<DynamoDBEntity>(
-  process.env.TABLE_NAME!,
-  docClient,
-);
-
-const service = new DynamoDbDataService(repository);
-
-// Lambda handler
-export const handler = async (event: any) => {
-  const identifier = event.pathParameters.identifier;
-};
+// Create the factory once, outside the handler (connection pooling)
+const factory = new ServiceFactory({
+  tableName: process.env.TABLE_NAME!,
+  identityTableName: process.env.IDENTITY_TABLE_NAME!,
+  kmsKeyId: process.env.KMS_KEY_ID, // optional — enables field encryption
+  tracer,
+  logger,
+});
 
 export const handler = async (event: any) => {
-  // Get entity
-  const data = await service.getByKey('user-123', 'topics');
+  const identity = await factory
+    .getService('identity')
+    .getByServiceId(
+      event.headers['requesting-service'],
+      event.headers['requesting-service-user-id'],
+    );
 
-  // Save entity
-  await service.save({
-    pk: 'user-123',
-    sk: 'topics',
-    data: { status: 'active' },
-    ttl: Math.floor(Date.now() / 1000) + 86400,
-  });
+  const data = await factory
+    .getService('data')
+    .getByKey(identity, event.pathParameters.resourcePath);
 
   return { statusCode: 200, body: JSON.stringify(data) };
 };
@@ -47,53 +40,30 @@ export const handler = async (event: any) => {
 
 ## KMS encryption
 
-```typescript
-// Add encryption to dynamo service repository to auto encrypt and decrypt specified fields
-const encryption = new EncryptionService({ kmsKeyId: KMS_KEY_ID });
+Pass a `kmsKeyId` to the factory and the configured fields are transparently
+encrypted on write and decrypted on read (`data` for the data service,
+the token fields for identity, `presignedURL` for SAR). Omit it and items are
+stored as-is. The shared `encryptItem` / `decryptItem` helpers
+(`services/crypto.ts`) apply this consistently across every service.
 
-const repository = new DynamoDBRepository<DynamoDBEntity>(
-  process.env.TABLE_NAME!,
-  docClient,
-  { service: encryption, dataFields: ['data'] },
-);
-```
+## Services
 
-## DynamoDbDataService API
-
-### `getByKey(pk: string, sk: string): Promise<T | null>`
-
-**`getByKey(pk: string, sk: string): Promise<T | null>`**
-Retrieves an entity by composite key.
-
-**`save(entity: T): Promise<void>`**
-Saves an entity with validation.
+- **`getService('data')`** → `DynamoDbDataService` — `save`, `getByKey`,
+  `patchByKey`, `deleteByKey`, `countByUdpID`, `getKeyPageByUdpID`,
+  `getAllByUdpID`.
+- **`getService('identity')`** → `DynamoDBIdentityService` — `createAppUser`,
+  `linkIdentity`, `getByServiceId`, `getLinkedIdentity`, `deleteById`,
+  `deleteAllByUdpId`.
+- **`getService('sar')`** → `SarService` — `get`, `save`.
 
 ## Architecture
 
 ```
-ServiceFactory → DynamoDb*Service → DynamoDBRepository → AWS SDK
+ServiceFactory → { DataService, IdentityService, SarService } → AWS SDK
 ```
 
 ## Error Handling
 
-The library provides custom error types for error handling:
-
-```typescript
-import { GetError, SaveError, NotFoundError } from '@libs/data-access';
-
-try {
-  await service.save(entity);
-} catch (error) {
-  if (error instanceof SaveError) {
-    console.error('Save failed:', error.message);
-    console.error('Cause:', error.cause);
-  }
-}
-```
-
-## Error Types
-
-- `GetError` - Retrieval operations
-- `SaveError` - Save operations
-- `NotFoundError` - Entity not found
-- `RepositoryError` - Base error type
+Services throw the platform's typed errors (from `@libs/utils`) — for example
+`DataRecordNotFoundError` and `IdentityRecordNotFoundError` — which the Lambda
+error-handling middleware maps to HTTP responses.

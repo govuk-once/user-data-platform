@@ -163,7 +163,7 @@ export interface IdentityInput {
   accessToken?: string;
   refreshToken?: string;
   idToken?: string;
-  ttl?: number;
+  expiresAt?: number;
 }
 
 export type CreateIdentityRequest = Omit<IdentityInput, 'serviceId'>;

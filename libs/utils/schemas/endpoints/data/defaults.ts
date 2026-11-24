@@ -23,10 +23,9 @@ export const dataEndpointHeaderSchema = z
   .loose();
 
 export const dataWriteEndpointHeaderSchema = dataEndpointHeaderSchema.extend({
-  'requested-at': z.string().datetime().openapi({
-    description:
-      'ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection',
-    example: '2026-10-09T12:00:00:000Z',
+  'requested-at': z.string().datetime().optional().openapi({
+    description: 'Optional ISO-8601 timestamp for out-of-sequence detection',
+    example: '2026-10-09T12:00:00.000Z',
   }),
 });
 

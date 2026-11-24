@@ -2,8 +2,8 @@ import { Construct } from 'constructs';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
-import { RemovalPolicy } from 'aws-cdk-lib';
 import { getRemovalPolicy } from 'cdk/constants/environment';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface RateLimitingConfig {
   readonly enabled?: boolean;
@@ -152,6 +152,9 @@ export class WafConstruct extends Construct {
         sampledRequestsEnabled: true,
       },
     });
+    GovUKTag.of(this.webAcl)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.PERIMETER();
 
     new wafv2.CfnWebACLAssociation(this, 'WebAclAssociation', {
       resourceArn: apiGatewayStageArn,
@@ -175,6 +178,8 @@ export class WafConstruct extends Construct {
           },
         ],
       });
+
+      GovUKTag.of(this.logGroup).DataClassification.OFFICIAL().PII.TRUE();
     }
   }
 }

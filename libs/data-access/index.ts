@@ -7,14 +7,12 @@ export type {
   IdentityInput,
   SAREntity,
 } from './types/Entity';
-export type { Repository } from './repositories/Repository';
-
-// Repositories
-export { DynamoDBRepository } from './repositories/DynamoDBRepository';
 
 // Services
 export { DynamoDbDataService } from './services/DynamoDbDataService';
 export { DynamoDBIdentityService } from './services/DynamoDbIdentityService';
+export { SarService } from './services/SarService';
+export { EncryptionService } from './services/EncryptionService';
 
 // Factories
 export * from './factory/ServiceFactory';

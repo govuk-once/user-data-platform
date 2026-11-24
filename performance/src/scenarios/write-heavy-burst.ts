@@ -1,7 +1,7 @@
 import { Options } from 'k6/options';
-import { nfr } from '../config';
-import { createScenarioRunner } from '../helpers/scenario-runner';
-import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
+import { nfr } from '../config.js';
+import { createScenarioRunner } from '../helpers/scenario-runner.js';
+import { textSummary } from '../vendor/k6-summary-0.1.0.js';
 
 const { run, teardown: scenarioTeardown } = createScenarioRunner({
   testPrefix: 'per-write-heavy-burst',
@@ -63,6 +63,6 @@ export function handleSummary(
 ): Record<string, string> {
   return {
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
-    '/tmp/k6-summary-write-heavy-burst.json': JSON.stringify(data),
+    '/tmp/k6-summary.json': JSON.stringify(data),
   };
 }

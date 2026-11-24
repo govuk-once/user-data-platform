@@ -23,6 +23,57 @@ components:
   schemas: {}
   parameters: {}
 paths:
+  /v1/_health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service and DynamoDB connectivity
+      tags:
+        - health
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - healthy
+                    description: Health status
+                    example: healthy
+                required:
+                  - status
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
   /v1/user:
     post:
       summary: Create User Record
@@ -318,6 +369,12 @@ paths:
                   type: string
                   description: The Users Identifier for the GOVUK App
                   example: 8538bc99-3596-4eb3-8101-263e70519315
+                expiresAt:
+                  type: integer
+                  minimum: 1776867570
+                  exclusiveMinimum: true
+                  description: The expiry time for the identity in EPOCH Timestamp no milliseconds, must be future dated
+                  example: 1738671000
                 accessToken:
                   type: string
                   description: The access token for the service from one login
@@ -740,10 +797,10 @@ paths:
         - schema:
             type: string
             format: date-time
-            description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
-            example: 2026-10-09T12:00:00:000Z
-          required: true
-          description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+            description: Optional ISO-8601 timestamp for out-of-sequence detection
+            example: 2026-10-09T12:00:00.000Z
+          required: false
+          description: Optional ISO-8601 timestamp for out-of-sequence detection
           name: requested-at
           in: header
       requestBody:
@@ -763,7 +820,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1776170820
+                      minimum: 1776867570
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -920,10 +977,10 @@ paths:
         - schema:
             type: string
             format: date-time
-            description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
-            example: 2026-10-09T12:00:00:000Z
-          required: true
-          description: ISO-8601 timestamp of when the consumer action occured, Used for our of sewuence detection
+            description: Optional ISO-8601 timestamp for out-of-sequence detection
+            example: 2026-10-09T12:00:00.000Z
+          required: false
+          description: Optional ISO-8601 timestamp for out-of-sequence detection
           name: requested-at
           in: header
       requestBody:
@@ -943,7 +1000,7 @@ paths:
                       example: DELETE
                     expiresAt:
                       type: integer
-                      minimum: 1776170820
+                      minimum: 1776867570
                       exclusiveMinimum: true
                       description: The expiry time for the data in EPOCH Timestamp no milliseconds, must be future dated
                       example: 1738671000
@@ -1796,6 +1853,163 @@ paths:
                       - errorMessage
                       - errorType
                       - sarId
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 500
+                    description: Internal Server Error Code
+                    example: 500
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: UDP has not worked
+                  errorType:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                    description: Internal Server Error Type
+                    example: INTERNAL_SERVER_ERROR
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+  /v1/identity/{serviceName}/{identifier}/linked-services:
+    get:
+      summary: Get All Linked Services
+      description: Returns all service names linked to the same UDP user via the shared udpId
+      tags:
+        - identity
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The provided User Identifier for the given service
+            example: 8538bc99-3596-4eb3-8101-263e70519315
+          required: true
+          description: The provided User Identifier for the given service
+          name: identifier
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description: The name of the service for which the identifier belongs
+            example: app
+          required: true
+          description: The name of the service for which the identifier belongs
+          name: serviceName
+          in: path
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  linkedServices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        serviceName:
+                          type: string
+                        ttl:
+                          type: integer
+                          minimum: 0
+                          exclusiveMinimum: true
+                      required:
+                        - serviceName
+                      description: A service linked to the same UDP user
+                      example:
+                        serviceName: DVLA
+                        ttl: 1893456000
+                    description: The list of services linked to the same UDP user
+                    example:
+                      - serviceName: DVLA
+                        ttl: 1893456000
+                      - serviceName: DWP
+                required:
+                  - linkedServices
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 400
+                    description: Bad Request Code
+                    example: 400
+                  errorType:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                    description: Bad Request Type
+                    example: BAD_REQUEST
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: 'Request invalid on fields: headers.requesting-service'
+                  errorPaths:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of failing fields
+                    example: *a1
+                required:
+                  - errorCode
+                  - errorType
+                  - errorMessage
+                  - errorPaths
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: number
+                    enum:
+                      - 404
+                    description: Bad Request Code
+                    example: 404
+                  errorMessage:
+                    type: string
+                    description: The error message
+                    example: Record not found
+                  errorType:
+                    type: string
+                    enum:
+                      - IDENTITY_NOT_FOUND
+                    description: Identity Not Found Type
+                    example: IDENTITY_NOT_FOUND
+                  serviceName:
+                    type: string
+                    description: Provided service name
+                    example: app
+                  serviceUserId:
+                    type: string
+                    description: Provided service user Id
+                    example: fb94de2f-ea1d-4f0f-8b1a-a2d1ca7c0fda
+                required:
+                  - errorCode
+                  - errorMessage
+                  - errorType
+                  - serviceName
+                  - serviceUserId
         '500':
           description: Internal Server Error
           content:

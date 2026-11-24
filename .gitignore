@@ -1,7 +1,15 @@
+# Local Dev
+.claude/
+.vscode/
+
 # Node Files
 node_modules/
 
-#Build outputs
+# Local
+.claude/
+.vscode/
+
+# Build outputs
 build/
 dist/
 
@@ -10,8 +18,12 @@ dist/
 coverage
 
 .DS_Store
-.nx/cache
-.nx/workspace-data
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.mda
-.github/instructions/nx.instructions.md
+
+# Checkov
+checkov-results.json
+checkov-results.xml
+
+# CDK
+cdk.out/
+cdk/.generated/
+cdk/cdk.context.json

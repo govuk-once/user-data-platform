@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, SQSEvent } from 'aws-lambda';
-import { beforeEach, describe, vi, expect, it } from 'vitest';
 import {
   DynamoDBDocumentClient,
   DeleteCommand,
@@ -41,16 +40,18 @@ describe('dsarDeleteLambda handler', () => {
     vi.clearAllMocks();
   });
 
+  const defaultSQSBody: Record<string, unknown> = {
+    dsarID: mockDsarId,
+    batchNumber: 1,
+    totalBatches: 3,
+    keys: [
+      { pk: mockUdpId, sk: 'resource/path1' },
+      { pk: mockUdpId, sk: 'resource/path2' },
+    ],
+  };
+
   const createSQSEvent = (
-    body: Record<string, unknown> = {
-      dsarID: mockDsarId,
-      batchNumber: 1,
-      totalBatches: 3,
-      keys: [
-        { pk: mockUdpId, sk: 'resource/path1' },
-        { pk: mockUdpId, sk: 'resource/path2' },
-      ],
-    },
+    body: Record<string, unknown> = defaultSQSBody,
   ): SQSEvent => ({
     Records: [
       {

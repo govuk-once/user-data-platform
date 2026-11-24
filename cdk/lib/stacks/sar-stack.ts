@@ -1,16 +1,20 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import { Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { ISecurityGroup, IVpc } from 'aws-cdk-lib/aws-ec2';
 import { IKey } from 'aws-cdk-lib/aws-kms';
 import { Queue, QueueEncryption } from 'aws-cdk-lib/aws-sqs';
-import { Construct } from 'constructs';
-import { LambdaApiConstruct } from '../constructs/lambda-construct';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Function } from 'aws-cdk-lib/aws-lambda';
-import { S3Construct } from '../constructs/s3-construct';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as signer from 'aws-cdk-lib/aws-signer';
+import { LambdaApiConstruct } from 'cdk/lib/constructs/lambda-construct';
+import { S3Construct } from 'cdk/lib/constructs/s3-construct';
 import { getLogRetentionPeriod } from 'cdk/constants/environment';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface SarStackProps extends StackProps {
   developerId?: string;
@@ -20,11 +24,13 @@ export interface SarStackProps extends StackProps {
   identityTable: Table;
   kmsKey: IKey;
   dbKmsKey: IKey;
-  dsarQueue: Queue;
-  sarQueue: Queue;
+  dsarQueue?: Queue;
+  sarQueue?: Queue;
   vpc?: IVpc;
   lambdaSecurityGroups?: ISecurityGroup;
   deploymentRoleArn?: string;
+  dynamoDbEndpointUrl?: string;
+  signingProfile: signer.SigningProfile;
 }
 
 export class SarStack extends Stack {
@@ -47,17 +53,33 @@ export class SarStack extends Stack {
       vpc,
       lambdaSecurityGroups,
       deploymentRoleArn,
+      dynamoDbEndpointUrl,
+      signingProfile,
     } = props;
 
     const sarName = developerId
       ? `${developerId}-sar-${environment}`
       : `sar-${environment}`;
 
+    const codeSigningConfig = new lambda.CodeSigningConfig(
+      this,
+      'CodeSigningConfig',
+      {
+        signingProfiles: [signingProfile],
+        untrustedArtifactOnDeployment:
+          lambda.UntrustedArtifactOnDeployment.WARN,
+      },
+    );
+
     const dsarDeleteDLQueue = new Queue(this, 'dsarDeleteDLQueue', {
       queueName: `${sarName}-delete-dl-queue`,
       encryption: QueueEncryption.KMS,
       encryptionMasterKey: kmsKey,
     });
+    GovUKTag.of(dsarDeleteDLQueue)
+      .PII.FALSE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNAL();
 
     const dsarDeleteQueue = new Queue(this, 'dsarDeleteQueue', {
       queueName: `${sarName}-delete-queue`,
@@ -68,6 +90,10 @@ export class SarStack extends Stack {
         maxReceiveCount: 3,
       },
     });
+    GovUKTag.of(dsarDeleteQueue)
+      .PII.FALSE()
+      .DataClassification.OFFICIAL()
+      .Exposure.INTERNAL();
 
     const dsarRequestLambda = new LambdaApiConstruct(this, 'dsarRequest', {
       developerId,
@@ -85,15 +111,28 @@ export class SarStack extends Stack {
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
+    GovUKTag.of(dsarRequestLambda)
+      // dsarRequestLambda/Function
+      // dsarRequestLambda/Function/ServiceRole
+      // dsarRequestLambda/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
-    dsarRequestLambda.function.addEventSource(
-      new SqsEventSource(dsarQueue, { batchSize: 1 }),
-    );
+    if (dsarQueue) {
+      dsarRequestLambda.function.addEventSource(
+        new SqsEventSource(dsarQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarRequestLambda.function);
 
@@ -115,15 +154,28 @@ export class SarStack extends Stack {
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'dsarRequest',
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
+    GovUKTag.of(dsarDeleteLambda)
+      // dsarDeleteLambda/Function
+      // dsarDeleteLambda/Function/ServiceRole
+      // dsarDeleteLambda/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
-    dsarDeleteLambda.function.addEventSource(
-      new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
-    );
+    if (dsarQueue) {
+      dsarDeleteLambda.function.addEventSource(
+        new SqsEventSource(dsarDeleteQueue, { batchSize: 1 }),
+      );
+    }
 
     this.lambdas.push(dsarDeleteLambda.function);
 
@@ -133,6 +185,10 @@ export class SarStack extends Stack {
       encryption: QueueEncryption.KMS,
       encryptionMasterKey: kmsKey,
     });
+    GovUKTag.of(sarDLQueue)
+      .PII.TRUE()
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.INTERNAL();
 
     // Create S3 bucket for SAR files
     const sarBucketConstruct = new S3Construct(this, 'sarBucket', {
@@ -143,8 +199,14 @@ export class SarStack extends Stack {
       vpcId: vpc?.vpcId,
       deploymentRoleArn,
     });
-
     this.sarBucket = sarBucketConstruct.bucket;
+    GovUKTag.of(sarBucketConstruct)
+      // sarDLQueue
+      // sarBucket/AccessLogsBucket
+      // sarBucket/Bucket
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNET_FACING();
 
     // Create SAR file lambda
     const createSarFileLambda = new LambdaApiConstruct(this, 'createSarFile', {
@@ -165,16 +227,28 @@ export class SarStack extends Stack {
         SERVICE_NAME: 'createSarFile',
         BUCKET_NAME: this.sarBucket.bucketName,
         DLQ_URL: sarDLQueue.queueUrl,
+        ...(dynamoDbEndpointUrl
+          ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+          : {}),
       },
       vpc,
       securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
       logRetentionDays: getLogRetentionPeriod(environment),
+      codeSigningConfig,
     });
+    GovUKTag.of(createSarFileLambda)
+      // createSarFile/Function
+      // createSarFile/Function/ServiceRole
+      // createSarFile/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
 
-    // Add sarQueue as event source for createSarFile lambda
-    createSarFileLambda.function.addEventSource(
-      new SqsEventSource(sarQueue, { batchSize: 1 }),
-    );
+    if (sarQueue) {
+      createSarFileLambda.function.addEventSource(
+        new SqsEventSource(sarQueue, { batchSize: 1 }),
+      );
+    }
 
     // Grant S3 write permissions to the lambda
     this.sarBucket.grantWrite(createSarFileLambda.function);
@@ -200,12 +274,23 @@ export class SarStack extends Stack {
         environmentVariables: {
           STACK: stackPrefix,
           SERVICE_NAME: 'generateSarPresignedUrl',
+          ...(dynamoDbEndpointUrl
+            ? { DYNAMODB_ENDPOINT: dynamoDbEndpointUrl }
+            : {}),
         },
         vpc,
         securityGroups: lambdaSecurityGroups ? [lambdaSecurityGroups] : [],
         logRetentionDays: getLogRetentionPeriod(environment),
+        codeSigningConfig,
       },
     );
+    GovUKTag.of(generateSarPresignedUrlLambda)
+      // generateSarPresignedUrl/Function
+      // generateSarPresignedUrl/Function/ServiceRole
+      // generateSarPresignedUrl/LogGroup
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.FALSE()
+      .Exposure.INTERNET_FACING();
 
     // Grant S3 read permissions to the lambda
     this.sarBucket.grantRead(generateSarPresignedUrlLambda.function);
@@ -217,5 +302,15 @@ export class SarStack extends Stack {
     );
 
     this.lambdas.push(generateSarPresignedUrlLambda.function);
+
+    for (const fn of this.lambdas) {
+      Tags.of(fn).add('Monitor', 'true');
+      /// Temporary Retain export while downstream stacks remove their imports.
+      this.exportValue(fn.functionName);
+    }
+    GovUKTag.buriedOf(this, `${environment}-sar/BucketNotificationsHandler`)
+      .DataClassification.OFFICIAL()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
   }
 }

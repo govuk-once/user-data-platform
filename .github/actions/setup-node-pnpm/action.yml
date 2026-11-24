@@ -1,0 +1,41 @@
+name: Setup Node & pnpm
+description: Installs pnpm (version from package.json `packageManager`), sets up Node and installs dependencies with a frozen lockfile.
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '24'
+  codeartifact-account:
+    description: 'AWS account ID that owns the CodeArtifact domain. When provided, runs `aws codeartifact login` before installing so scoped @govuk-connect packages can be resolved. Requires AWS credentials to already be configured on the runner.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+    - name: Setup Node
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Authenticate to AWS CodeArtifact
+      if: inputs.codeartifact-account != ''
+      shell: bash
+      env:
+        CODEARTIFACT_ACCOUNT: ${{ inputs.codeartifact-account }}
+      run: |
+        aws codeartifact login \
+          --tool npm \
+          --namespace govuk-connect \
+          --repository registry-prod-repo \
+          --domain registry-prod \
+          --domain-owner "$CODEARTIFACT_ACCOUNT" \
+          --region eu-west-2
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

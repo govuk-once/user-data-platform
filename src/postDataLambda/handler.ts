@@ -32,7 +32,9 @@ const factory = new ServiceFactory({
   tableName: TABLE_NAME,
   identityTableName: IDENTITY_TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
+  dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
   tracer,
+  logger,
 });
 
 export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
@@ -44,6 +46,11 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
     );
 
   const requestedAt = event.headers['requested-at'];
+  if (!requestedAt) {
+    logger.warn(
+      'requested-at header missing, proceeding without concurrency check',
+    );
+  }
 
   const record = await factory
     .getService('data')
@@ -65,7 +72,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })

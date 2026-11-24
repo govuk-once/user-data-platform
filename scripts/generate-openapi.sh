@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Pre commit hook to auto run and update the openapi spec docs
+#
+# 1. Generates the OpenAPI from zod schemas
+# 2. stages the generated files
+# 3. Blocks commit if generaion fails
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${YELLOW}[pre-commit]${NC} Generating OpenApi Docs"
+
+cd "$(git rev-parse --show-toplevel)"
+
+if ! pnpm generate:openapi --silent; then
+    echo -e "${RED}[pre-commit]${NC} OpenApi generation Failed"
+    echo -e "${RED}[pre-commit]${NC} Please fix the errors and try again."
+    exit 1
+fi
+
+OPENAPI_FILE="docs/openapi.yml"
+
+if [ ! -f "$OPENAPI_FILE" ]; then
+    echo -e "${RED}[pre-commit]${NC} OpenApi file not found at $OPENAPI_FILE"
+    exit 1
+fi
+
+if git ls-files --error-unmatch "$OPENAPI_FILE" &>/dev/null; then
+    if ! git diff --quiet "$OPENAPI_FILE" 2>/dev/null; then
+        echo -e "${YELLOW}[pre-commit]${NC} OpenApi spec changed, staging $OPENAPI_FILE"
+        git add "$OPENAPI_FILE"
+    fi
+else
+    echo -e "${YELLOW}[pre-commit]${NC} Adding new OpenAPI files to commit"
+    git add "$OPENAPI_FILE"
+fi
+
+echo -e "${GREEN}[pre-commit]${NC} OpenAPI docs are up to date."
+exit 0

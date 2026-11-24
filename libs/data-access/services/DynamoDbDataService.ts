@@ -1,196 +1,358 @@
 import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import {
   DataRecordNotFoundError,
   Logger,
   OutOfSequenceError,
   UDP_ERROR_TYPES,
 } from '@libs/utils';
-import { Repository } from '../repositories/Repository';
 import {
   DataInput,
   DynamoDBDataEntity,
+  EncryptionConfig,
   IdentityRecordEntity,
 } from '../types/Entity';
+import { decryptItem, encryptItem } from './crypto';
+
+const PAGE_SIZE = 100;
+
+export const SCHEMA_EVALUATION_FLAG = 'schemaEvaluationRequired';
 
 /**
- * Service class for DynamoDB Data entity operations with business logic.
- * Provides a higher-level API with validation, transformation, and orchestration.
- * Designed specifically for DynamoDB single-table design with composite keys.
- * @template T - The entity type that extends DynamoDBEntity
+ * Reads and writes user data records in DynamoDB.
+ *
+ * Records use the identity's udpId as the partition key and the resource path
+ * as the sort key. The `data` field is encrypted at rest when the factory is
+ * configured with a KMS key.
  */
 export class DynamoDbDataService {
-  private readonly logger;
-
   constructor(
-    private readonly repository: Repository<DynamoDBDataEntity>,
-    logger?: Logger,
-  ) {
-    this.logger = logger;
-  }
+    private readonly client: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    private readonly encryption?: EncryptionConfig,
+    private readonly logger?: Logger,
+  ) {}
 
   public async save(
     identity: IdentityRecordEntity,
     resourcePath: string,
     input: DataInput,
-    requestedAt: string,
-  ) {
-    const entity = this.createFromInput(identity, resourcePath, input);
-    entity.last_updated = requestedAt;
+    requestedAt?: string,
+  ): Promise<DynamoDBDataEntity> {
+    const entity = this.buildEntity(identity, resourcePath, input);
 
-    const existing = await this.repository.get({
-      pk: identity.udpId,
-      sk: resourcePath,
-    });
+    if (requestedAt) {
+      entity.last_updated = requestedAt;
 
-    if (existing?.last_updated && existing.last_updated >= requestedAt) {
-      throw new OutOfSequenceError(
-        `Out pf sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
-        UDP_ERROR_TYPES.CONFLICT,
-        existing.last_updated,
-        requestedAt,
-      );
+      const existing = await this.findByKey(identity.udpId, resourcePath);
+
+      if (existing?.last_updated && existing.last_updated >= requestedAt) {
+        throw new OutOfSequenceError(
+          `Out of sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
+          UDP_ERROR_TYPES.CONFLICT,
+          existing.last_updated,
+          requestedAt,
+        );
+      }
     }
 
-    return await this.repository.save(entity);
+    await this.client.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          ...(await encryptItem(entity, this.encryption)),
+          [SCHEMA_EVALUATION_FLAG]: true,
+        },
+      }),
+    );
+
+    return entity;
   }
 
   public async getByKey(identity: IdentityRecordEntity, resourcePath: string) {
-    const result = await this.repository.get({
-      pk: identity.udpId,
-      sk: resourcePath,
-    });
+    const entity = await this.findByKey(identity.udpId, resourcePath);
 
-    if (!result) {
-      throw new DataRecordNotFoundError(
-        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
-        UDP_ERROR_TYPES.DATA_NOT_FOUND,
-        identity.serviceName,
-        identity.serviceId,
-        resourcePath,
-      );
+    if (!entity) {
+      throw this.notFound(identity, resourcePath);
     }
 
-    return result;
+    return entity;
   }
 
   public async patchByKey(
     identity: IdentityRecordEntity,
     resourcePath: string,
     data: Record<string, unknown>,
-    requestedAt: string,
+    requestedAt?: string,
   ) {
-    const existing = await this.repository.get({
-      pk: identity.udpId,
-      sk: resourcePath,
-    });
+    const existing = await this.findByKey(identity.udpId, resourcePath);
 
     if (!existing) {
-      throw new DataRecordNotFoundError(
-        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
-        UDP_ERROR_TYPES.DATA_NOT_FOUND,
-        identity.serviceName,
-        identity.serviceId,
-        resourcePath,
-      );
+      throw this.notFound(identity, resourcePath);
     }
 
-    if (existing.last_updated && existing.last_updated >= requestedAt) {
+    if (
+      requestedAt &&
+      existing.last_updated &&
+      existing.last_updated >= requestedAt
+    ) {
       throw new OutOfSequenceError(
-        `Out pf sequence update: requesed at ${requestedAt} is before last_updated ${existing.last_updated}`,
+        `Out of sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
         UDP_ERROR_TYPES.CONFLICT,
         existing.last_updated,
         requestedAt,
       );
     }
 
-    const mergeData = this.deepMerge(existing.data ?? {}, data);
+    const merged = deepMerge(existing.data ?? {}, data);
 
-    const result = await this.repository.update(
-      { pk: identity.udpId, sk: resourcePath },
-      mergeData,
-      requestedAt,
-    );
-
-    return result;
-  }
-
-  private deepMerge(
-    target: Record<string, unknown>,
-    source: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const result = { ...target };
-
-    for (const key of Object.keys(source)) {
-      const sourceVal = source[key];
-      const targetVal = target[key];
-
-      if (this.isPlainObject(sourceVal) && this.isPlainObject(targetVal)) {
-        result[key] = this.deepMerge(
-          targetVal as Record<string, unknown>,
-          sourceVal as Record<string, unknown>,
-        );
-      } else {
-        result[key] = sourceVal;
-      }
-    }
-
-    return result;
-  }
-
-  private isPlainObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    return this.update(identity.udpId, resourcePath, merged, requestedAt);
   }
 
   public async deleteByKey(
     identity: IdentityRecordEntity,
     resourcePath: string,
   ) {
-    const result = await this.repository.delete({
-      pk: identity.udpId,
-      sk: resourcePath,
-    });
-
-    if (!result) {
-      throw new DataRecordNotFoundError(
-        `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
-        UDP_ERROR_TYPES.DATA_NOT_FOUND,
-        identity.serviceName,
-        identity.serviceId,
-        resourcePath,
+    try {
+      await this.client.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: { pk: identity.udpId, sk: resourcePath },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
       );
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        throw this.notFound(identity, resourcePath);
+      }
+      throw error;
     }
-
-    return result;
   }
 
-  public async countByUdpID(udpID: string): Promise<number> {
-    return this.repository.countByPk(udpID);
+  public async countByUdpID(udpId: string): Promise<number> {
+    let total = 0;
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
+      const response = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: { ':pk': udpId },
+          Select: 'COUNT',
+          ...(exclusiveStartKey
+            ? { ExclusiveStartKey: exclusiveStartKey }
+            : {}),
+        }),
+      );
+      total += response.Count ?? 0;
+      exclusiveStartKey = response.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return total;
   }
 
   public async getKeyPageByUdpID(
-    udpID: string,
-    lastEvaluatedKey?: Record<string, unknown>,
-  ) {
-    return this.repository.queryPageByPk(udpID, 100, lastEvaluatedKey);
+    udpId: string,
+    exclusiveStartKey?: Record<string, unknown>,
+  ): Promise<{
+    items: Array<{ pk: string; sk: string }>;
+    lastEvaluatedKey?: Record<string, unknown>;
+  }> {
+    const response = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': udpId },
+        Limit: PAGE_SIZE,
+        ProjectionExpression: 'pk, sk',
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      }),
+    );
+
+    return {
+      items: (response.Items ?? []).map((item) => ({
+        pk: item.pk as string,
+        sk: item.sk as string,
+      })),
+      lastEvaluatedKey: response.LastEvaluatedKey,
+    };
   }
 
-  public async getAllByUdpID(udpID: string): Promise<DynamoDBDataEntity[]> {
-    return this.repository.queryAllByPk(udpID);
+  public async getAllByUdpID(udpId: string): Promise<DynamoDBDataEntity[]> {
+    const items: DynamoDBDataEntity[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
+      const response = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: { ':pk': udpId },
+          ...(exclusiveStartKey
+            ? { ExclusiveStartKey: exclusiveStartKey }
+            : {}),
+        }),
+      );
+
+      const pageItems = await Promise.all(
+        (response.Items ?? []).map((item) =>
+          decryptItem<DynamoDBDataEntity>(item, this.encryption),
+        ),
+      );
+      items.push(...pageItems);
+
+      exclusiveStartKey = response.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items;
   }
 
-  private createFromInput(
+  private async findByKey(
+    pk: string,
+    sk: string,
+  ): Promise<DynamoDBDataEntity | null> {
+    const response = await this.client.send(
+      new GetCommand({ TableName: this.tableName, Key: { pk, sk } }),
+    );
+
+    if (!response.Item) {
+      return null;
+    }
+
+    return decryptItem<DynamoDBDataEntity>(response.Item, this.encryption);
+  }
+
+  private async update(
+    pk: string,
+    sk: string,
+    data: Record<string, unknown>,
+    lastUpdated?: string,
+  ): Promise<DynamoDBDataEntity | null> {
+    const stored = this.encryption
+      ? await this.encryption.service.encryptFields(
+          { data },
+          this.encryption.dataFields,
+        )
+      : { data };
+
+    try {
+      let updateExpression = this.encryption
+        ? 'SET #data = :data, #dataKey = :dataKey, #flag = :flag'
+        : 'SET #data = :data, #flag = :flag';
+
+      const expressionAttributeNames: Record<string, string> = {
+        '#data': 'data',
+        '#flag': SCHEMA_EVALUATION_FLAG,
+        ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
+      };
+
+      const expressionAttributeValues: Record<string, unknown> = {
+        ':data': (stored as Record<string, unknown>).data,
+        ':flag': true,
+        ...(this.encryption
+          ? { ':dataKey': (stored as Record<string, unknown>).__dataKey }
+          : {}),
+      };
+
+      if (lastUpdated) {
+        updateExpression += ', #last_updated = :last_updated';
+        expressionAttributeNames['#last_updated'] = 'last_updated';
+        expressionAttributeValues[':last_updated'] = lastUpdated;
+      }
+
+      const response = await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk, sk },
+          UpdateExpression: updateExpression,
+          ExpressionAttributeNames: expressionAttributeNames,
+          ExpressionAttributeValues: expressionAttributeValues,
+          ConditionExpression: 'attribute_exists(pk)',
+          ReturnValues: 'ALL_NEW',
+        }),
+      );
+
+      return decryptItem<DynamoDBDataEntity>(
+        response.Attributes ?? {},
+        this.encryption,
+      );
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private buildEntity(
     identity: IdentityRecordEntity,
     resourcePath: string,
     input: DataInput,
   ): DynamoDBDataEntity {
-    const data = input.data;
-    const ttl = input.configuration
-      ? (input.configuration.expiresAt ?? undefined)
-      : undefined;
+    const ttl = input.configuration?.expiresAt ?? undefined;
+
     return {
       pk: identity.udpId,
       sk: resourcePath,
-      ...(data ? { data } : {}),
+      ...(input.data ? { data: input.data } : {}),
       ...(ttl ? { ttl } : {}),
     };
   }
+
+  private notFound(identity: IdentityRecordEntity, resourcePath: string) {
+    return new DataRecordNotFoundError(
+      `Resource not found on path ${resourcePath}: for identity ${identity.serviceName}#${identity.serviceId}`,
+      UDP_ERROR_TYPES.DATA_NOT_FOUND,
+      identity.serviceName,
+      identity.serviceId,
+      resourcePath,
+    );
+  }
+
+  public async checkHealth(): Promise<boolean> {
+    try {
+      const response = await this.client.send(
+        new DescribeTableCommand({ TableName: this.tableName }),
+      );
+
+      return response.Table?.TableStatus === 'ACTIVE';
+    } catch (error) {
+      this.logger?.error('DynamoDB health check failed', { error });
+      return false;
+    }
+  }
+}
+
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...target };
+
+  for (const key of Object.keys(source)) {
+    const sourceVal = source[key];
+    const targetVal = target[key];
+
+    result[key] =
+      isPlainObject(sourceVal) && isPlainObject(targetVal)
+        ? deepMerge(targetVal, sourceVal)
+        : sourceVal;
+  }
+
+  return result;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

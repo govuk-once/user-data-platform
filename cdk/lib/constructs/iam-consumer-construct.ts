@@ -1,7 +1,8 @@
-import { CfnOutput, Stack } from 'aws-cdk-lib';
+import { Annotations, CfnOutput, Stack } from 'aws-cdk-lib';
 import { RestApi } from 'aws-cdk-lib/aws-apigateway';
 import {
   AccountPrincipal,
+  ArnPrincipal,
   Effect,
   IPrincipal,
   PolicyStatement,
@@ -9,12 +10,19 @@ import {
   ServicePrincipal,
 } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export type Permission = 'read' | 'write' | 'delete';
 
 export interface IamConsumerConfig {
   readonly permissions: Permission[];
   readonly accountId?: string;
+  /**
+   * Specific principals (e.g. role ARNs) in the consumer account that may
+   * assume the consumer role. When omitted, the whole consumer account
+   * (`:root`) is trusted, which ITHC flags as overly broad.
+   */
+  readonly principalArns?: string[];
   readonly externalId?: string;
   readonly description?: string;
 }
@@ -48,12 +56,14 @@ export class IamConsumerConstruct extends Construct {
     for (const [consumerName, consumerConfig] of Object.entries(consumers)) {
       const roleName = `${resourcePrefix}-consumer-${consumerName}-role`;
 
-      const trustPrincipal = consumerConfig.accountId
-        ? this.createCrossAccountTrustPrincipal(
-            consumerConfig.accountId,
-            consumerConfig.externalId,
-          )
-        : new ServicePrincipal('codebuild.amazonaws.com');
+      const [trustPrincipal, ...additionalTrustPrincipals] =
+        consumerConfig.accountId
+          ? this.createCrossAccountTrustPrincipals(
+              consumerConfig.accountId,
+              consumerConfig.principalArns,
+              consumerConfig.externalId,
+            )
+          : [new ServicePrincipal('codebuild.amazonaws.com')];
 
       const role = new Role(this, `ConsumerRole-${consumerName}`, {
         roleName,
@@ -62,6 +72,22 @@ export class IamConsumerConstruct extends Construct {
           consumerConfig.description ||
           `API Consumer role for  ${consumerName} = ${environment}`,
       });
+
+      for (const principal of additionalTrustPrincipals) {
+        role.assumeRolePolicy?.addStatements(
+          new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: ['sts:AssumeRole'],
+            principals: [principal],
+          }),
+        );
+      }
+
+      if (consumerConfig.accountId && !consumerConfig.principalArns?.length) {
+        Annotations.of(role).addWarning(
+          `Consumer ${consumerName} trusts the whole account ${consumerConfig.accountId}; set principalArns to restrict the trust policy to specific roles`,
+        );
+      }
 
       const apiResources = this.buildApiResourceArns(
         stack,
@@ -77,6 +103,7 @@ export class IamConsumerConstruct extends Construct {
           resources: apiResources,
         }),
       );
+      GovUKTag.of(role).DataClassification.OFFICIAL_SENSITIVE();
 
       this.consumerRoles.set(consumerName, role);
 
@@ -94,21 +121,24 @@ export class IamConsumerConstruct extends Construct {
     }
   }
 
-  private createCrossAccountTrustPrincipal(
+  private createCrossAccountTrustPrincipals(
     accountId: string,
+    principalArns: string[] | undefined,
     externalId?: string,
-  ): IPrincipal {
-    const principal = new AccountPrincipal(accountId);
+  ): IPrincipal[] {
+    const principals = consumerAccountPrincipals(accountId, principalArns);
 
-    if (externalId) {
-      return principal.withConditions({
+    if (!externalId) {
+      return principals;
+    }
+
+    return principals.map((principal) =>
+      principal.withConditions({
         StringEquals: {
           'sts:ExternalId': externalId,
         },
-      });
-    }
-
-    return principal;
+      }),
+    );
   }
 
   private buildApiResourceArns(
@@ -129,4 +159,34 @@ export class IamConsumerConstruct extends Construct {
 
     return resources;
   }
+}
+
+/**
+ * Guard against a typo in config granting a principal from a different
+ * account than the one the consumer was registered with.
+ */
+export function assertPrincipalInAccount(arn: string, accountId: string) {
+  const arnAccount = arn.split(':')[4];
+  if (arnAccount !== accountId) {
+    throw new Error(
+      `Consumer principal ${arn} is not in consumer account ${accountId}`,
+    );
+  }
+}
+
+/**
+ * Principals in the consumer account that resource policies (KMS key,
+ * Secrets Manager secret) should grant: the specific principals when
+ * configured, otherwise the whole account.
+ */
+export function consumerAccountPrincipals(
+  accountId: string,
+  principalArns?: string[],
+): IPrincipal[] {
+  return principalArns?.length
+    ? principalArns.map((arn) => {
+        assertPrincipalInAccount(arn, accountId);
+        return new ArnPrincipal(arn);
+      })
+    : [new AccountPrincipal(accountId)];
 }

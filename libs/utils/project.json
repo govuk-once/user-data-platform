@@ -10,10 +10,10 @@
         "lintFilePatterns": ["libs/utils/**/*.{ts,tsx,js,jsx}"]
       }
     },
-    "test:unit": {
+    "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest libs/utils/**/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/utils vitest run libs/utils/**/*"
       }
     },
     "test:coverage": {

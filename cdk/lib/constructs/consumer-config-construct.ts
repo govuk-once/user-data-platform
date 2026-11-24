@@ -1,16 +1,15 @@
 import { CfnOutput, SecretValue } from 'aws-cdk-lib';
-import {
-  AccountPrincipal,
-  Effect,
-  PolicyStatement,
-  Role,
-} from 'aws-cdk-lib/aws-iam';
+import { Effect, PolicyStatement, Role } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
+import { GovUKTag } from '@govuk-connect/tag';
+import { consumerAccountPrincipals } from './iam-consumer-construct';
 
 export interface ExternalConsumerConfig {
   readonly accountId: string;
+  /** Specific principals in the consumer account; see IamConsumerConfig. */
+  readonly principalArns?: string[];
   readonly permissions: ('read' | 'write' | 'delete')[];
   readonly externalId?: string;
   readonly description?: string;
@@ -54,14 +53,20 @@ export class ConsumerConfigConstruct extends Construct {
       alias: `alias/${secretPathPrefix}-consumer-config`,
       enableKeyRotation: true,
     });
+    GovUKTag.of(key).DataClassification.OFFICIAL_SENSITIVE();
 
     for (const [consumerName, consumerConfig] of Object.entries(
       externalConsumers,
     )) {
+      const principals = consumerAccountPrincipals(
+        consumerConfig.accountId,
+        consumerConfig.principalArns,
+      );
+
       key.addToResourcePolicy(
         new PolicyStatement({
           sid: `AllowDecryptFor${consumerName.toUpperCase()}`,
-          principals: [new AccountPrincipal(consumerConfig.accountId)],
+          principals,
           actions: ['kms:Decrypt', 'kms:DescribeKey'],
           resources: ['*'],
         }),
@@ -98,12 +103,13 @@ export class ConsumerConfigConstruct extends Construct {
         secretObjectValue: secretValue,
         encryptionKey: key,
       });
+      GovUKTag.of(secret).DataClassification.OFFICIAL_SENSITIVE().PII.FALSE();
 
       secret.addToResourcePolicy(
         new PolicyStatement({
           sid: `AllowCrossAccountRead${consumerName.toUpperCase()}`,
           effect: Effect.ALLOW,
-          principals: [new AccountPrincipal(consumerConfig.accountId)],
+          principals,
           actions: ['secretsmanager:GetSecretValue'],
           resources: ['*'],
         }),

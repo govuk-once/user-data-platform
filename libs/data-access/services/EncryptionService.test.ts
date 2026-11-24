@@ -1,12 +1,12 @@
 import { KMSClient } from '@aws-sdk/client-kms';
-import { beforeEach, vi, describe, expect, it } from 'vitest';
 import { EncryptionService } from './EncryptionService';
 
 const mockPlainTextKey = Buffer.alloc(32, 'a');
 const mockEncryptedKey = Buffer.from('encrypted-key-data');
 
+const sendMock = vi.fn();
 const mockKmsClient = {
-  send: vi.fn(),
+  send: sendMock,
 } as unknown as KMSClient;
 
 describe('EncryptionService', () => {
@@ -14,23 +14,21 @@ describe('EncryptionService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockKmsClient.send as ReturnType<typeof vi.fn>).mockImplementation(
-      (command) => {
-        if (command.constructor.name === 'GenerateDataKeyCommand') {
-          return Promise.resolve({
-            Plaintext: mockPlainTextKey,
-            CiphertextBlob: mockEncryptedKey,
-          });
-        }
-        if (command.constructor.name === 'DecryptCommand') {
-          return Promise.resolve({
-            Plaintext: mockPlainTextKey,
-          });
-        }
+    sendMock.mockImplementation((command) => {
+      if (command.constructor.name === 'GenerateDataKeyCommand') {
+        return Promise.resolve({
+          Plaintext: mockPlainTextKey,
+          CiphertextBlob: mockEncryptedKey,
+        });
+      }
+      if (command.constructor.name === 'DecryptCommand') {
+        return Promise.resolve({
+          Plaintext: mockPlainTextKey,
+        });
+      }
 
-        return Promise.reject(new Error('unknown command'));
-      },
-    );
+      return Promise.reject(new Error('unknown command'));
+    });
 
     service = new EncryptionService({
       kmsKeyId: 'test-key-id',
@@ -92,11 +90,9 @@ describe('EncryptionService', () => {
         data: 'string',
       };
 
-      const encrypted = await service.encryptFields(data, ['data']);
-      const decrypted = await service.decryptFields(
-        encrypted as typeof data & { __dataKey: string },
-        ['data'],
-      );
+      const encrypted: typeof data & { __dataKey: string } =
+        await service.encryptFields(data, ['data']);
+      const decrypted = await service.decryptFields(encrypted, ['data']);
 
       expect(decrypted).toEqual(data);
       expect('__dataKey' in decrypted).toBe(false);
@@ -109,11 +105,9 @@ describe('EncryptionService', () => {
         data: { test: 'test' },
       };
 
-      const encrypted = await service.encryptFields(data, ['data']);
-      const decrypted = await service.decryptFields(
-        encrypted as typeof data & { __dataKey: string },
-        ['data'],
-      );
+      const encrypted: typeof data & { __dataKey: string } =
+        await service.encryptFields(data, ['data']);
+      const decrypted = await service.decryptFields(encrypted, ['data']);
 
       expect(decrypted).toEqual(data);
       expect('__dataKey' in decrypted).toBe(false);

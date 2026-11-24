@@ -28,12 +28,7 @@ type APIGatewayRequest = Request<APIGatewayProxyEventV2, object, Error>;
 
 const formatZodValidationError = (error: ZodError): ZodValidationError => {
   const errorMessage = 'Validation Errors';
-  const errorPaths: string[] = [];
-  error.issues.map((issue) => {
-    const path = issue.path;
-    const pathKey = path.join('.');
-    errorPaths.push(pathKey);
-  });
+  const errorPaths = error.issues.map((issue) => issue.path.join('.'));
   return new ZodValidationError(
     errorMessage,
     UDP_ERROR_TYPES.BAD_REQUEST,
@@ -76,7 +71,7 @@ export function zodValidator(
   logger: Logger,
 ): MiddlewareObj<APIGatewayProxyEventV2> {
   return {
-    before: async (request: APIGatewayRequest) => {
+    before: (request: APIGatewayRequest) => {
       const schemas = getValidationSchemas(lambdaName);
       try {
         if (schemas.pathParameters) {
@@ -107,7 +102,9 @@ export function zodValidator(
       } catch (error) {
         if (error instanceof ZodError) {
           const formattedError = formatZodValidationError(error);
-          logger.error(formattedError.message);
+          logger.error(formattedError.message, {
+            errorPaths: formattedError.errorPaths,
+          });
           throw formattedError;
         }
 
@@ -119,7 +116,7 @@ export function zodValidator(
         );
       }
     },
-    after: async (request: APIGatewayRequest) => {
+    after: (request: APIGatewayRequest) => {
       const schemas = getValidationSchemas(lambdaName);
       try {
         if (schemas.responses) {
@@ -133,7 +130,9 @@ export function zodValidator(
       } catch (error) {
         if (error instanceof ZodError) {
           const formattedError = formatZodValidationError(error);
-          logger.error(formattedError.message);
+          logger.error(formattedError.message, {
+            errorPaths: formattedError.errorPaths,
+          });
           return;
         }
 

@@ -1,15 +1,17 @@
 import { Construct } from 'constructs';
+import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-
-import { CfnOutput, Fn, Stack } from 'aws-cdk-lib';
 import * as kms from 'aws-cdk-lib/aws-kms';
+
 import {
   getLogRetentionPeriod,
   getRemovalPolicy,
 } from 'cdk/constants/environment';
+import { Checkov } from 'cdk/lib/checkov/checkov';
+import { GovUKTag } from '@govuk-connect/tag';
 
 export interface ApiGatewayConstructProps {
   readonly developerId?: string;
@@ -121,6 +123,7 @@ export class ApiGatewayConstruct extends Construct {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName(role)],
     });
+    GovUKTag.of(cloudwatchLogRole).DataClassification.OFFICIAL_SENSITIVE();
 
     const account = new apigateway.CfnAccount(this, 'ApiGatewayAccount', {
       cloudWatchRoleArn: cloudwatchLogRole.roleArn,
@@ -174,11 +177,36 @@ export class ApiGatewayConstruct extends Construct {
             }
           : undefined,
       },
-
       disableExecuteApiEndpoint: false,
     });
-
     this.api.node.addDependency(account);
+
+    const logRetentionRole = new iam.Role(this, 'ExecutionLogsRetentionRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'service-role/AWSLambdaBasicExecutionRole',
+        ),
+      ],
+    });
+    GovUKTag.of(logRetentionRole)
+      .DataClassification.OFFICIAL()
+      .PII.FALSE()
+      .Exposure.ISOLATED();
+
+    new logs.LogRetention(this, 'ExecutionLogsRetention', {
+      logGroupName: `API-Gateway-Execution-Logs_${this.api.restApiId}/${environment}`,
+      retention: getLogRetentionPeriod(environment),
+      removalPolicy: getRemovalPolicy(environment),
+      role: logRetentionRole,
+    });
+
+    GovUKTag.of(this.api)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE()
+      .Exposure.INTERNAL();
+
+    this.applyCheckovSuppressions(props);
 
     new CfnOutput(this, 'ApiEndpoint', {
       value: this.api.url,
@@ -189,6 +217,16 @@ export class ApiGatewayConstruct extends Construct {
       value: this.api.restApiId,
       description: 'RestAPi ID',
     });
+
+    GovUKTag.buriedOf(this.api, 'Api/AccessLogs/Resource')
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .PII.TRUE();
+  }
+
+  private applyCheckovSuppressions(props: ApiGatewayConstructProps): void {
+    if (!props.cachingEnabled) {
+      Checkov.suppressAWS120(this.api);
+    }
   }
 
   get stageArn(): string {

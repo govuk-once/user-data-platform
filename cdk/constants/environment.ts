@@ -1,4 +1,4 @@
-import { RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import {
   name as serviceName,
   team,
@@ -6,6 +6,7 @@ import {
   version,
 } from '../../package.json';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { ObjectLockRetention } from 'aws-cdk-lib/aws-s3';
 
 export type RepoMetaData = {
   serviceName: string;
@@ -51,4 +52,17 @@ export function getLogRetentionPeriod(environment: string): RetentionDays {
     return RetentionDays.ONE_YEAR;
   }
   return RetentionDays.ONE_MONTH;
+}
+
+export function getS3ObjectLockDefaultRetentionPeriod(
+  environment: string,
+): ObjectLockRetention {
+  if (
+    environment === GovUkOnceEnvironments.Prod ||
+    environment === GovUkOnceEnvironments.Stag
+  ) {
+    return ObjectLockRetention.compliance(Duration.days(365));
+  }
+
+  return ObjectLockRetention.compliance(Duration.days(30));
 }

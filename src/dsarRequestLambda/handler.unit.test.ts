@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, SQSEvent } from 'aws-lambda';
-import { beforeEach, describe, vi, expect, it } from 'vitest';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -44,12 +43,14 @@ describe('dsarRequestLambda handler', () => {
     vi.clearAllMocks();
   });
 
+  const defaultSQSBody: Record<string, unknown> = {
+    dsarID: mockDsarId,
+    serviceName: mockRequestingService,
+    serviceUserId: mockRequestingServiceUserId,
+  };
+
   const createSQSEvent = (
-    body: Record<string, unknown> = {
-      dsarID: mockDsarId,
-      serviceName: mockRequestingService,
-      serviceUserId: mockRequestingServiceUserId,
-    },
+    body: Record<string, unknown> = defaultSQSBody,
   ): SQSEvent => ({
     Records: [
       {
@@ -135,7 +136,7 @@ describe('dsarRequestLambda handler', () => {
       const sqsCalls = sqsMock.commandCalls(SendMessageCommand);
       expect(sqsCalls).toHaveLength(1);
 
-      const messageBody = JSON.parse(sqsCalls[0].args[0].input.MessageBody!);
+      const messageBody = JSON.parse(sqsCalls[0].args[0].input.MessageBody);
       expect(messageBody).toEqual({
         dsarID: mockDsarId,
         serviceName: mockRequestingService,
@@ -191,17 +192,17 @@ describe('dsarRequestLambda handler', () => {
       const sqsCalls = sqsMock.commandCalls(SendMessageCommand);
       expect(sqsCalls).toHaveLength(3);
 
-      const batch1 = JSON.parse(sqsCalls[0].args[0].input.MessageBody!);
+      const batch1 = JSON.parse(sqsCalls[0].args[0].input.MessageBody);
       expect(batch1.batchNumber).toBe(1);
       expect(batch1.totalBatches).toBe(3);
       expect(batch1.keys).toHaveLength(100);
 
-      const batch2 = JSON.parse(sqsCalls[1].args[0].input.MessageBody!);
+      const batch2 = JSON.parse(sqsCalls[1].args[0].input.MessageBody);
       expect(batch2.batchNumber).toBe(2);
       expect(batch2.totalBatches).toBe(3);
       expect(batch2.keys).toHaveLength(100);
 
-      const batch3 = JSON.parse(sqsCalls[2].args[0].input.MessageBody!);
+      const batch3 = JSON.parse(sqsCalls[2].args[0].input.MessageBody);
       expect(batch3.batchNumber).toBe(3);
       expect(batch3.totalBatches).toBe(3);
       expect(batch3.keys).toHaveLength(50);

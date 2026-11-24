@@ -1,8 +1,12 @@
 import { Construct } from 'constructs';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+
+import { getRemovalPolicy } from 'cdk/constants/environment';
+import { MacieAccess } from '../macie/macie-access';
+import { Checkov } from '../checkov/checkov';
 
 export interface S3ConstructProps {
   developerId?: string;
@@ -37,16 +41,37 @@ export class S3Construct extends Construct {
 
     const enableAutoDelete = environment === 'dev';
 
+    const accessLogsBucket = new s3.Bucket(this, 'AccessLogsBucket', {
+      bucketName: `${fullBucketName}-access-logs`,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      versioned: false,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: getRemovalPolicy(environment),
+      autoDeleteObjects: enableAutoDelete,
+      lifecycleRules: [
+        {
+          enabled: true,
+          expiration: Duration.days(360),
+        },
+      ],
+    });
+    Checkov.suppressAWS18(accessLogsBucket);
+    Checkov.suppressAWS21(accessLogsBucket);
+
     this.bucket = new s3.Bucket(this, 'Bucket', {
       bucketName: fullBucketName,
       encryption: s3.BucketEncryption.KMS,
       encryptionKey: kmsKey,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      bucketKeyEnabled: true,
       enforceSSL: true,
       versioned: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy:
         environment === 'dev' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
       autoDeleteObjects: enableAutoDelete,
+      serverAccessLogsBucket: accessLogsBucket,
+      serverAccessLogsPrefix: 'access-logs/',
       lifecycleRules: [
         {
           enabled: true,
@@ -79,6 +104,7 @@ export class S3Construct extends Construct {
           conditions: {
             StringNotEquals: {
               'aws:SourceVpc': vpcId,
+              'aws:PrincipalArn': MacieAccess.slrArn(this),
             },
             ArnNotLike: {
               'aws:PrincipalArn': [deploymentRoleArn],

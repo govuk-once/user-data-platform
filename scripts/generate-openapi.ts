@@ -35,8 +35,8 @@ async function main(): Promise<number> {
 
     fs.writeFileSync(OUTPUT_PATH, fullContent, 'utf-8');
 
-    const parsed = yaml.parse(yamlContent);
-    const pathCount = Object.keys(parsed.paths || {}).length;
+    // const parsed = yaml.parse(yamlContent);
+    // const pathCount = Object.keys(parsed.paths || {}).length;
 
     return 0;
   } catch (error) {

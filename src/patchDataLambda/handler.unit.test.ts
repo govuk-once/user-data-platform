@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 
 import {
@@ -155,7 +154,6 @@ describe('postDataLambda handler', () => {
       const errorPaths = JSON.parse(result.body).errorPaths;
       expect(errorPaths).toContain('requesting-service');
       expect(errorPaths).toContain('requesting-service-user-id');
-      expect(errorPaths).toContain('requested-at');
     });
 
     it('should return 400 when required header is invalid', async () => {
@@ -286,7 +284,7 @@ describe('postDataLambda handler', () => {
       });
     });
 
-    it('should return 400 when requested-at header is missing', async () => {
+    it('should patch without concurrency check when requested-at header is missing', async () => {
       const body = { data: { status: 'active' } };
       const event = createEvent(
         { 'requesting-service-user-id': mockAppId },
@@ -295,13 +293,21 @@ describe('postDataLambda handler', () => {
       );
       delete event.headers['requested-at'];
 
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({
+        Item: { pk: mockUdpId, sk: 'topics', data: { existing: 'data' } },
+      });
+      dynamoMock.on(UpdateCommand).resolves({
+        Attributes: {
+          pk: mockUdpId,
+          sk: 'topics',
+          data: { existing: 'data', status: 'active' },
+        },
+      });
+
       const result = await handler(event, mockContext);
 
-      expect(result.statusCode).toBe(400);
-      expect(JSON.parse(result.body)).toMatchObject({
-        errorCode: 400,
-        errorType: 'BAD_REQUEST',
-      });
+      expect(result.statusCode).toBe(200);
     });
   });
 

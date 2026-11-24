@@ -21,9 +21,9 @@ export interface ApiRequestOptions {
 const DEBUG = process.env.DEBUG === 'true' || process.env.DEBUG === '1';
 
 export class ApiClient {
-  private baseUrl: string;
-  private defaultRoleArn?: string;
-  private defaultExternalId?: string;
+  private readonly baseUrl: string;
+  private readonly defaultRoleArn?: string;
+  private readonly defaultExternalId?: string;
 
   constructor(
     baseUrl: string = config.apiBaseUrl,

@@ -12,7 +12,7 @@ Feature: User Data API
         Then I should receive a successful response
         Then the response status should be 204
 
-    Scenario: Successfully add data
+    Scenario: Successfully add data with requested-at header
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
         And I set header 'requested-at' to '2026-04-09T12:00:00.000Z'
@@ -31,6 +31,19 @@ Feature: User Data API
         Given I set header 'requesting-service' to 'app'
         And I set header 'requesting-service-user-id' to '123'
         When I send a delete to '/v1/user-topics'
+        Then I should receive a successful response
+
+    Scenario: Successfully add data without requested-at header
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to '123'
+        When I send a post to '/v1/user-topics-no-header' with the body '{"data": {"no-header":"data"} }'
+        Then I should receive a successful response
+        Then the response body contains '{"data":{"no-header":"data"}}'
+
+    Scenario: Successfully delete data without requested-at header
+        Given I set header 'requesting-service' to 'app'
+        And I set header 'requesting-service-user-id' to '123'
+        When I send a delete to '/v1/user-topics-no-header'
         Then I should receive a successful response
 
     Scenario: Successfully Delete identity Record

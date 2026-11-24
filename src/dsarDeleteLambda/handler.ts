@@ -28,7 +28,9 @@ const factory = new ServiceFactory({
   tableName: TABLE_NAME,
   identityTableName: IDENTITY_TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
+  dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
   tracer,
+  logger,
 });
 
 export const lambdaHandler = async (event: SQSEvent) => {
@@ -47,6 +49,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
 
     for (const key of keys) {
       try {
+        // NOSONAR: sequential deletes intentional — rethrows on unexpected errors to stop early
         await dataService.deleteByKey(
           {
             pk: '',
@@ -81,6 +84,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
     const identityService = factory.getService('identity');
     const udpId = keys[0].pk;
 
+    // NOSONAR: sequential per-record processing intentional — stops on first failure to allow SQS retry
     await identityService.deleteAllByUdpId(udpId);
     logger.info('Deleted identity records', {
       dsarID,
@@ -93,7 +97,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })

@@ -11,6 +11,7 @@ Visual documentation of the business logic, validation, decision trees, and erro
   - [createIdentityLambda](#createidentitylambda)
   - [readIdentityLambda](#readidentitylambda)
   - [exchangeIdentityLambda](#exchangeidentitylambda)
+  - [getAllLinkedServiceLambda](#getalllinkedservicelambda)
   - [deleteIdentityLambda](#deleteidentitylambda)
 - [Data Management](#data-management)
   - [postDataLambda](#postdatalambda)
@@ -303,6 +304,56 @@ flowchart TD
     I -- Yes --> J[Sanitize response]
 
     J --> K([fa:fa-check 200 Linked identity record]):::success
+
+```
+
+### getAllLinkedServiceLambda
+
+**Route:** `GET /v1/identity/{serviceName}/{identifier}/linked-services`
+
+Returns all service names linked to the same UDP user via the shared `udpId`.
+
+```mermaid
+
+flowchart TD
+
+    classDef error fill:#f96,stroke:#333,color:#000
+
+    classDef success fill:#d4edda,stroke:#333,color:#000
+
+    classDef apigw fill:#FF9900,stroke:#333,color:#000
+
+    classDef dynamo fill:#3B48CC,stroke:#333,color:#fff
+
+    classDef validate fill:#e6f3ff,stroke:#333,color:#000
+
+
+
+    A(["fa:fa-globe GET /v1/identity/serviceName/identifier<br/>/linked-services"]):::apigw --> B[[fa:fa-check-circle Zod validates path params:<br/>serviceName + identifier required]]:::validate
+
+    B --> C{Validation<br/>passes?}
+
+    C -- No --> ERR1[fa:fa-times-circle 400 BAD_REQUEST]:::error
+
+    C -- Yes --> D[fa:fa-database Step 1: DynamoDB GetItem<br/>pk: serviceName#identifier]:::dynamo
+
+    D --> E{Identity<br/>found?}
+
+    E -- No --> ERR2[fa:fa-times-circle 404 IDENTITY_NOT_FOUND]:::error
+
+    E -- Yes --> F[Extract udpId from record]
+
+    F --> G[fa:fa-database Step 2: Query GSI sk-index<br/>sk = udpId]:::dynamo
+
+    G --> H{Linked records<br/>returned?}
+
+    H -- No --> I[Log: no linked services found<br/>Return empty array]
+
+    H -- Yes --> J[Map records → extract serviceName<br/>from each]
+
+    I --> K([fa:fa-check 200 linkedServices array]):::success
+
+    J --> K
 
 ```
 

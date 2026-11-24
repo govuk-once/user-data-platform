@@ -9,19 +9,26 @@ on:
         type: string
       aws-region:
         description: 'Region in aws'
-        required: true
+        required: false
         type: string
+        default: 'eu-west-2'
       stack-prefix:
-        description: 'CFN stack prefix (eg dev, pr-123)'
+        description: 'CFN stack prefix (eg dev, pr-123-dev)'
         required: true
         type: string
       perf-target:
-        description: 'Performacne target for test run'
+        description: 'Performance target for test run'
         required: false
         type: string
         default: 'smoke'
+      node-version:
+        required: false
+        type: string
+        default: '24'
     secrets:
       DEPLOYMENT_ROLE:
+        required: true
+      CODEARTIFACT_ACCOUNT:
         required: true
 
 permissions:
@@ -35,30 +42,76 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: Configure Aws Credentials
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
           role-to-assume: ${{ secrets.DEPLOYMENT_ROLE }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Get Perf Codebuild project name
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ inputs.node-version }}
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+      - name: Get Perf CodeBuild project name
         id: get-perf-project
         env:
           STACK_NAME: ${{ inputs.stack-prefix }}-perf
         run: |
           PERF_PROJECT=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='PerfCodeBuildProjectName'].OutputValue" --output text)
-          echo "perf-project=${PERF_PROJECT}" >> $GITHUB_OUTPUT
-          echo "Perf Codebuild Project: ${PERF_PROJECT}"
+          echo "perf-project=${PERF_PROJECT}" >> "$GITHUB_OUTPUT"
+          echo "Perf CodeBuild project: ${PERF_PROJECT}"
 
-      - name: Start Performance tests (fire-and-forget)
+      - name: Get source bucket and path
+        id: get-source
+        uses: ./.github/actions/e2e-stack-outputs
+        with:
+          stack-name: ${{ inputs.stack-prefix }}-e2e
+
+      - name: Resolve perf source path
+        # The e2e workflow runs in parallel and uploads to the same source.zip
+        # key; if its upload lands last, the perf build gets a bundle without
+        # k6. Upload perf's bundle to its own key and override the build source.
+        id: perf-source
         env:
-          PERF_PROJECT: ${{ steps.get-perf-project.outputs.perf-project }}
-          PERF_TARGET: ${{ inputs.perf-target }}
+          SOURCE_PATH: ${{ steps.get-source.outputs.source-path }}
         run: |
-          echo "Starting performance tests: ${PERF_PROJECT}"
-          BUILD_ID=$(aws codebuild start-build \
-            --project-name "${PERF_PROJECT}" \
-            --environment-variables-override "name=PERF_TARGET,value=${PERF_TARGET},type=PLAINTEXT" \
-            --query 'build.id' --output text)
-          echo "Performance test build started ${BUILD_ID}"
-          echo "Build will run independently - failures will be notified in slack channel"
+          PERF_SOURCE_PATH="$(dirname "${SOURCE_PATH}")/perf-source.zip"
+          echo "path=${PERF_SOURCE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "Perf source path: ${PERF_SOURCE_PATH}"
+
+      - name: Download k6 for CodeBuild
+        # The perf CodeBuild project runs in isolated subnets with no internet
+        # access, so k6 is fetched here and shipped inside source.zip.
+        env:
+          K6_VERSION: v0.55.0
+          K6_SHA256: 47a43a8dbb4c1f5d5bd7b8ed6a1b8c83b35546acf989b78400b4e6ce3adaf628 # pragma: allowlist secret -- release tarball checksum, not a secret
+        run: |
+          curl -fsSL --retry 3 --retry-connrefused --connect-timeout 15 --max-time 300 \
+            -o k6.tar.gz "https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz"
+          echo "${K6_SHA256}  k6.tar.gz" | sha256sum -c -
+          mkdir -p performance/.bin
+          tar xzf k6.tar.gz --strip-components=1 -C performance/.bin "k6-${K6_VERSION}-linux-amd64/k6"
+          rm k6.tar.gz
+          performance/.bin/k6 version
+
+      - name: Upload source to S3
+        uses: ./.github/actions/upload-source
+        with:
+          bucket: ${{ steps.get-source.outputs.source-bucket }}
+          path: ${{ steps.perf-source.outputs.path }}
+
+      - name: Start performance tests (fire-and-forget)
+        uses: ./.github/actions/run-codebuild
+        with:
+          project: ${{ steps.get-perf-project.outputs.perf-project }}
+          env-overrides: name=PERF_TARGET,value=${{ inputs.perf-target }},type=PLAINTEXT
+          source-location: ${{ steps.get-source.outputs.source-bucket }}/${{ steps.perf-source.outputs.path }}
+          wait: 'false'
+          aws-region: ${{ inputs.aws-region }}

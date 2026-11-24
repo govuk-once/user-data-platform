@@ -1,6 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { describe, it, vi, beforeEach, expect } from 'vitest';
 import {
   CreateUserInput,
   IdentityInput,
@@ -14,6 +13,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { ServiceFactory } from '../factory/ServiceFactory';
 import {
   BaseUDPError,
@@ -44,11 +44,10 @@ describe('Identity Service', () => {
     udpId: 'mock-string-uuid4',
   };
 
-  const service: DynamoDBIdentityService<IdentityRecordEntity> =
-    new ServiceFactory({
-      tableName,
-      identityTableName,
-    }).getService('identity');
+  const service: DynamoDBIdentityService = new ServiceFactory({
+    tableName,
+    identityTableName,
+  }).getService('identity');
 
   beforeEach(() => {
     dynamoMock.reset();
@@ -170,7 +169,7 @@ describe('Identity Service', () => {
         appId: 'test',
         serviceId: 'test-service-id',
         serviceName: 'test-service',
-        ttl,
+        expiresAt: ttl,
       };
       const pk = `app#${input.appId}`;
 
@@ -279,6 +278,43 @@ describe('Identity Service', () => {
         Limit: 1,
       });
       expect(result).toEqual(user);
+    });
+
+    it('Should throw a IdentityRecordNotFoundError if the Identity Record if it is expired', async () => {
+      const serviceId = 'test';
+      const serviceName = 'test-service';
+      const pk = serviceName.concat('#', serviceId);
+      const user = {
+        ...mockAppIdentityRecord,
+        pk,
+        serviceName,
+        serviceId,
+        ttl: Math.floor(Date.parse('2026-01-01') / 1000),
+      };
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [user] });
+
+      try {
+        await service.getByServiceId(serviceName, serviceId);
+      } catch (error) {
+        expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+          TableName: identityTableName,
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: {
+            ':pk': pk,
+          },
+          Limit: 1,
+        });
+
+        const expectedError = new IdentityRecordNotFoundError(
+          `Identity not found with service: ${serviceName} and id: ${serviceId}`,
+          UDP_ERROR_TYPES.IDENTITY_NOT_FOUND,
+          serviceName,
+          serviceId,
+        );
+        expect(error).instanceOf(IdentityRecordNotFoundError);
+        expect(error).toEqual(expectedError);
+      }
     });
 
     it('Should throw a IdentityRecordNotFoundError if the Identity Record does not exist', async () => {
@@ -469,12 +505,163 @@ describe('Identity Service', () => {
 
   describe('constructor', () => {
     it('should create service with DynamoDB repository', () => {
-      const testServiceConstructor: DynamoDBIdentityService<IdentityRecordEntity> =
+      const testServiceConstructor: DynamoDBIdentityService =
         new ServiceFactory({
           tableName,
           identityTableName,
         }).getService('identity');
       expect(testServiceConstructor).toBeInstanceOf(DynamoDBIdentityService);
+    });
+  });
+
+  describe('Get All Linked Service', () => {
+    const serviceId = 'test';
+    const serviceName = 'test-service';
+    const udpId = 'mock-string-uuid4';
+    const pk = serviceName.concat('#', serviceId);
+    const identity = {
+      ...mockAppIdentityRecord,
+      pk,
+      serviceName,
+      serviceId,
+      udpId,
+    };
+
+    it('should return an array of linked service names, filtering out expired identities', async () => {
+      const identities: IdentityRecordEntity[] = [
+        {
+          pk: 'app#app-id',
+          sk: udpId,
+          serviceName: 'app',
+          serviceId: 'app-id',
+          udpId,
+        },
+        {
+          pk: 'dwp#dwp-id',
+          sk: udpId,
+          serviceName: 'dwp',
+          serviceId: 'dwp-id',
+          udpId,
+        },
+        {
+          pk: 'dvla#dvla-id',
+          sk: udpId,
+          serviceName: 'dvla',
+          serviceId: 'dvla-id',
+          udpId,
+          ttl: Math.floor(Date.parse('2026-01-01') / 1000),
+        },
+      ];
+
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: identities });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(getCommandCall(QueryCommand, 1)).toMatchObject({
+        TableName: identityTableName,
+        KeyConditionExpression: 'pk = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        Limit: 1,
+      });
+      expect(getCommandCall(QueryCommand, 2)).toMatchObject({
+        TableName: identityTableName,
+        IndexName: 'sk-index',
+        KeyConditionExpression: 'sk = :sk',
+        ExpressionAttributeValues: { ':sk': udpId },
+      });
+      expect(result).toEqual([{ serviceName: 'app' }, { serviceName: 'dwp' }]);
+    });
+
+    it('should include ttl in response for non-expired identities that have one set', async () => {
+      const futureTtl = Math.floor(Date.parse('2030-01-01') / 1000);
+      const identities: IdentityRecordEntity[] = [
+        {
+          pk: 'dvla#dvla-id',
+          sk: udpId,
+          serviceName: 'dvla',
+          serviceId: 'dvla-id',
+          udpId,
+          ttl: futureTtl,
+        },
+      ];
+
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: identities });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(result).toEqual([{ serviceName: 'dvla', ttl: futureTtl }]);
+    });
+
+    it('should return an empty array and log when no linked services exist', async () => {
+      dynamoMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [identity] })
+        .resolvesOnce({ Items: [] });
+
+      const result = await service.getAllLinkedServices(serviceName, serviceId);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw IdentityRecordNotFoundError when the initial identity does not exist', async () => {
+      dynamoMock.on(QueryCommand).resolvesOnce({ Items: [] });
+
+      await expect(
+        service.getAllLinkedServices(serviceName, serviceId),
+      ).rejects.toThrow(IdentityRecordNotFoundError);
+    });
+
+    it('should throw underlying error if DB failure', async () => {
+      const mockError = new Error('DB Failure');
+
+      dynamoMock.on(QueryCommand).rejects(mockError);
+
+      await expect(
+        service.getAllLinkedServices(serviceName, serviceId),
+      ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('checkHealth', () => {
+    it('should return true when table status is ACTIVE', async () => {
+      dynamoMock.on(DescribeTableCommand).resolves({
+        Table: { TableStatus: 'ACTIVE' },
+      });
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(true);
+      expect(
+        dynamoMock.commandCalls(DescribeTableCommand)[0].args[0].input,
+      ).toEqual({
+        TableName: identityTableName,
+      });
+    });
+
+    it('should return false when table status is not ACTIVE', async () => {
+      dynamoMock.on(DescribeTableCommand).resolves({
+        Table: { TableStatus: 'UPDATING' },
+      });
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when DescribeTableCommand throws an error', async () => {
+      dynamoMock
+        .on(DescribeTableCommand)
+        .rejects(new Error('ResourceNotFoundException'));
+
+      const result = await service.checkHealth();
+
+      expect(result).toBe(false);
     });
   });
 });

@@ -3,34 +3,53 @@ name: Release Candidate
 on:
   pull_request:
     branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+env:
+  AWS_REGION: eu-west-2
 
 jobs:
+  validate-pr:
+    name: Validate PR
+    uses: ./.github/workflows/__validate-pr.yml
   ci:
+    needs: validate-pr
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+          persist-credentials: false
 
-      - name: Setup node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      - name: Configure AWS Credentials
+        id: aws-creds
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9 # v5.1.1
         with:
-          node-version: 22
+          role-to-assume: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
-        run: |
-          python3 -m pip install semgrep pre-commit checkov
-          npm install -g pnpm
-          pnpm install --frozen-lockfile
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          codeartifact-account: ${{ secrets.CODEARTIFACT_ACCOUNT }}
+
+      - name: Install security tooling
+        run: python3 -m pip install semgrep pre-commit checkov
 
       - name: Run Hygiene & Security Checks
         run: SKIP=format-check,linting-check,checkov-scan,semgrep pre-commit run --all-files --show-diff-on-failure
 
-      - name: NX - set SHAs
-        uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4.4.0
+      - name: Run Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.0
+        with:
+          fail-on-severity: high # Will fail on newly introduced vulnerabilities
+          license-check: false
 
       - name: Validate Conventional Commits
         run: |
@@ -91,21 +110,30 @@ jobs:
 
       - name: Lint & format checks
         run: |
-          pnpm lint:affected
+          pnpm lint:all
           pnpm format:check
 
       - name: Build
-        run: pnpm build:affected
+        run: pnpm build:all
 
       - name: Unit Tests
-        run: pnpm test:affected
-
-      - name: Run SonarQube Scan
-        # nosemgrep - Ignore false positive
-        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_UDP }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+        run: pnpm test:all
 
       - name: Checkov Security Scan
-        run: checkov -d cdk --config-file cdk/.checkov.yaml
+        run: |
+          rm -rf cdk/cdk.out
+          (cd cdk && npx cdk synth --quiet -c skipMonitoringStack=true > /dev/null)
+          checkov -d cdk/cdk.out --config-file cdk/.checkov.yaml
+
+      - name: Semgrep Security Scan
+        run: semgrep scan $(cat .semgrep-args.txt) --error .
+
+  sonar-scan:
+    needs: validate-pr
+    name: Run SonarQube Scan
+    uses: ./.github/workflows/sonar-scan.yml
+    secrets:
+      SONAR_TOKEN_UDP: ${{ secrets.SONAR_TOKEN_UDP }}
+      SONAR_URL: ${{ secrets.SONAR_URL }}
+      DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
+      CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}

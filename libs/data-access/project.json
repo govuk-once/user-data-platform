@@ -10,10 +10,10 @@
         "lintFilePatterns": ["libs/data-access/**/*.{ts,tsx,js,jsx}"]
       }
     },
-    "test:unit": {
+    "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest libs/data-access/**/*"
+        "command": "VITEST_COVERAGE_DIR=coverage/data-access vitest run libs/data-access/**/*"
       }
     },
     "test:coverage": {

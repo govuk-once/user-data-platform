@@ -1,8 +1,11 @@
 import { Construct } from 'constructs';
 import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as signer from 'aws-cdk-lib/aws-signer';
 import { VpcConstruct } from '../constructs/vpc-construct';
 import { KmsConstruct } from '../constructs/kms-construct';
+import { GovUKTag } from '@govuk-connect/tag';
+import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 
 export interface VpcStackProps extends StackProps {
   readonly environment: string;
@@ -18,6 +21,8 @@ export class VpcStack extends Stack {
   public readonly lambdaSecurityGroup: ec2.SecurityGroup;
   public readonly executeApiEndpointId: string;
   public readonly codeBuildSecurityGroup: ec2.SecurityGroup;
+  public readonly dynamoDbEndpointUrl: string;
+  public readonly lambdaSigningProfile: signer.SigningProfile;
 
   constructor(scope: Construct, id: string, props: VpcStackProps) {
     super(scope, id, props);
@@ -26,8 +31,8 @@ export class VpcStack extends Stack {
       environment,
       vpcCidr,
       maxAzs,
-      enablePrivateLink = false,
-      privateLinkAllowedPrincipalArns = [],
+      // enablePrivateLink = false,
+      // privateLinkAllowedPrincipalArns = [],
     } = props;
 
     const kmsConstruct = new KmsConstruct(this, 'kms', {
@@ -42,11 +47,39 @@ export class VpcStack extends Stack {
       kmsKey: kmsConstruct.key,
     });
 
+    GovUKTag.of(vpcConstuct)
+      .DataClassification.OFFICIAL_SENSITIVE()
+      .Exposure.ISOLATED()
+      .PII.TRUE();
+
     this.vpc = vpcConstuct.vpc;
     this.vpcEndpointSecurityGroup = vpcConstuct.vpcEndpointSecurityGroup;
     this.lambdaSecurityGroup = vpcConstuct.lambdaSecurityGroup;
     this.executeApiEndpointId = vpcConstuct.executeApiEndpoint.vpcEndpointId;
     this.codeBuildSecurityGroup = vpcConstuct.codebuildSecurityGroup;
+    this.dynamoDbEndpointUrl = vpcConstuct.dynamoDbEndpointUrl;
+
+    this.lambdaSigningProfile = new signer.SigningProfile(
+      this,
+      'LambdaSigningProfile',
+      {
+        platform: signer.Platform.AWS_LAMBDA_SHA384_ECDSA,
+      },
+    );
+
+    // Temporary migration safeguard: the currently deployed prod-sar stack
+    // still imports this CDK-generated VPC ID export.
+    // Remove once prod-sar has been updated and no longer imports it.
+    if (environment === GovUkOnceEnvironments.Prod) {
+      this.exportValue(this.vpc.vpcId);
+    }
+
+    new CfnOutput(this, 'LambdaSigningProfileName', {
+      value: this.lambdaSigningProfile.signingProfileName,
+      exportName: `${id}-LambdaSigningProfileName`,
+      description:
+        'AWS Signer profile name used to sign Lambda deployment packages',
+    });
 
     new CfnOutput(this, 'VpcIdOutput', {
       value: this.vpc.vpcId,
@@ -79,6 +112,11 @@ export class VpcStack extends Stack {
         exportName: `${id}-PrivateSubnet${idx}Id`,
         description: `Private subnet ${idx} ID`,
       });
+
+      GovUKTag.of(subnet)
+        .DataClassification.OFFICIAL_SENSITIVE()
+        .Exposure.ISOLATED()
+        .PII.TRUE();
     });
   }
 }

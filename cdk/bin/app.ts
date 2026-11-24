@@ -4,30 +4,39 @@ import {
   MainStack,
   MonitoringStack,
   SarStack,
+  DvlaPilotStack,
+  VpcStack,
+  E2EStack,
+  PerfStack,
+  LiveSchemaStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
-import { VpcStack } from 'cdk/lib/stacks/vpc-stack';
-import { CheckovSuppressionAspect } from 'cdk/lib/aspects/checkov-suppression-aspect';
-import { E2eStack } from 'cdk/lib/stacks/e2e-stack';
-import { PerfStack } from 'cdk/lib/stacks/perf-stack';
+import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
+import { GovUKTag } from '@govuk-connect/tag';
+import { Macie } from 'cdk/lib/macie';
 
+// App
 const app = new App();
 
+// Env
 const environment = app.node.tryGetContext('env') || 'dev';
-const developerId = process.env.DEVELOPER_ID || undefined;
+const isNotProd = environment !== GovUkOnceEnvironments.Prod;
+const isNotDev = environment !== GovUkOnceEnvironments.Dev;
+const isStageOrProd =
+  environment === GovUkOnceEnvironments.Prod ||
+  environment === GovUkOnceEnvironments.Stag;
+const developerId = process.env.DEVELOPER_ID!;
 
-const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
-
-const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION || 'eu-west-2';
+// AWS Env
+const account = process.env.CDK_DEFAULT_ACCOUNT!;
+const region = process.env.CDK_DEFAULT_REGION!;
 const deploymentRoleArn = process.env.CDK_DEPLOYMENT_ROLE_ARN;
-
-const awsEnv = account
-  ? {
-      account,
-      region,
-    }
-  : undefined;
+const stackPrefix = developerId ? `${developerId}-${environment}` : environment;
+const stackDescription = developerId ? ` for ${developerId}` : '';
+const awsEnv = {
+  account,
+  region,
+};
 
 const crossAccountPrincipals: string[] = (() => {
   const ctx = app.node.tryGetContext('crossAccountPrincipals');
@@ -40,118 +49,184 @@ const crossAccountPrincipals: string[] = (() => {
   }
 })();
 
+// Setup
 const skipMainStack = app.node.tryGetContext('skipMainStack') === 'true';
+const skipMonitoringStack =
+  app.node.tryGetContext('skipMonitoringStack') === 'true';
 
+// VPC Stack
 const vpcStack = new VpcStack(app, `${environment}-vpc`, {
   environment,
   env: awsEnv,
   description: `Shared VPC Stack for ${environment} environment`,
 });
 
-Aspects.of(app).add(new CheckovSuppressionAspect());
-
+// Skip main stack until VPC is deployed
 if (!skipMainStack) {
+  // Macie stack and Aspect
+  Macie(app, {
+    env: awsEnv,
+    stackPrefix,
+  });
+
+  // Main stack
   const mainStack = new MainStack(app, `${stackPrefix}-main`, {
     developerId,
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `Main infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `Main infrastructure stack ${stackDescription}`,
     vpc: vpcStack.vpc,
     lambdaSecurityGroup: vpcStack.lambdaSecurityGroup,
     codebuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
     vpcEndpointId: vpcStack.executeApiEndpointId,
     crossAccountPrincipals,
     availabilityZones: vpcStack.vpc.availabilityZones,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
     ...repoMetaData,
   });
 
-  mainStack.addDependency(vpcStack);
+  mainStack.node.addDependency(vpcStack);
 
+  // SAR stack
   const sarStack = new SarStack(app, `${stackPrefix}-sar`, {
     developerId,
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `DSAR procession stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `DSAR procession stack ${stackDescription}`,
     table: mainStack.table,
     identityTable: mainStack.identityTable,
     kmsKey: mainStack.kmsKey,
     dbKmsKey: mainStack.dbKmsKey,
-    dsarQueue: mainStack.dsarQueue,
-    sarQueue: mainStack.sarQueue,
+    ...(!isStageOrProd && { dsarQueue: mainStack.dsarQueue }),
+    ...(!isStageOrProd && { sarQueue: mainStack.sarQueue }),
     vpc: vpcStack.vpc,
     lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
     deploymentRoleArn,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
   });
 
-  sarStack.addDependency(mainStack);
+  sarStack.node.addDependency(mainStack);
 
-  const kmsKeyAlias = `${developerId ? `${developerId}-` : ''}encryption-${environment}`;
+  const dvlaPilotStack = new DvlaPilotStack(app, `${stackPrefix}-dvla-pilot`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `DVLA pilot purge stack ${stackDescription}`,
+    identityTable: mainStack.identityTable,
+    kmsKey: mainStack.kmsKey,
+    dbKmsKey: mainStack.dbKmsKey,
+    vpc: vpcStack.vpc,
+    lambdaSecurityGroups: vpcStack.lambdaSecurityGroup,
+    dynamoDbEndpointUrl: vpcStack.dynamoDbEndpointUrl,
+    signingProfile: vpcStack.lambdaSigningProfile,
+  });
 
-  const monitoringStack = new MonitoringStack(
-    app,
-    `${stackPrefix}-monitoring`,
-    {
+  dvlaPilotStack.node.addDependency(mainStack);
+
+  // Live schemas. Consumes main stack resources via SSM parameters, so this
+  // dependency only orders deployment - no exports.
+  let liveSchemaStack;
+  if (isNotProd) {
+    liveSchemaStack = new LiveSchemaStack(app, `${stackPrefix}-live-schema`, {
       developerId,
       environment,
       stackPrefix,
       env: awsEnv,
-      description: `Monitoring stack${developerId ? ` for ${developerId}` : ''}`,
-      table: mainStack.table,
-      api: mainStack.api,
-      lambdas: [...mainStack.lambdas, ...sarStack.lambdas],
-      notificationEmails: [],
+      description: `Live schema extraction stack ${stackDescription}`,
+      signingProfile: vpcStack.lambdaSigningProfile,
+    });
+
+    liveSchemaStack.node.addDependency(mainStack);
+  }
+
+  const kmsKeyPrefix = developerId ? `${developerId}-` : '';
+  const kmsKeyAlias = `${kmsKeyPrefix}encryption-${environment}`;
+
+  // Testing
+  if (isNotProd) {
+    const e2eStack = new E2EStack(app, `${stackPrefix}-e2e`, {
+      developerId,
+      environment,
+      env: awsEnv,
+      description: `E2E testing stack ${stackDescription}`,
+      vpc: vpcStack.vpc,
+      codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
       kmsKeyAlias,
-    },
-  );
+      apiEndpoint: mainStack.api.url,
+      e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+      apiId: mainStack.api.restApiId,
+      identityTableName: mainStack.identityTable.tableName,
+      kmsKeyArn: mainStack.kmsKey.keyArn,
+      e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
+    });
 
-  monitoringStack.addDependency(sarStack);
+    e2eStack.node.addDependency(mainStack);
 
-  const e2eStack = new E2eStack(app, `${stackPrefix}-e2e`, {
-    developerId,
-    environment,
-    env: awsEnv,
-    description: `E2E testing stack${developerId ? ` for ${developerId}` : ''}`,
-    vpc: vpcStack.vpc,
-    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
-    kmsKeyAlias,
-    apiEndpoint: mainStack.api.url,
-    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
-    apiId: mainStack.api.restApiId,
-    identityTableName: mainStack.identityTable.tableName,
-    kmsKeyArn: mainStack.kmsKey.keyArn,
-    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
-  });
+    const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
+      developerId,
+      environment,
+      env: awsEnv,
+      description: `Performance test stack ${stackDescription}`,
+      vpc: vpcStack.vpc,
+      codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
+      apiEndpoint: mainStack.api.url,
+      apiId: mainStack.api.restApiId,
+      e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
+      e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
+      sourceBucketName: e2eStack.sourceBucket.bucketName,
+      identityTableName: mainStack.identityTable.tableName,
+      dataTableName: mainStack.table.tableName,
+    });
 
-  e2eStack.addDependency(mainStack);
-
-  const perStack = new PerfStack(app, `${stackPrefix}-perf`, {
-    developerId,
-    environment,
-    env: awsEnv,
-    description: `Performance test stack${developerId ? ` for ${developerId}` : ''}`,
-    vpc: vpcStack.vpc,
-    codeBuildSecurityGroup: vpcStack.codeBuildSecurityGroup,
-    apiEndpoint: mainStack.api.url,
-    apiId: mainStack.api.restApiId,
-    e2eTestConsumerRole: mainStack.e2eTestConsumerRole,
-    e2eTestConsumerApiKeyValue: mainStack.e2eTestConsumerApiKeyValue,
-    sourceBucketName: e2eStack.sourceBucket.bucketName,
-    warningTopic: monitoringStack.warningTopic,
-  });
-
-  perStack.addDependency(mainStack);
+    perStack.node.addDependency(mainStack);
+  }
 }
 
-if (environment !== GovUkOnceEnvironments.Dev) {
+// Monitoring
+if (!skipMonitoringStack) {
+  new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Monitoring stack ${stackDescription}`,
+    notificationEmails: [],
+  });
+}
+
+// Backup
+if (isNotDev) {
   new BackupStack(app, `${stackPrefix}-backup`, {
     developerId,
     environment,
     stackPrefix,
     env: awsEnv,
-    description: `Backup infrastructure stack${developerId ? ` for ${developerId}` : ''}`,
+    description: `Backup infrastructure stack ${stackDescription}`,
   });
 }
+
+// Checkov Aspect
+Aspects.of(app).add(new CheckovSuppressionAspect());
+
+// GovUKTag Aspect
+GovUKTag.applyAspect(app, {
+  mandatoryAppTags: {
+    Product: GovUKTag.Once.Suggested.UDP.Product,
+    Service: GovUKTag.Once.Suggested.UDP.Service,
+    Component: GovUKTag.Once.Suggested.UDP.Component,
+    Environment: GovUKTag.Once.mapEnvironment(environment),
+    Owner: GovUKTag.Once.Suggested.UDP.Owner,
+    Source: GovUKTag.Once.Suggested.UDP.Source,
+  },
+  optionalAppTags: {
+    RepositoryUrl: GovUKTag.Once.Suggested.UDP.RepositoryUrl,
+    BillingProject: GovUKTag.Once.Suggested.UDP.BillingProject,
+  },
+});
 
 app.synth();

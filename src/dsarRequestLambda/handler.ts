@@ -32,7 +32,9 @@ const factory = new ServiceFactory({
   tableName: TABLE_NAME,
   identityTableName: IDENTITY_TABLE_NAME,
   kmsKeyId: process.env.KMS_KEY_ID,
+  dynamoDbEndpointUrl: process.env.DYNAMODB_ENDPOINT,
   tracer,
+  logger,
 });
 
 export const lambdaHandler = async (event: SQSEvent) => {
@@ -45,12 +47,14 @@ export const lambdaHandler = async (event: SQSEvent) => {
       serviceUserId,
     });
 
+    // NOSONAR: sequential per-record processing intentional — stops on first failure to allow SQS retry
     const identity = await factory
       .getService('identity')
       .getByServiceId(serviceName, serviceUserId);
 
     const udpId = identity.udpId;
 
+    // NOSONAR: sequential per-record processing intentional — stops on first failure to allow SQS retry
     const totalItems = await factory.getService('data').countByUdpID(udpId);
 
     if (totalItems === 0) {
@@ -63,6 +67,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
     let lastEvaluatedKey: Record<string, unknown> | undefined;
 
     do {
+      // NOSONAR: pagination requires sequential requests (each page key depends on prior response)
       const page = await factory
         .getService('data')
         .getKeyPageByUdpID(udpId, lastEvaluatedKey);
@@ -76,6 +81,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
         keys: page.items,
       };
 
+      // NOSONAR: send depends on page result from same iteration, sequential within pagination loop
       await sqsClient.send(
         new SendMessageCommand({
           QueueUrl: QUEUE_URL,
@@ -100,7 +106,7 @@ export const handler = middy()
   .use(injectLambdaContext(logger))
   .use(captureLambdaHandler(tracer, { captureResponse: false }))
   .use({
-    before: async () => {
+    before: () => {
       tracer.putAnnotation('stack', stack);
     },
   })

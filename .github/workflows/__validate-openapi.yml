@@ -1,0 +1,39 @@
+on:
+  workflow_call:
+
+jobs:
+  openapi:
+    name: Check for breaking changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'breaking-change-accepted') }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install oasdiff
+        env:
+          OASDIFF_VERSION: 1.11.10
+          # sha256 of oasdiff_1.11.10_linux_amd64.tar.gz - verify when bumping:
+          # https://github.com/oasdiff/oasdiff/releases
+          OASDIFF_SHA256: 6d5880efb3422401f14c85f3c1347d6c41de3e4ea7c04e3ca7dc5c8f452e8ba2 # pragma: allowlist secret
+        run: |
+          curl -fsSL -o oasdiff.tar.gz \
+            "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          echo "${OASDIFF_SHA256}  oasdiff.tar.gz" | sha256sum -c -
+          tar -xzf oasdiff.tar.gz oasdiff
+          mkdir -p "$HOME/.local/bin"
+          install -m 0755 oasdiff "$HOME/.local/bin/oasdiff"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          rm -f oasdiff oasdiff.tar.gz
+          "$HOME/.local/bin/oasdiff" --version
+
+      - name: Check for breaking changes
+        run: bash scripts/check-openapi-breaking.sh
