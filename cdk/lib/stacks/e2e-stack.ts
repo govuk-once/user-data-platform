@@ -58,6 +58,32 @@ export class E2EStack extends Stack {
       ? `${developerId}-${environment}`
       : environment;
 
+    const isDev = environment === GovUkOnceEnvironments.Dev;
+
+    // Server access logging (ITHC S3 finding). Skipped in dev: PR stacks are
+    // torn down with autoDeleteObjects, and S3 log delivery is best-effort and
+    // delayed, so late log objects would make the logs bucket undeletable.
+    const accessLogsBucket = isDev
+      ? undefined
+      : new Bucket(this, 'SourceAccessLogsBucket', {
+          bucketName: `${resourcePrefix}-e2e-logs-${this.account}`,
+          // Server access log destinations only support SSE-S3.
+          encryption: BucketEncryption.S3_MANAGED,
+          blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+          enforceSSL: true,
+          versioned: false,
+          removalPolicy: getRemovalPolicy(environment),
+          lifecycleRules: [{ expiration: Duration.days(360) }],
+        });
+    if (accessLogsBucket) {
+      Checkov.suppressAWS18(accessLogsBucket);
+      Checkov.suppressAWS21(accessLogsBucket);
+      GovUKTag.of(accessLogsBucket)
+        .PII.FALSE()
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNAL();
+    }
+
     this.sourceBucket = new Bucket(this, 'SourceBucket', {
       bucketName: `${resourcePrefix}-e2e-source-${this.account}`,
       encryption: BucketEncryption.S3_MANAGED,
@@ -65,14 +91,16 @@ export class E2EStack extends Stack {
       enforceSSL: true,
       versioned: false,
       removalPolicy: getRemovalPolicy(environment),
-      autoDeleteObjects: environment === GovUkOnceEnvironments.Dev,
+      autoDeleteObjects: isDev,
+      serverAccessLogsBucket: accessLogsBucket,
+      serverAccessLogsPrefix: accessLogsBucket ? 'access-logs/' : undefined,
       lifecycleRules: [
         {
           expiration: Duration.days(7),
         },
       ],
     });
-    Checkov.suppressAWS18(this.sourceBucket);
+    Checkov.suppressAWS18(this.sourceBucket, !isDev);
     Checkov.suppressAWS21(this.sourceBucket);
     GovUKTag.of(this.sourceBucket)
       .PII.TRUE()

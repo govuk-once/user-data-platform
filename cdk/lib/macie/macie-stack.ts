@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { Construct } from 'constructs';
-import { Stack, StackProps, RemovalPolicy, Token } from 'aws-cdk-lib';
+import { Duration, Stack, StackProps, RemovalPolicy, Token } from 'aws-cdk-lib';
 
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -9,6 +9,7 @@ import * as cr from 'aws-cdk-lib/custom-resources';
 
 import { MacieAccess } from './macie-access';
 import { GovUKTag } from '@govuk-connect/tag';
+import { Checkov } from '../checkov/checkov';
 
 const cache = new Map<string, boolean>();
 
@@ -44,6 +45,14 @@ export class MacieStack extends Stack {
         conditions: {
           StringLike: { 'iam:AWSServiceName': 'macie.amazonaws.com' },
         },
+      }),
+    );
+    macieCrRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:PutBucketLogging'],
+        resources: [
+          `arn:${this.partition}:s3:::macie-results-${this.account}-${this.region}`,
+        ],
       }),
     );
     GovUKTag.of(macieCrRole).DataClassification.OFFICIAL_SENSITIVE();
@@ -164,6 +173,112 @@ export class MacieStack extends Stack {
     // The bucket is account-scoped and shared across per environments,
     // retain the policy so PR stacks can be destroyed without affecting other environments' Macie configurations.
     resultsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
+
+    // ── Server access logging for the results bucket (ITHC S3 finding) ──
+    // Like the results bucket, the log destination is account-scoped and
+    // shared, so it is created once and imported by later stacks.
+    const accessLogsBucketName = `macie-results-access-logs-${this.account}-${this.region}`;
+    const accessLogsBucketArn = `arn:${this.partition}:s3:::${accessLogsBucketName}`;
+    const accessLogsBucket = this.bucketExists(accessLogsBucketName)
+      ? undefined
+      : new s3.Bucket(this, 'ResultsAccessLogsBucket', {
+          bucketName: accessLogsBucketName,
+          // Server access log destinations only support SSE-S3.
+          encryption: s3.BucketEncryption.S3_MANAGED,
+          blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+          // TLS is enforced by the CfnBucketPolicy below; enforceSSL here would
+          // create a second, competing policy resource on the same bucket.
+          versioned: false,
+          removalPolicy: RemovalPolicy.RETAIN,
+          lifecycleRules: [{ expiration: Duration.days(360) }],
+        });
+    if (accessLogsBucket) {
+      Checkov.suppressAWS18(accessLogsBucket);
+      Checkov.suppressAWS21(accessLogsBucket);
+      GovUKTag.of(accessLogsBucket)
+        .DataClassification.OFFICIAL()
+        .Exposure.INTERNAL()
+        .PII.FALSE();
+    }
+
+    const accessLogsBucketPolicy = new s3.CfnBucketPolicy(
+      this,
+      'ResultsAccessLogsBucketPolicy',
+      {
+        bucket: accessLogsBucketName,
+        policyDocument: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              sid: 'AllowS3ServerAccessLogDelivery',
+              effect: iam.Effect.ALLOW,
+              principals: [
+                new iam.ServicePrincipal('logging.s3.amazonaws.com'),
+              ],
+              actions: ['s3:PutObject'],
+              resources: [`${accessLogsBucketArn}/access-logs/*`],
+              conditions: {
+                StringEquals: { 'aws:SourceAccount': this.account },
+                ArnLike: { 'aws:SourceArn': bucketArn },
+              },
+            }),
+            new iam.PolicyStatement({
+              sid: 'DenyInsecureTransport',
+              effect: iam.Effect.DENY,
+              principals: [new iam.AnyPrincipal()],
+              actions: ['s3:*'],
+              resources: [accessLogsBucketArn, `${accessLogsBucketArn}/*`],
+              conditions: { Bool: { 'aws:SecureTransport': 'false' } },
+            }),
+          ],
+        }),
+      },
+    );
+    accessLogsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
+    // `bucket` is a plain name, not a Ref, so make the ordering explicit.
+    if (accessLogsBucket)
+      accessLogsBucketPolicy.node.addDependency(accessLogsBucket);
+
+    // Set on the L1 when this stack creates the results bucket, so the
+    // template itself declares logging (and Checkov CKV_AWS_18 sees it).
+    if (!bucketExists) {
+      (resultsBucket.node.defaultChild as s3.CfnBucket).loggingConfiguration = {
+        destinationBucketName: accessLogsBucketName,
+        logFilePrefix: 'access-logs/',
+      };
+      resultsBucket.node.addDependency(accessLogsBucketPolicy);
+    }
+
+    // The results bucket is usually imported (it pre-dates this change and is
+    // shared across stacks), so CloudFormation can't configure it. Apply
+    // logging via the API instead; idempotent, and left in place on delete so
+    // tearing down one stack doesn't switch logging off for the account.
+    const putBucketLogging: cr.AwsSdkCall = {
+      service: 's3',
+      action: 'putBucketLogging',
+      parameters: {
+        Bucket: bucketName,
+        BucketLoggingStatus: {
+          LoggingEnabled: {
+            TargetBucket: accessLogsBucketName,
+            TargetPrefix: 'access-logs/',
+          },
+        },
+      },
+      physicalResourceId: cr.PhysicalResourceId.of(
+        `macie-results-logging-${this.account}-${this.region}`,
+      ),
+    };
+    const resultsBucketLogging = new cr.AwsCustomResource(
+      this,
+      'ResultsBucketLogging',
+      {
+        role: macieCrRole,
+        onCreate: putBucketLogging,
+        onUpdate: putBucketLogging,
+      },
+    );
+    resultsBucketLogging.node.addDependency(accessLogsBucketPolicy);
+    resultsBucketLogging.node.addDependency(resultsBucket);
 
     const exportCall: cr.AwsSdkCall = {
       service: 'macie2',
