@@ -126,7 +126,7 @@ export class MacieStack extends Stack {
           encryption: s3.BucketEncryption.KMS,
           encryptionKey: resultsKey,
           bucketKeyEnabled: true,
-          enforceSSL: true,
+          // TSl enforece by DenyInsecurtTransport policy
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
         });
