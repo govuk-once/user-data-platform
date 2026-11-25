@@ -139,7 +139,7 @@ export class LiveSchemaStack extends Stack {
       {
         signingProfiles: [signingProfile],
         untrustedArtifactOnDeployment:
-          lambda.UntrustedArtifactOnDeployment.WARN,
+          lambda.UntrustedArtifactOnDeployment.ENFORCE,
       },
     );
 
