@@ -71,13 +71,17 @@ export class E2EStack extends Stack {
           encryption: BucketEncryption.S3_MANAGED,
           blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
           enforceSSL: true,
-          versioned: false,
+          versioned: true,
           removalPolicy: getRemovalPolicy(environment),
-          lifecycleRules: [{ expiration: Duration.days(360) }],
+          lifecycleRules: [
+            {
+              expiration: Duration.days(360),
+              noncurrentVersionExpiration: Duration.days(30),
+            },
+          ],
         });
     if (accessLogsBucket) {
       Checkov.suppressAWS18(accessLogsBucket);
-      Checkov.suppressAWS21(accessLogsBucket);
       GovUKTag.of(accessLogsBucket)
         .PII.FALSE()
         .DataClassification.OFFICIAL()

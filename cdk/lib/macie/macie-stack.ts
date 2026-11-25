@@ -119,60 +119,48 @@ export class MacieStack extends Stack {
     const bucketArn = `arn:${this.partition}:s3:::${bucketName}`;
     const bucketExists = this.bucketExists(bucketName);
 
-    const resultsBucket: s3.IBucket = bucketExists
-      ? s3.Bucket.fromBucketName(this, 'ResultsBucket', bucketName)
+    const createdResultsBucket = bucketExists
+      ? undefined
       : new s3.Bucket(this, 'ResultsBucket', {
           bucketName,
           encryption: s3.BucketEncryption.KMS,
           encryptionKey: resultsKey,
           bucketKeyEnabled: true,
-          // TSl enforece by DenyInsecurtTransport policy
+          enforceSSL: true,
           versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
         });
+    const resultsBucket: s3.IBucket =
+      createdResultsBucket ??
+      s3.Bucket.fromBucketName(this, 'ResultsBucket', bucketName);
     GovUKTag.of(resultsBucket)
       .DataClassification.OFFICIAL_SENSITIVE()
       .Exposure.INTERNAL()
       .PII.TRUE();
 
-    const resultsBucketPolicy = new s3.CfnBucketPolicy(
-      this,
+    const resultsBucketPolicy = this.sharedBucketPolicy(
       'ResultsBucketPolicy',
-      {
-        bucket: bucketName,
-        policyDocument: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              sid: 'AllowMacieGetBucketLocation',
-              effect: iam.Effect.ALLOW,
-              principals: [maciePrincipal],
-              actions: ['s3:GetBucketLocation'],
-              resources: [bucketArn],
-              conditions: confusedDeputy,
-            }),
-            new iam.PolicyStatement({
-              sid: 'AllowMaciePutResults',
-              effect: iam.Effect.ALLOW,
-              principals: [maciePrincipal],
-              actions: ['s3:PutObject'],
-              resources: [`${bucketArn}/macie-results/*`],
-              conditions: confusedDeputy,
-            }),
-            new iam.PolicyStatement({
-              sid: 'DenyInsecureTransport',
-              effect: iam.Effect.DENY,
-              principals: [new iam.AnyPrincipal()],
-              actions: ['s3:*'],
-              resources: [bucketArn, `${bucketArn}/*`],
-              conditions: { Bool: { 'aws:SecureTransport': 'false' } },
-            }),
-          ],
+      bucketName,
+      createdResultsBucket,
+      [
+        new iam.PolicyStatement({
+          sid: 'AllowMacieGetBucketLocation',
+          effect: iam.Effect.ALLOW,
+          principals: [maciePrincipal],
+          actions: ['s3:GetBucketLocation'],
+          resources: [bucketArn],
+          conditions: confusedDeputy,
         }),
-      },
+        new iam.PolicyStatement({
+          sid: 'AllowMaciePutResults',
+          effect: iam.Effect.ALLOW,
+          principals: [maciePrincipal],
+          actions: ['s3:PutObject'],
+          resources: [`${bucketArn}/macie-results/*`],
+          conditions: confusedDeputy,
+        }),
+      ],
     );
-    // The bucket is account-scoped and shared across per environments,
-    // retain the policy so PR stacks can be destroyed without affecting other environments' Macie configurations.
-    resultsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
 
     // ── Server access logging for the results bucket (ITHC S3 finding) ──
     // Like the results bucket, the log destination is account-scoped and
@@ -186,66 +174,53 @@ export class MacieStack extends Stack {
           // Server access log destinations only support SSE-S3.
           encryption: s3.BucketEncryption.S3_MANAGED,
           blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-          // TLS is enforced by the CfnBucketPolicy below; enforceSSL here would
-          // create a second, competing policy resource on the same bucket.
-          versioned: false,
+          enforceSSL: true,
+          versioned: true,
           removalPolicy: RemovalPolicy.RETAIN,
-          lifecycleRules: [{ expiration: Duration.days(360) }],
+          lifecycleRules: [
+            {
+              expiration: Duration.days(360),
+              noncurrentVersionExpiration: Duration.days(30),
+            },
+          ],
         });
     if (accessLogsBucket) {
       Checkov.suppressAWS18(accessLogsBucket);
-      Checkov.suppressAWS21(accessLogsBucket);
       GovUKTag.of(accessLogsBucket)
         .DataClassification.OFFICIAL()
         .Exposure.INTERNAL()
         .PII.FALSE();
     }
 
-    const accessLogsBucketPolicy = new s3.CfnBucketPolicy(
-      this,
+    const accessLogsBucketPolicy = this.sharedBucketPolicy(
       'ResultsAccessLogsBucketPolicy',
-      {
-        bucket: accessLogsBucketName,
-        policyDocument: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              sid: 'AllowS3ServerAccessLogDelivery',
-              effect: iam.Effect.ALLOW,
-              principals: [
-                new iam.ServicePrincipal('logging.s3.amazonaws.com'),
-              ],
-              actions: ['s3:PutObject'],
-              resources: [`${accessLogsBucketArn}/access-logs/*`],
-              conditions: {
-                StringEquals: { 'aws:SourceAccount': this.account },
-                ArnLike: { 'aws:SourceArn': bucketArn },
-              },
-            }),
-            new iam.PolicyStatement({
-              sid: 'DenyInsecureTransport',
-              effect: iam.Effect.DENY,
-              principals: [new iam.AnyPrincipal()],
-              actions: ['s3:*'],
-              resources: [accessLogsBucketArn, `${accessLogsBucketArn}/*`],
-              conditions: { Bool: { 'aws:SecureTransport': 'false' } },
-            }),
-          ],
+      accessLogsBucketName,
+      accessLogsBucket,
+      [
+        new iam.PolicyStatement({
+          sid: 'AllowS3ServerAccessLogDelivery',
+          effect: iam.Effect.ALLOW,
+          principals: [new iam.ServicePrincipal('logging.s3.amazonaws.com')],
+          actions: ['s3:PutObject'],
+          resources: [`${accessLogsBucketArn}/access-logs/*`],
+          conditions: {
+            StringEquals: { 'aws:SourceAccount': this.account },
+            ArnLike: { 'aws:SourceArn': bucketArn },
+          },
         }),
-      },
+      ],
     );
-    accessLogsBucketPolicy.applyRemovalPolicy(RemovalPolicy.RETAIN);
-    // `bucket` is a plain name, not a Ref, so make the ordering explicit.
-    if (accessLogsBucket)
-      accessLogsBucketPolicy.node.addDependency(accessLogsBucket);
 
     // Set on the L1 when this stack creates the results bucket, so the
     // template itself declares logging (and Checkov CKV_AWS_18 sees it).
-    if (!bucketExists) {
-      (resultsBucket.node.defaultChild as s3.CfnBucket).loggingConfiguration = {
+    if (createdResultsBucket) {
+      (
+        createdResultsBucket.node.defaultChild as s3.CfnBucket
+      ).loggingConfiguration = {
         destinationBucketName: accessLogsBucketName,
         logFilePrefix: 'access-logs/',
       };
-      resultsBucket.node.addDependency(accessLogsBucketPolicy);
+      createdResultsBucket.node.addDependency(accessLogsBucketPolicy);
     }
 
     // The results bucket is usually imported (it pre-dates this change and is
@@ -311,6 +286,57 @@ export class MacieStack extends Stack {
     exportConfig.node.addDependency(resultsBucketPolicy);
     exportConfig.node.addDependency(resultsBucket);
     exportConfig.node.addDependency(resultsKey);
+  }
+
+  /**
+   * Applies `statements` plus TLS-only access to a shared, account-scoped
+   * bucket, and returns the policy resource so callers can order against it.
+   *
+   * A bucket has exactly one policy, so only one AWS::S3::BucketPolicy may
+   * target it. When this stack creates the bucket, `enforceSSL: true` on the
+   * L2 already puts a DenyInsecureTransport statement in the bucket's own
+   * policy, so the statements are added there. When the bucket is imported, a
+   * standalone policy carries the statements and the same TLS deny.
+   *
+   * Either way the policy is retained: the bucket outlives any single stack,
+   * and deleting the policy would strip TLS enforcement and other
+   * environments' grants.
+   */
+  private sharedBucketPolicy(
+    id: string,
+    bucketName: string,
+    createdBucket: s3.Bucket | undefined,
+    statements: iam.PolicyStatement[],
+  ): Construct {
+    if (createdBucket) {
+      statements.forEach((s) => createdBucket.addToResourcePolicy(s));
+      const policy = createdBucket.policy;
+      if (!policy) {
+        throw new Error(`${id}: expected enforceSSL to create a bucket policy`);
+      }
+      policy.applyRemovalPolicy(RemovalPolicy.RETAIN);
+      return policy;
+    }
+
+    const arn = `arn:${this.partition}:s3:::${bucketName}`;
+    const policy = new s3.CfnBucketPolicy(this, id, {
+      bucket: bucketName,
+      policyDocument: new iam.PolicyDocument({
+        statements: [
+          ...statements,
+          new iam.PolicyStatement({
+            sid: 'DenyInsecureTransport',
+            effect: iam.Effect.DENY,
+            principals: [new iam.AnyPrincipal()],
+            actions: ['s3:*'],
+            resources: [arn, `${arn}/*`],
+            conditions: { Bool: { 'aws:SecureTransport': 'false' } },
+          }),
+        ],
+      }),
+    });
+    policy.applyRemovalPolicy(RemovalPolicy.RETAIN);
+    return policy;
   }
 
   private bucketExists(name: string): boolean {
