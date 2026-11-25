@@ -4,7 +4,12 @@ import {
   GenerateDataKeyCommand,
   KMSClient,
 } from '@aws-sdk/client-kms';
-import { EncryptionError, UDP_ERROR_TYPES } from '@libs/utils';
+import {
+  emitCountMetric,
+  EncryptionError,
+  UDP_ERROR_TYPES,
+  UdpMetricNames,
+} from '@libs/utils';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -69,7 +74,9 @@ export class EncryptionService {
       return rest;
     }
 
-    const plaintextKey = await this.decryptDataKey(__dataKey);
+    const plaintextKey = await this.withIntegrityMetric('kms', () =>
+      this.decryptDataKey(__dataKey),
+    );
     const decryptedData = { ...rest };
 
     for (const field of fieldsToDecrypt) {
@@ -77,7 +84,9 @@ export class EncryptionService {
         field as keyof typeof decryptedData
       ] as string;
       const decryptedValue = encryptedValue
-        ? this.decrypt(encryptedValue, plaintextKey)
+        ? await this.withIntegrityMetric('cipher', async () =>
+            this.decrypt(encryptedValue, plaintextKey),
+          )
         : undefined;
 
       try {
@@ -89,6 +98,26 @@ export class EncryptionService {
     }
 
     return decryptedData;
+  }
+
+  /**
+   * Records a DecryptionFailure metric (critical alarm C5) for any failure to
+   * unwrap the data key or to pass the AES-GCM auth tag check, then rethrows
+   * the original error so the API response is unchanged.
+   */
+  private async withIntegrityMetric<R>(
+    stage: 'kms' | 'cipher',
+    fn: () => Promise<R>,
+  ): Promise<R> {
+    try {
+      return await fn();
+    } catch (error) {
+      emitCountMetric(UdpMetricNames.DecryptionFailure, 1, {
+        decryptStage: stage,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+      });
+      throw error;
+    }
   }
 
   private async generateDataKey(): Promise<{

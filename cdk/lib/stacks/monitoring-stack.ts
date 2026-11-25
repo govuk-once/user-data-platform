@@ -9,10 +9,12 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as xray from 'aws-cdk-lib/aws-xray';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { SlackChannelConfiguration } from 'aws-cdk-lib/aws-chatbot';
-import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { GovUkOnceEnvironments } from 'cdk/constants/environment';
 import { NFR } from 'cdk/constants/nfr';
+import { SLO_MIN_REQUESTS } from 'cdk/constants/slo';
+import { routes } from '@libs/utils';
+import { AlarmRouting, AlarmSeverity } from '../constructs/alarm-routing';
+import { CriticalAlarms } from '../constructs/critical-alarms-construct';
 import { MonitoringInventory } from '../utils/discover-monitored-resources';
 import { GovUKTag } from '@govuk-connect/tag';
 
@@ -35,6 +37,8 @@ export class MonitoringStack extends Stack {
   public readonly dashboard: cloudwatch.Dashboard;
   public readonly performanceDashboard: cloudwatch.Dashboard;
   public readonly xrayTraceGroup?: xray.CfnGroup;
+  public readonly criticalAlarms: CriticalAlarms;
+  private readonly routing: AlarmRouting;
 
   constructor(scope: Construct, id: string, props: MonitorStackProps) {
     super(scope, id, props);
@@ -117,40 +121,14 @@ export class MonitoringStack extends Stack {
       const param = `/${mapEnvironments[environment as GovUkOnceEnvironments]}/udp-param/udp/monitoring`;
       const ssmValue = StringParameter.valueFromLookup(this, param, '{}');
 
-      let monitoringConfig: {
-        workspaceId?: string;
-        channelId?: string;
-        pagerDutyUrl?: string;
-      } = {};
+      // Slack delivery is handled by the platform notifications hub (see
+      // AlarmRouting); this parameter now only carries the PagerDuty URL.
+      let monitoringConfig: { pagerDutyUrl?: string } = {};
       try {
         monitoringConfig = JSON.parse(ssmValue);
       } catch {
         console.log(
           'JSON.parse(monitoringConfig) error externalConsumers in MonitoringStack',
-        );
-      }
-
-      if (monitoringConfig.workspaceId && monitoringConfig.channelId) {
-        const slackChannel = new SlackChannelConfiguration(
-          this,
-          'SlackChannel',
-          {
-            slackChannelConfigurationName: `${resourcePrefix}-alarm-notifications`,
-            slackWorkspaceId: monitoringConfig.workspaceId,
-            slackChannelId: monitoringConfig.channelId,
-            notificationTopics: [this.criticalTopic],
-            guardrailPolicies: [
-              ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-            ],
-          },
-        );
-        GovUKTag.of(slackChannel).DataClassification.OFFICIAL();
-
-        slackChannel.role?.addToPrincipalPolicy(
-          new PolicyStatement({
-            actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
-            resources: [kmsKey.keyArn],
-          }),
         );
       }
 
@@ -162,6 +140,23 @@ export class MonitoringStack extends Stack {
         });
       }
     }
+
+    this.routing = new AlarmRouting(this, 'AlarmRouting', {
+      environment,
+      developerId,
+      criticalTopic: this.criticalTopic,
+      warningTopic: this.warningTopic,
+    });
+
+    this.criticalAlarms = new CriticalAlarms(this, 'CriticalAlarms', {
+      routing: this.routing,
+      resourcePrefix,
+      stackPrefix,
+      developerId,
+      environment,
+      apiAccessLogGroupName: `/aws/apigateway/${apiName}`,
+      routes: Object.values(routes),
+    });
 
     this.dashboard = new cloudwatch.Dashboard(this, 'Dashboard', {
       dashboardName: `${resourcePrefix}-dashboard`,
@@ -192,7 +187,7 @@ export class MonitoringStack extends Stack {
   private createDynamoDBAlarms(table: dynamodb.ITable) {
     const id = this.formatResource(table.tableName); //Udp-Data-Dev
 
-    new cloudwatch.Alarm(this, `${id}-Dynamo-ReadThrottled`, {
+    this.warningAlarm(`${id}-Dynamo-ReadThrottled`, {
       alarmName: `${table.tableName}-dynamo-read-throttled`,
       alarmDescription: 'Dynamodb read requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
@@ -203,11 +198,9 @@ export class MonitoringStack extends Stack {
       threshold: 1,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-Dynamo-WriteThrottled`, {
+    this.warningAlarm(`${id}-Dynamo-WriteThrottled`, {
       alarmName: `${table.tableName}-dynamo-write-throttled`,
       alarmDescription: 'Dynamodb write requests are being throttled',
       metric: table.metricThrottledRequestsForOperations({
@@ -221,11 +214,9 @@ export class MonitoringStack extends Stack {
       threshold: 1,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-Dynamo-SystemErrors`, {
+    this.warningAlarm(`${id}-Dynamo-SystemErrors`, {
       alarmName: `${table.tableName}-dynamo-system-errors`,
       alarmDescription: 'Dynamodb system errors detected',
       metric: table.metricSystemErrorsForOperations({
@@ -240,8 +231,6 @@ export class MonitoringStack extends Stack {
       threshold: 1,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
@@ -312,37 +301,42 @@ export class MonitoringStack extends Stack {
       label: '%xx Error Rate (%)',
     });
 
-    new cloudwatch.Alarm(this, 'ApiGateway5xxErrors', {
+    this.warningAlarm('ApiGateway5xxErrors', {
       alarmName: `${resourcePrefix}-api-5xx-errors`,
       alarmDescription: `API Gateway 5xx error rate exceeds ${NFR.MAX_ERROR_RATE_PERCENT}%`,
       metric: errorRateMatric,
       threshold: NFR.MAX_ERROR_RATE_PERCENT,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, 'ApiGateway4xxErrors', {
+    this.warningAlarm('ApiGateway4xxErrors', {
       alarmName: `${resourcePrefix}-api-4xx-errors`,
       alarmDescription: 'API Gateway 4xx error rate is high',
       metric: this.createApiMetric(apiName, stage, '4xxError', 'Sum'),
       threshold: 50,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.warningTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, 'ApiGatewayLatency', {
+    // Cold-start filter: in a low-traffic minute one cold start owns the p95,
+    // so only evaluate latency when there is enough traffic for it to mean
+    // something.
+    this.warningAlarm('ApiGatewayLatency', {
       alarmName: `${resourcePrefix}-api-latency`,
-      alarmDescription: `API Gateway p99 latency exceeds ${NFR.P95_LATENCY_MS}`,
-      metric: this.createApiMetric(apiName, stage, 'Latency', 'p95'),
+      alarmDescription: `API Gateway p95 latency exceeds ${NFR.P95_LATENCY_MS}ms (minutes with < ${SLO_MIN_REQUESTS} requests ignored to filter cold starts)`,
+      metric: new cloudwatch.MathExpression({
+        expression: `IF(requests >= ${SLO_MIN_REQUESTS}, latency, 0)`,
+        usingMetrics: {
+          latency: this.createApiMetric(apiName, stage, 'Latency', 'p95'),
+          requests: this.createApiMetric(apiName, stage, 'Count', 'Sum'),
+        },
+        period: Duration.minutes(1),
+        label: 'p95 latency (warm traffic)',
+      }),
       threshold: NFR.P95_LATENCY_MS,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
@@ -372,32 +366,36 @@ export class MonitoringStack extends Stack {
   private createLambdaAlarms(fn: lambda.IFunction): void {
     const id = this.formatResource(fn.functionName);
 
-    new cloudwatch.Alarm(this, `${id}-Errors`, {
+    this.warningAlarm(`${id}-Errors`, {
       alarmName: `${fn.functionName}-errors`,
       alarmDescription: 'Lambda error count excceeds threashold',
       metric: fn.metricErrors({ period: Duration.minutes(1) }),
       threshold: 2,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-Duration`, {
+    this.warningAlarm(`${id}-Duration`, {
       alarmName: `${fn.functionName}-duration`,
-      alarmDescription: `Lambda duration is exceeds ${NFR.LAMBDA_DURATION_P95_MS}`,
-      metric: fn.metricDuration({
+      alarmDescription: `Lambda p95 duration exceeds ${NFR.LAMBDA_DURATION_P95_MS}ms (minutes with < ${SLO_MIN_REQUESTS} invocations ignored to filter cold starts)`,
+      metric: new cloudwatch.MathExpression({
+        expression: `IF(invocations >= ${SLO_MIN_REQUESTS}, duration, 0)`,
+        usingMetrics: {
+          duration: fn.metricDuration({
+            period: Duration.minutes(1),
+            statistic: 'p95',
+          }),
+          invocations: fn.metricInvocations({ period: Duration.minutes(1) }),
+        },
         period: Duration.minutes(1),
-        statistic: 'p95',
+        label: 'p95 duration (warm traffic)',
       }),
       threshold: NFR.LAMBDA_DURATION_P95_MS,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
 
-    new cloudwatch.Alarm(this, `${id}-Throttles`, {
+    this.warningAlarm(`${id}-Throttles`, {
       alarmName: `${fn.functionName}-throttles`,
       alarmDescription: 'Lambda is being throttled',
       metric: fn.metricThrottles({
@@ -407,8 +405,6 @@ export class MonitoringStack extends Stack {
       threshold: 1,
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    }).addAlarmAction({
-      bind: () => ({ alarmActionArn: this.criticalTopic.topicArn }),
     });
   }
 
@@ -822,6 +818,21 @@ export class MonitoringStack extends Stack {
     );
 
     return perfDashboard;
+  }
+
+  /**
+   * Operational alarms are warnings: useful, but they should not page anyone
+   * on their own. The critical set lives in CriticalAlarms.
+   */
+  private warningAlarm(id: string, props: cloudwatch.AlarmProps): void {
+    const alarm = new cloudwatch.Alarm(this, id, {
+      ...props,
+      alarmName: this.routing.alarmName(
+        props.alarmName ?? id,
+        AlarmSeverity.Warning,
+      ),
+    });
+    this.routing.route(alarm, AlarmSeverity.Warning);
   }
 
   private loadMonitoringInventory(): MonitoringInventory {
