@@ -7,7 +7,12 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { DescribeTableCommand } from '@aws-sdk/client-dynamodb';
-import { DataRecordNotFoundError, Logger, UDP_ERROR_TYPES } from '@libs/utils';
+import {
+  DataRecordNotFoundError,
+  Logger,
+  OutOfSequenceError,
+  UDP_ERROR_TYPES,
+} from '@libs/utils';
 import {
   DataInput,
   DynamoDBDataEntity,
@@ -39,8 +44,24 @@ export class DynamoDbDataService {
     identity: IdentityRecordEntity,
     resourcePath: string,
     input: DataInput,
+    requestedAt?: string,
   ): Promise<DynamoDBDataEntity> {
     const entity = this.buildEntity(identity, resourcePath, input);
+
+    if (requestedAt) {
+      entity.last_updated = requestedAt;
+
+      const existing = await this.findByKey(identity.udpId, resourcePath);
+
+      if (existing?.last_updated && existing.last_updated >= requestedAt) {
+        throw new OutOfSequenceError(
+          `Out of sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
+          UDP_ERROR_TYPES.CONFLICT,
+          existing.last_updated,
+          requestedAt,
+        );
+      }
+    }
 
     await this.client.send(
       new PutCommand({
@@ -69,6 +90,7 @@ export class DynamoDbDataService {
     identity: IdentityRecordEntity,
     resourcePath: string,
     data: Record<string, unknown>,
+    requestedAt?: string,
   ) {
     const existing = await this.findByKey(identity.udpId, resourcePath);
 
@@ -76,9 +98,22 @@ export class DynamoDbDataService {
       throw this.notFound(identity, resourcePath);
     }
 
+    if (
+      requestedAt &&
+      existing.last_updated &&
+      existing.last_updated >= requestedAt
+    ) {
+      throw new OutOfSequenceError(
+        `Out of sequence update: requested at ${requestedAt} is before last_updated ${existing.last_updated}`,
+        UDP_ERROR_TYPES.CONFLICT,
+        existing.last_updated,
+        requestedAt,
+      );
+    }
+
     const merged = deepMerge(existing.data ?? {}, data);
 
-    return this.update(identity.udpId, resourcePath, merged);
+    return this.update(identity.udpId, resourcePath, merged, requestedAt);
   }
 
   public async deleteByKey(
@@ -202,6 +237,7 @@ export class DynamoDbDataService {
     pk: string,
     sk: string,
     data: Record<string, unknown>,
+    lastUpdated?: string,
   ): Promise<DynamoDBDataEntity | null> {
     const stored = this.encryption
       ? await this.encryption.service.encryptFields(
@@ -211,25 +247,37 @@ export class DynamoDbDataService {
       : { data };
 
     try {
+      let updateExpression = this.encryption
+        ? 'SET #data = :data, #dataKey = :dataKey, #flag = :flag'
+        : 'SET #data = :data, #flag = :flag';
+
+      const expressionAttributeNames: Record<string, string> = {
+        '#data': 'data',
+        '#flag': SCHEMA_EVALUATION_FLAG,
+        ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
+      };
+
+      const expressionAttributeValues: Record<string, unknown> = {
+        ':data': (stored as Record<string, unknown>).data,
+        ':flag': true,
+        ...(this.encryption
+          ? { ':dataKey': (stored as Record<string, unknown>).__dataKey }
+          : {}),
+      };
+
+      if (lastUpdated) {
+        updateExpression += ', #last_updated = :last_updated';
+        expressionAttributeNames['#last_updated'] = 'last_updated';
+        expressionAttributeValues[':last_updated'] = lastUpdated;
+      }
+
       const response = await this.client.send(
         new UpdateCommand({
           TableName: this.tableName,
           Key: { pk, sk },
-          UpdateExpression: this.encryption
-            ? 'SET #data = :data, #dataKey = :dataKey, #flag = :flag'
-            : 'SET #data = :data, #flag = :flag',
-          ExpressionAttributeNames: {
-            '#data': 'data',
-            '#flag': SCHEMA_EVALUATION_FLAG,
-            ...(this.encryption ? { '#dataKey': '__dataKey' } : {}),
-          },
-          ExpressionAttributeValues: {
-            ':data': (stored as Record<string, unknown>).data,
-            ':flag': true,
-            ...(this.encryption
-              ? { ':dataKey': (stored as Record<string, unknown>).__dataKey }
-              : {}),
-          },
+          UpdateExpression: updateExpression,
+          ExpressionAttributeNames: expressionAttributeNames,
+          ExpressionAttributeValues: expressionAttributeValues,
           ConditionExpression: 'attribute_exists(pk)',
           ReturnValues: 'ALL_NEW',
         }),

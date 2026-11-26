@@ -3,6 +3,7 @@ import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -59,9 +60,10 @@ describe('postDataLambda handler', () => {
     body,
   ): APIGatewayProxyEventV2 => ({
     headers: {
-      ...headers,
       'requesting-service': mockAppService,
+      'requested-at': new Date().toISOString(),
       'Content-Type': 'application/json',
+      ...headers,
     },
     requestContext: {} as any,
     isBase64Encoded: false,
@@ -83,14 +85,15 @@ describe('postDataLambda handler', () => {
       );
 
       dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
       const response = (await handler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(200);
-      expect(JSON.parse(response.body)).toEqual({
-        data: body.data,
-      });
+      const parsed = JSON.parse(response.body);
+      expect(parsed.data).toEqual(body.data);
+      expect(parsed.last_updated).toBeDefined();
     });
 
     it('should return 200 and save entity with TTL', async () => {
@@ -106,14 +109,15 @@ describe('postDataLambda handler', () => {
       );
 
       dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
       const response = (await handler(event, mockContext)) as any;
 
       expect(response.statusCode).toEqual(200);
-      expect(JSON.parse(response.body)).toEqual({
-        data: body.data,
-      });
+      const parsed = JSON.parse(response.body);
+      expect(parsed.data).toEqual(body.data);
+      expect(parsed.last_updated).toBeDefined();
     });
 
     it('should return 200 and save entity with only pk and sk (no data field)', async () => {
@@ -125,6 +129,7 @@ describe('postDataLambda handler', () => {
       );
 
       dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).resolves({});
 
       const response = (await handler(event, mockContext)) as any;
@@ -149,8 +154,10 @@ describe('postDataLambda handler', () => {
         errorCode: 400,
         errorType: 'BAD_REQUEST',
         errorMessage: 'Validation Errors',
-        errorPaths: ['requesting-service', 'requesting-service-user-id'],
       });
+      const errorPaths = JSON.parse(result.body).errorPaths;
+      expect(errorPaths).toContain('requesting-service');
+      expect(errorPaths).toContain('requesting-service-user-id');
     });
 
     it('should return 400 when required header is invalid', async () => {
@@ -233,6 +240,57 @@ describe('postDataLambda handler', () => {
     });
   });
 
+  describe('out-of-sequence detection', () => {
+    it('should return 409 when requested-at is older than stored last_updated', async () => {
+      const oldTimestamp = '2020-01-01T00:00:00.000Z';
+      const body = { data: { status: 'active' } };
+      const event = createEvent(
+        {
+          'requesting-service-user-id': mockAppId,
+          'requested-at': oldTimestamp,
+        },
+        { resourcePath: 'topics' },
+        body,
+      );
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({
+        Item: {
+          pk: mockUdpId,
+          sk: 'topics',
+          data: { old: 'data' },
+          last_updated: '2026-04-09T12:00:00.000Z',
+        },
+      });
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(409);
+      expect(JSON.parse(result.body)).toMatchObject({
+        errorCode: 409,
+        errorType: 'CONFLICT',
+      });
+    });
+
+    it('should save without concurrency check when requested-at header is missing', async () => {
+      const body = { data: { status: 'active' } };
+      const event = createEvent(
+        { 'requesting-service-user-id': mockAppId },
+        { resourcePath: 'topics' },
+        body,
+      );
+      delete event.headers['requested-at'];
+
+      dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(PutCommand).resolves({});
+
+      const result = await handler(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(dynamoMock.commandCalls(GetCommand).length).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     it('should return 500 when save operation fails', async () => {
       const event = createEvent(
@@ -243,6 +301,7 @@ describe('postDataLambda handler', () => {
 
       const mockError = new Error('DynamoDB Failure');
       dynamoMock.on(QueryCommand).resolves({ Items: [mockAppIdentity] });
+      dynamoMock.on(GetCommand).resolves({});
       dynamoMock.on(PutCommand).rejects(mockError);
 
       const result = await handler(event, mockContext);

@@ -5,11 +5,13 @@ import {
   BaseUDPError,
   DataRecordNotFoundError,
   IdentityRecordNotFoundError,
+  OutOfSequenceError,
   SarNotFoundError,
   ZodValidationError,
 } from '../Errors';
 import {
   BadRequestResponse,
+  ConflictResponse,
   DataNotFoundResponse,
   IdentityNotFoundResponse,
   InternalServerErrorResponse,
@@ -73,6 +75,21 @@ export function udpErrorHandling(
           };
           request.response = {
             statusCode: 404,
+            body: responseBody,
+          };
+          return;
+        }
+
+        if (error instanceof OutOfSequenceError) {
+          const responseBody: ConflictResponse = {
+            errorCode: 409,
+            errorMessage,
+            errorType: 'CONFLICT',
+            lastUpdated: error.lastUpdated,
+            requestedAt: error.requestedAt,
+          };
+          request.response = {
+            statusCode: 409,
             body: responseBody,
           };
           return;

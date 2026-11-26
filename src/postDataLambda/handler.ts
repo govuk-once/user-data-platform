@@ -45,12 +45,20 @@ export const lambdaHandler = async (event: APIGatewayProxyEventV2) => {
       event.headers['requesting-service-user-id'],
     );
 
+  const requestedAt = event.headers['requested-at'];
+  if (!requestedAt) {
+    logger.warn(
+      'requested-at header missing, proceeding without concurrency check',
+    );
+  }
+
   const record = await factory
     .getService('data')
     .save(
       identity,
       event.pathParameters.resourcePath,
       event.body as unknown as DataInput,
+      requestedAt,
     );
 
   tracer.putAnnotation('putEntitySuccess', true);

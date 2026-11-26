@@ -81,6 +81,27 @@ export const dataNotFoundResponseSchema = baseNotFoundResponseSchema.extend({
   }),
 });
 
+export const conflictResponseSchema = z.object({
+  errorCode: z
+    .literal(409)
+    .openapi({ description: 'Conflict Code', example: 409 }),
+  errorType: z
+    .literal('CONFLICT')
+    .openapi({ description: 'Conflict Type', example: 'CONFLICT' }),
+  errorMessage: z.string().openapi({
+    description: ' The error message',
+    example: 'Out-of-sequence update: requested-at is before last_updated',
+  }),
+  lastUpdated: z.string().openapi({
+    description: 'Current last_updated timestamp on the record',
+    example: '2026-04-09T10:00:000Z',
+  }),
+  requestedAt: z.string().openapi({
+    description: 'The requested-at timestamp sent by the consumer',
+    example: '2026-04-09T10:00:000Z',
+  }),
+});
+
 export const internalServerErrorResponseSchema = z.object({
   errorCode: z
     .literal(500)
@@ -102,6 +123,7 @@ export type IdentityNotFoundResponse = z.infer<
   typeof identityNotFoundResponseSchema
 >;
 export type DataNotFoundResponse = z.infer<typeof dataNotFoundResponseSchema>;
+export type ConflictResponse = z.infer<typeof conflictResponseSchema>;
 export type InternalServerErrorResponse = z.infer<
   typeof internalServerErrorResponseSchema
 >;
