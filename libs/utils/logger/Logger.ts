@@ -1,4 +1,5 @@
 import { Logger as PowerToolLogger } from '@aws-lambda-powertools/logger';
+import type { Context } from 'aws-lambda';
 export { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 
 export interface LoggerOptions {
@@ -51,6 +52,13 @@ export class Logger extends PowerToolLogger {
 
   private wrapFields(fields?: Record<string, unknown>) {
     return fields ? this.redactObject(fields) : fields;
+  }
+
+  /** -------- Override Powertools Context Injection -------- */
+
+  public override addContext(context: Context): void {
+    super.addContext(context);
+    this.commonFields.functionVersion = context.functionVersion;
   }
 
   /** -------- Override Powertools Logging Methods -------- */

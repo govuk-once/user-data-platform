@@ -132,6 +132,38 @@ describe('Logger', () => {
     });
   });
 
+  describe('addContext', () => {
+    it('includes functionVersion in subsequent log calls', () => {
+      const logger = createLogger();
+      const infoSpy = vi
+        .spyOn(PowerToolLogger.prototype as any, 'info')
+        .mockImplementation(() => {});
+
+      logger.addContext({
+        functionVersion: '42',
+        functionName: 'my-function',
+        memoryLimitInMB: '128',
+        awsRequestId: 'req-id',
+        invokedFunctionArn:
+          'arn:aws:lambda:eu-west-2:123456789012:function:my-function',
+        logGroupName: '/aws/lambda/my-function',
+        logStreamName: '2024/01/01/[$LATEST]abc',
+        identity: undefined,
+        clientContext: undefined,
+        getRemainingTimeInMillis: () => 1000,
+        done: () => {},
+        fail: () => {},
+        succeed: () => {},
+        callbackWaitsForEmptyEventLoop: false,
+      });
+
+      logger.info('after context');
+
+      const [, loggedFields] = infoSpy.mock.calls[0];
+      expect(loggedFields).toMatchObject({ functionVersion: '42' });
+    });
+  });
+
   describe('redaction', () => {
     it('redacts simple field names at root level', () => {
       const logger = createLogger(['password']);
