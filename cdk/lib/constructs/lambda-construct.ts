@@ -6,7 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Tags } from 'aws-cdk-lib';
 import * as path from 'node:path';
 import { existsSync } from 'node:fs';
 import { getRemovalPolicy } from 'cdk/constants/environment';
@@ -257,6 +257,10 @@ export class LambdaApiConstruct extends Construct {
       reservedConcurrentExecutions,
       codeSigningConfig: this.props.codeSigningConfig,
     });
+
+    if (process.env.GIT_COMMIT_SHA) {
+      Tags.of(this.function).add('GitCommitSha', process.env.GIT_COMMIT_SHA);
+    }
   }
 
   private buildEnvironmentVariables(
