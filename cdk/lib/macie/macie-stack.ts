@@ -192,24 +192,34 @@ export class MacieStack extends Stack {
         .PII.FALSE();
     }
 
-    const accessLogsBucketPolicy = this.sharedBucketPolicy(
-      'ResultsAccessLogsBucketPolicy',
-      accessLogsBucketName,
-      accessLogsBucket,
-      [
-        new iam.PolicyStatement({
-          sid: 'AllowS3ServerAccessLogDelivery',
-          effect: iam.Effect.ALLOW,
-          principals: [new iam.ServicePrincipal('logging.s3.amazonaws.com')],
-          actions: ['s3:PutObject'],
-          resources: [`${accessLogsBucketArn}/access-logs/*`],
-          conditions: {
-            StringEquals: { 'aws:SourceAccount': this.account },
-            ArnLike: { 'aws:SourceArn': bucketArn },
-          },
-        }),
-      ],
-    );
+    // Only the stack that creates the access-logs bucket owns its policy.
+    // A bucket has exactly one policy and CloudFormation refuses to create an
+    // AWS::S3::BucketPolicy where one already exists, so importing stacks
+    // (e.g. dev-macie after a PR stack created the bucket) must not declare
+    // another. The grant is account-scoped, so the creator's policy already
+    // covers every stack in the account.
+    const accessLogsBucketPolicy = accessLogsBucket
+      ? this.sharedBucketPolicy(
+          'ResultsAccessLogsBucketPolicy',
+          accessLogsBucketName,
+          accessLogsBucket,
+          [
+            new iam.PolicyStatement({
+              sid: 'AllowS3ServerAccessLogDelivery',
+              effect: iam.Effect.ALLOW,
+              principals: [
+                new iam.ServicePrincipal('logging.s3.amazonaws.com'),
+              ],
+              actions: ['s3:PutObject'],
+              resources: [`${accessLogsBucketArn}/access-logs/*`],
+              conditions: {
+                StringEquals: { 'aws:SourceAccount': this.account },
+                ArnLike: { 'aws:SourceArn': bucketArn },
+              },
+            }),
+          ],
+        )
+      : undefined;
 
     // Set on the L1 when this stack creates the results bucket, so the
     // template itself declares logging (and Checkov CKV_AWS_18 sees it).
@@ -220,7 +230,9 @@ export class MacieStack extends Stack {
         destinationBucketName: accessLogsBucketName,
         logFilePrefix: 'access-logs/',
       };
-      createdResultsBucket.node.addDependency(accessLogsBucketPolicy);
+      if (accessLogsBucketPolicy) {
+        createdResultsBucket.node.addDependency(accessLogsBucketPolicy);
+      }
     }
 
     // The results bucket is usually imported (it pre-dates this change and is
@@ -252,7 +264,9 @@ export class MacieStack extends Stack {
         onUpdate: putBucketLogging,
       },
     );
-    resultsBucketLogging.node.addDependency(accessLogsBucketPolicy);
+    if (accessLogsBucketPolicy) {
+      resultsBucketLogging.node.addDependency(accessLogsBucketPolicy);
+    }
     resultsBucketLogging.node.addDependency(resultsBucket);
 
     const exportCall: cr.AwsSdkCall = {
