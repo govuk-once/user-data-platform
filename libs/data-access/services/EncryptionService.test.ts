@@ -128,5 +128,78 @@ describe('EncryptionService', () => {
       expect(decrypted).toEqual(data);
       expect('__dataKey' in decrypted).toBe(false);
     });
+
+    describe('integrity failures', () => {
+      const emittedMetrics = (spy: ReturnType<typeof vi.spyOn>) =>
+        spy.mock.calls
+          .map(([line]) => String(line))
+          .filter((line) => line.includes('"_aws"'))
+          .map((line) => JSON.parse(line));
+
+      it('emits a DecryptionFailure metric and rethrows when the auth tag check fails', async () => {
+        const stdoutSpy = vi
+          .spyOn(process.stdout, 'write')
+          .mockImplementation(() => true);
+        const encrypted = await service.encryptFields(
+          { pk: '123', sk: 'topics', data: { test: 'test' } },
+          ['data'],
+        );
+        const tampered = Buffer.from(
+          encrypted.data as unknown as string,
+          'base64',
+        );
+        tampered[tampered.length - 1] ^= 0xff;
+
+        await expect(
+          service.decryptFields(
+            { ...encrypted, data: tampered.toString('base64') } as never,
+            ['data'],
+          ),
+        ).rejects.toThrow();
+
+        const [metric] = emittedMetrics(stdoutSpy);
+        expect(metric.DecryptionFailure).toBe(1);
+        expect(metric.decryptStage).toBe('cipher');
+        expect(metric._aws.CloudWatchMetrics[0].Namespace).toBe('UDP');
+        stdoutSpy.mockRestore();
+      });
+
+      it('emits a DecryptionFailure metric and rethrows when KMS cannot decrypt the data key', async () => {
+        const stdoutSpy = vi
+          .spyOn(process.stdout, 'write')
+          .mockImplementation(() => true);
+        const encrypted = await service.encryptFields(
+          { pk: '123', sk: 'topics', data: { test: 'test' } },
+          ['data'],
+        );
+        const kmsError = Object.assign(new Error('key disabled'), {
+          name: 'DisabledException',
+        });
+        sendMock.mockRejectedValueOnce(kmsError);
+
+        await expect(service.decryptFields(encrypted, ['data'])).rejects.toBe(
+          kmsError,
+        );
+
+        const [metric] = emittedMetrics(stdoutSpy);
+        expect(metric.decryptStage).toBe('kms');
+        expect(metric.errorName).toBe('DisabledException');
+        stdoutSpy.mockRestore();
+      });
+
+      it('does not emit a metric on a successful decrypt', async () => {
+        const stdoutSpy = vi
+          .spyOn(process.stdout, 'write')
+          .mockImplementation(() => true);
+        const encrypted = await service.encryptFields(
+          { pk: '123', sk: 'topics', data: { test: 'test' } },
+          ['data'],
+        );
+        await service.decryptFields(encrypted, ['data']);
+
+        expect(emittedMetrics(stdoutSpy)).toHaveLength(0);
+        stdoutSpy.mockRestore();
+      });
+    });
   });
 });
