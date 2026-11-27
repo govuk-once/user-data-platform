@@ -82,6 +82,7 @@ export class MetricsStack extends Stack {
       logRetentionDays: getLogRetentionPeriod(environment),
       codeSigningConfig,
       disableRoute: true,
+      reservedConcurrentExecutions: 1,
       environmentVariables: {
         STACK: stackPrefix,
         SERVICE_NAME: 'udpMetrics',
