@@ -9,6 +9,7 @@ import {
   E2EStack,
   PerfStack,
   LiveSchemaStack,
+  MetricsStack,
 } from 'cdk/lib/stacks';
 import { GovUkOnceEnvironments, repoMetaData } from '../constants/environment';
 import { CheckovSuppressionAspect } from 'cdk/lib/checkov/checkov-suppression-aspect';
@@ -209,6 +210,20 @@ if (isNotDev) {
     description: `Backup infrastructure stack ${stackDescription}`,
   });
 }
+
+const metricsStack = new MetricsStack(app, `${stackPrefix}-metrics`, {
+  developerId,
+  environment,
+  stackPrefix,
+  env: awsEnv,
+  description: `Metrics stack ${stackDescription}`,
+  signingProfile: vpcStack.lambdaSigningProfile,
+});
+
+GovUKTag.of(metricsStack)
+  .PII.FALSE()
+  .DataClassification.OFFICIAL()
+  .Exposure.INTERNAL();
 
 // Checkov Aspect
 Aspects.of(app).add(new CheckovSuppressionAspect());
