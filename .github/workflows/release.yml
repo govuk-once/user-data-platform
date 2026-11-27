@@ -53,6 +53,7 @@ jobs:
       deploy-script: cdk:deploy:dev
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
+      ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.DEV_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
@@ -105,6 +106,7 @@ jobs:
       deploy-script: cdk:deploy:stag
       version: ${{ needs.version.outputs.version }}
       prerelease-tag: rc
+      ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.STAGING_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
@@ -156,6 +158,7 @@ jobs:
       deploy-script: cdk:deploy:prod
       version: ${{ needs.version.outputs.version }}
       expose-outputs: false
+      ref: ${{ github.sha }}
     secrets:
       DEPLOYMENT_ROLE: ${{ secrets.PRODUCTION_DEPLOYMENT_ROLE }}
       CODEARTIFACT_ACCOUNT: ${{ secrets.CODEARTIFACT_ACCOUNT }}
