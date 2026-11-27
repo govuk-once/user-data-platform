@@ -22,9 +22,9 @@ export interface EncryptionServiceConfig {
   tracer?: Tracer;
 }
 
-export interface EncryptedData {
+export type EncryptedData = {
   __dataKey: string;
-}
+};
 
 export class EncryptionService {
   private readonly kmsClient: KMSClient;
