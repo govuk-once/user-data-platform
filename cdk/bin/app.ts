@@ -211,19 +211,21 @@ if (isNotDev) {
   });
 }
 
-const metricsStack = new MetricsStack(app, `${stackPrefix}-metrics`, {
-  developerId,
-  environment,
-  stackPrefix,
-  env: awsEnv,
-  description: `Metrics stack ${stackDescription}`,
-  signingProfile: vpcStack.lambdaSigningProfile,
-});
+if (!skipMainStack) {
+  const metricsStack = new MetricsStack(app, `${stackPrefix}-metrics`, {
+    developerId,
+    environment,
+    stackPrefix,
+    env: awsEnv,
+    description: `Metrics stack ${stackDescription}`,
+    signingProfile: vpcStack.lambdaSigningProfile,
+  });
 
-GovUKTag.of(metricsStack)
-  .PII.FALSE()
-  .DataClassification.OFFICIAL()
-  .Exposure.INTERNAL();
+  GovUKTag.of(metricsStack)
+    .PII.FALSE()
+    .DataClassification.OFFICIAL()
+    .Exposure.INTERNAL();
+}
 
 // Checkov Aspect
 Aspects.of(app).add(new CheckovSuppressionAspect());
