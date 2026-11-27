@@ -37,6 +37,7 @@ export class MetricsStack extends Stack {
       StringParameter.valueForStringParameter(this, name);
 
     const kmsKey = Key.fromKeyArn(this, 'KmsKey', resolve(params.kmsKeyArn));
+    const dynamoDbEndpointUrl = resolve(params.dynamoDbEndpointUrl);
 
     const identityTable = Table.fromTableAttributes(this, 'IdentityTable', {
       tableName: `${namePrefix}udp-identity-${environment}`,
@@ -86,6 +87,7 @@ export class MetricsStack extends Stack {
         SERVICE_NAME: 'udpMetrics',
         POWERTOOLS_SERVICE_NAME: 'udpMetrics',
         IDENTITY_TABLE_NAME: identityTable.tableName,
+        DYNAMODB_ENDPOINT: dynamoDbEndpointUrl,
       },
     });
 
